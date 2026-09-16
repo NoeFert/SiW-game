@@ -23,7 +23,7 @@ export function findNearestEnemy(unit, units) {
 }
 
 // Cases occupées par une unité selon sa position (coin haut-gauche) et sa taille (1 ou 2x2).
-function footprint(x, y, size) {
+export function footprint(x, y, size) {
   const cells = [];
   for (let dx = 0; dx < size; dx++) {
     for (let dy = 0; dy < size; dy++) {

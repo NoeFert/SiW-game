@@ -8,6 +8,7 @@ describe('Unit', () => {
     expect(unit.x).toBe(3);
     expect(unit.y).toBe(5);
     expect(unit.faction).toBe('player');
+    expect(unit.status).toBe('idle');
   });
 
   test('each unit gets a unique id', () => {
