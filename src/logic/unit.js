@@ -14,6 +14,8 @@ export default class Unit {
     this.attacksLanded = 0;
     this.paralyzedNextAttack = false;
     this.moveProgress = 0;
+    this.command = null; // { type: 'attack', target } | { type: 'moveTo', x, y } | { type: 'flee' }
+    this.hasFled = false;
   }
 
   get size() {
@@ -30,6 +32,11 @@ export default class Unit {
 
   get isAlive() {
     return this.hp > 0;
+  }
+
+  // Vivante et toujours sur le terrain (pas retirée par une fuite réussie, rules.md 2/5).
+  get isOnField() {
+    return this.isAlive && !this.hasFled;
   }
 
   takeDamage(amount) {

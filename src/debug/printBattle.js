@@ -3,6 +3,8 @@
 import Grid from '../logic/grid.js';
 import Unit from '../logic/unit.js';
 import { footprint } from '../logic/pathfinding.js';
+import { resolveCombatTick } from '../logic/combat.js';
+import { createCommandState, commandFlee } from '../logic/commands.js';
 import { WYRMS_ROSTER } from '../data/wyrmsRoster.js';
 
 const SYMBOLS = {
@@ -26,7 +28,7 @@ export function renderGrid(grid, units) {
   }
 
   for (const unit of units) {
-    if (!unit.isAlive) continue;
+    if (!unit.isOnField) continue; // morte ou a fui : plus sur le terrain
     const symbol = symbolFor(unit);
     for (const { x, y } of footprint(unit.x, unit.y, unit.size)) {
       if (grid.isInBounds(x, y)) cells[y][x] = symbol;
@@ -41,8 +43,9 @@ export function renderUnitList(units) {
     .filter((unit) => unit.isAlive)
     .map((unit) => {
       const symbol = symbolFor(unit);
+      const where = unit.hasFled ? 'OFF FIELD (fled)' : `pos (${unit.x},${unit.y})`;
       return `[${symbol}] #${unit.id} ${unit.species.name} (${unit.faction}) — ` +
-        `HP ${unit.hp}/${unit.species.maxHp} — pos (${unit.x},${unit.y}) — status: ${unit.status}`;
+        `HP ${unit.hp}/${unit.species.maxHp} — ${where} — status: ${unit.status}`;
     })
     .join('\n');
 }
@@ -68,11 +71,27 @@ function buildSampleBattle() {
     new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 18, 6),
   ];
 
-  units[0].status = 'moving';
-  units[4].status = 'engaged';
-
   return { grid, units };
 }
 
-const { grid, units } = buildSampleBattle();
-printBattle(grid, units);
+// Déroule quelques ticks pour observer le comportement autonome ET l'effet d'une commande
+// manuelle (ici : fuite) — modifie librement pour tester une autre commande/scénario.
+function runDemo() {
+  const { grid, units } = buildSampleBattle();
+  const commandState = createCommandState();
+
+  console.log('=== t=0s (état initial) ===');
+  printBattle(grid, units);
+
+  const fleeingUnit = units.find((u) => u.x === 3 && u.y === 8);
+  console.log(`\n--- commande : fuite pour l'unité #${fleeingUnit.id} (Lambton Worm en (3,8)) ---`);
+  commandFlee(commandState, 0, fleeingUnit);
+
+  for (let tick = 1; tick <= 3; tick++) {
+    resolveCombatTick(units, grid, 1);
+    console.log(`\n=== t=${tick}s ===`);
+    printBattle(grid, units);
+  }
+}
+
+runDemo();

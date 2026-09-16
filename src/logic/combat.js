@@ -46,11 +46,11 @@ function hasFreeAdjacentSlot(target, aliveUnits, mover, grid) {
 // garde sa cible. Une unité au corps-à-corps qui ne trouve aucune case libre sur l'ennemi le
 // plus proche se redirige vers le suivant, et n'attend que s'il n'y a aucun autre ennemi.
 export function chooseTarget(unit, aliveUnits, grid) {
-  if (unit.target && unit.target.isAlive && unit.status === 'engaged') {
+  if (unit.target && unit.target.isOnField && unit.status === 'engaged') {
     return unit.target;
   }
 
-  const enemies = aliveUnits.filter((u) => u.isAlive && u.faction !== unit.faction);
+  const enemies = aliveUnits.filter((u) => u.isOnField && u.faction !== unit.faction);
   if (enemies.length === 0) return null;
 
   const sorted = [...enemies].sort(
@@ -137,6 +137,59 @@ function applyOnKillAbilities(attacker) {
   }
 }
 
+function isOnEdge(unit, grid) {
+  return footprint(unit.x, unit.y, unit.size).some(
+    ({ x, y }) => x === 0 || y === 0 || x === grid.width - 1 || y === grid.height - 1,
+  );
+}
+
+// Bord du terrain le plus proche (rules.md 5 : la fuite vise le bord, pas un point précis).
+function nearestEdgeTarget(unit, grid) {
+  const candidates = [
+    { x: 0, y: unit.y, dist: unit.x },
+    { x: grid.width - unit.size, y: unit.y, dist: grid.width - unit.size - unit.x },
+    { x: unit.x, y: 0, dist: unit.y },
+    { x: unit.x, y: grid.height - unit.size, dist: grid.height - unit.size - unit.y },
+  ];
+  return candidates.reduce((best, candidate) => (candidate.dist < best.dist ? candidate : best));
+}
+
+// rules.md 5 : la fuite est toujours possible immédiatement, même engagée au corps-à-corps —
+// l'adversaire alors engagé porte une dernière attaque, hors de son propre timer d'attaque.
+function processFlee(unit, grid, aliveUnits, deltaSeconds, pendingAttacks) {
+  if (unit.status === 'engaged' && unit.target?.isOnField) {
+    pendingAttacks.push({ attacker: unit.target, target: unit, mode: 'melee' });
+  }
+
+  unit.status = 'fleeing';
+  if (isOnEdge(unit, grid)) {
+    unit.hasFled = true;
+    unit.command = null;
+    return;
+  }
+
+  const { x, y } = nearestEdgeTarget(unit, grid);
+  moveToward(unit, x, y, grid, aliveUnits, deltaSeconds);
+
+  if (isOnEdge(unit, grid)) {
+    unit.hasFled = true;
+    unit.command = null;
+  }
+}
+
+// rules.md 5 : "se déplacer" ignore le combat autonome tant que la destination n'est pas atteinte.
+function processMoveCommand(unit, grid, aliveUnits, deltaSeconds) {
+  const { x, y } = unit.command;
+  if (unit.x === x && unit.y === y) {
+    unit.command = null;
+    unit.status = 'idle';
+    return;
+  }
+  unit.status = 'moving';
+  moveToward(unit, x, y, grid, aliveUnits, deltaSeconds);
+  if (unit.x === x && unit.y === y) unit.command = null;
+}
+
 // rules.md 4.1 : toutes les attaques du tick sont calculées (queueAttack) avant d'être appliquées
 // ici ensemble — aucune unité ne peut mourir "avant" une autre au sein du même tick.
 function applyAttacks(pendingAttacks) {
@@ -155,13 +208,28 @@ function applyAttacks(pendingAttacks) {
   }
 }
 
-// Fait avancer la bataille de `deltaSeconds` : ciblage, mouvement, attaque (rules.md sections 4 et 6).
+// Fait avancer la bataille de `deltaSeconds` : commandes, ciblage, mouvement, attaque
+// (rules.md sections 4, 5 et 6). Une unité sans commande garde son comportement autonome.
 export function resolveCombatTick(units, grid, deltaSeconds) {
-  const aliveUnits = units.filter((u) => u.isAlive);
+  const aliveUnits = units.filter((u) => u.isOnField);
   const pendingAttacks = [];
 
   for (const unit of aliveUnits) {
-    const target = chooseTarget(unit, aliveUnits, grid);
+    if (unit.command?.type === 'flee') {
+      processFlee(unit, grid, aliveUnits, deltaSeconds, pendingAttacks);
+      continue;
+    }
+
+    if (unit.command?.type === 'moveTo') {
+      processMoveCommand(unit, grid, aliveUnits, deltaSeconds);
+      continue;
+    }
+
+    if (unit.command?.type === 'attack' && !unit.command.target.isOnField) {
+      unit.command = null; // cible morte/enfuie : la commande se termine, retour à l'autonome
+    }
+
+    const target = unit.command?.type === 'attack' ? unit.command.target : chooseTarget(unit, aliveUnits, grid);
     unit.target = target;
 
     if (!target) {
