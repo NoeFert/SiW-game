@@ -40,10 +40,8 @@ export const WYRMS_ROSTER = {
     attackSpeed: 1.8,
     range: 3,
     copies: 1,
-    ability: {
-      name: 'Attaque dévastatrice',
-      trigger: 'every5Attacks',
-      bonusDamage: { ranged: 60, melee: 90 },
-    },
+    abilities: [
+      { trigger: 'periodic', every: 5, type: 'bonusDamage', multiplier: 2, name: 'Attaque dévastatrice' },
+    ],
   },
 };

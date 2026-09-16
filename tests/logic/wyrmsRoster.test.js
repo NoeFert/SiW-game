@@ -42,6 +42,8 @@ describe('WYRMS_ROSTER (units.md)', () => {
       copies: 1,
     });
     expect(WYRMS_ROSTER.fafnir.keywords).toEqual(expect.arrayContaining(['legendary', 'flying']));
-    expect(WYRMS_ROSTER.fafnir.ability.bonusDamage).toEqual({ ranged: 60, melee: 90 });
+    expect(WYRMS_ROSTER.fafnir.abilities).toEqual([
+      { trigger: 'periodic', every: 5, type: 'bonusDamage', multiplier: 2, name: 'Attaque dévastatrice' },
+    ]);
   });
 });

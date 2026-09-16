@@ -1,0 +1,48 @@
+// Statique — définitions d'espèce du Souverain des Morts-Vivants (units.md).
+// Même convention que wyrmsRoster.js : `size` = côté du bloc carré occupé en cases,
+// `range` = null pour une unité sans attaque à distance.
+export const UNDEAD_ROSTER = {
+  newRebornSkeleton: {
+    name: 'New-reborn Skeleton',
+    keywords: [],
+    attackType: 'melee',
+    size: 1,
+    cost: 6,
+    maxHp: 22,
+    damage: 5,
+    moveSpeed: 2.5,
+    attackSpeed: 1.0,
+    range: null,
+    copies: 18,
+  },
+  necromantInitiate: {
+    name: 'Necromant Initiate',
+    keywords: ['flying'],
+    attackType: 'ranged',
+    size: 1,
+    cost: 25,
+    maxHp: 18,
+    damage: 10,
+    moveSpeed: 4,
+    attackSpeed: 1.3,
+    range: 4,
+    copies: 8,
+  },
+  athos: {
+    name: 'Athos the Lord of Pain',
+    keywords: ['legendary', 'flying'],
+    attackType: 'ranged',
+    size: 2,
+    cost: 110,
+    maxHp: 145,
+    damage: 50,
+    moveSpeed: 1.2,
+    attackSpeed: 2.0,
+    range: 5,
+    copies: 1,
+    abilities: [
+      { trigger: 'periodic', every: 4, type: 'paralyze', name: 'Frappe paralysante' },
+      { trigger: 'onKill', type: 'heal', amount: 40, name: 'Soif de sang' },
+    ],
+  },
+};

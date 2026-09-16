@@ -1,4 +1,4 @@
-const DIRECTIONS = [
+export const DIRECTIONS = [
   { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
   { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
   { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 },
@@ -33,7 +33,7 @@ export function footprint(x, y, size) {
   return cells;
 }
 
-function occupiedCells(units, excludeUnit) {
+export function occupiedCells(units, excludeUnit) {
   const occupied = new Set();
   for (const other of units) {
     if (other === excludeUnit || !other.isAlive) continue;
@@ -44,7 +44,7 @@ function occupiedCells(units, excludeUnit) {
   return occupied;
 }
 
-function isPositionFree(x, y, size, grid, occupied, ignoreTerrainObstacles) {
+export function isPositionFree(x, y, size, grid, occupied, ignoreTerrainObstacles) {
   for (const cell of footprint(x, y, size)) {
     if (!grid.isInBounds(cell.x, cell.y)) return false;
     if (!ignoreTerrainObstacles && grid.isObstacle(cell.x, cell.y)) return false;

@@ -1,0 +1,182 @@
+import Grid from '../../src/logic/grid.js';
+import Unit from '../../src/logic/unit.js';
+import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
+import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
+import { resolveCombatTick, chooseTarget, isAdjacent, isInRange } from '../../src/logic/combat.js';
+
+// Cible neutre pour mesurer précisément les dégâts (PV élevés, ne bouge jamais, n'attaque
+// jamais dans la fenêtre d'un test) — évite que le clamp à 0 de takeDamage masque un montant exact.
+const DUMMY = {
+  keywords: [],
+  attackType: 'melee',
+  size: 1,
+  maxHp: 1000,
+  damage: 1,
+  moveSpeed: 0,
+  attackSpeed: 999,
+  range: null,
+};
+
+describe('isAdjacent / isInRange (rules.md 4.3 et 4.5)', () => {
+  test('adjacent units are never "in range" for a ranged attack', () => {
+    const shooter = new Unit(WYRMS_ROSTER.amphiptere, 'player', 5, 5);
+    const target = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 6, 5);
+
+    expect(isAdjacent(shooter, target)).toBe(true);
+    expect(isInRange(shooter, target)).toBe(false);
+  });
+
+  test('a 2x2 unit is adjacent as soon as one of its 4 cells touches the target', () => {
+    const fafnir = new Unit(WYRMS_ROSTER.fafnir, 'player', 0, 0); // occupies (0,0)-(1,1)
+    const target = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 2, 1); // touches (1,1)
+
+    expect(isAdjacent(fafnir, target)).toBe(true);
+  });
+});
+
+describe('resolveCombatTick — dégâts simultanés (rules.md 4.1)', () => {
+  test('two units trading lethal blows on the same tick both die', () => {
+    const grid = new Grid(10, 10);
+    const a = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
+    const b = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 1, 0);
+    a.hp = 5;
+    b.hp = 5;
+
+    resolveCombatTick([a, b], grid, a.species.attackSpeed);
+
+    expect(a.isAlive).toBe(false);
+    expect(b.isAlive).toBe(false);
+  });
+});
+
+describe('chooseTarget — redirection d\'engagement (rules.md 4.2)', () => {
+  test('redirects to the next enemy when the nearest one has no free adjacent cell', () => {
+    const grid = new Grid(20, 20);
+    const mover = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 10);
+    const surroundedEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 7, 10);
+    const blockers = [
+      [6, 9], [7, 9], [8, 9],
+      [6, 10], [8, 10],
+      [6, 11], [7, 11], [8, 11],
+    ].map(([x, y]) => new Unit(WYRMS_ROSTER.lambtonWorm, 'player', x, y));
+    const farEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 15, 10);
+
+    const target = chooseTarget(mover, [mover, surroundedEnemy, farEnemy, ...blockers], grid);
+
+    expect(target).toBe(farEnemy);
+  });
+
+  test('waits on the only enemy left when no other target exists', () => {
+    const grid = new Grid(20, 20);
+    const mover = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 10);
+    const surroundedEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 7, 10);
+    const blockers = [
+      [6, 9], [7, 9], [8, 9],
+      [6, 10], [8, 10],
+      [6, 11], [7, 11], [8, 11],
+    ].map(([x, y]) => new Unit(WYRMS_ROSTER.lambtonWorm, 'player', x, y));
+
+    const target = chooseTarget(mover, [mover, surroundedEnemy, ...blockers], grid);
+
+    expect(target).toBe(surroundedEnemy);
+  });
+});
+
+describe('resolveCombatTick — attaque à distance (rules.md 4.5)', () => {
+  test('a ranged unit never fires on an adjacent target and steps back instead', () => {
+    const grid = new Grid(10, 10);
+    const shooter = new Unit(WYRMS_ROSTER.amphiptere, 'player', 5, 5);
+    const target = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 6, 5);
+
+    resolveCombatTick([shooter, target], grid, shooter.species.attackSpeed);
+
+    expect(target.hp).toBe(target.species.maxHp);
+    expect(shooter.status).toBe('moving');
+  });
+
+  test('Fafnir fires at range then switches to melee once adjacent (hybrid, 4.5)', () => {
+    const grid = new Grid(10, 10);
+
+    const fafnirRanged = new Unit(WYRMS_ROSTER.fafnir, 'player', 0, 0); // occupies (0,0)-(1,1)
+    const farDummy = new Unit(DUMMY, 'enemy', 3, 0); // distance 2 from (1,0) : à portée, pas adjacent
+    resolveCombatTick([fafnirRanged, farDummy], grid, fafnirRanged.species.attackSpeed);
+    expect(farDummy.hp).toBe(DUMMY.maxHp - 30); // dégâts à distance
+
+    const fafnirMelee = new Unit(WYRMS_ROSTER.fafnir, 'player', 0, 0);
+    const adjacentDummy = new Unit(DUMMY, 'enemy', 2, 0); // adjacent à (1,0)
+    resolveCombatTick([fafnirMelee, adjacentDummy], grid, fafnirMelee.species.attackSpeed);
+    expect(adjacentDummy.hp).toBe(DUMMY.maxHp - 45); // dégâts corps-à-corps
+  });
+});
+
+describe('aptitudes automatiques (rules.md 6, units.md)', () => {
+  test('Fafnir — Attaque dévastatrice : la 5e attaque inflige +100% de dégâts', () => {
+    const grid = new Grid(10, 10);
+    const fafnir = new Unit(WYRMS_ROSTER.fafnir, 'player', 0, 0);
+    fafnir.attacksLanded = 4; // la prochaine attaque sera la 5e
+    const dummy = new Unit(DUMMY, 'enemy', 3, 0); // à portée, pas adjacent
+
+    resolveCombatTick([fafnir, dummy], grid, fafnir.species.attackSpeed);
+
+    expect(dummy.hp).toBe(DUMMY.maxHp - 60); // 30 * 2
+    expect(fafnir.attacksLanded).toBe(5);
+  });
+
+  test('Athos — Frappe paralysante : la 4e attaque marque la cible', () => {
+    const grid = new Grid(10, 10);
+    const athos = new Unit(UNDEAD_ROSTER.athos, 'enemy', 0, 0);
+    athos.attacksLanded = 3; // la prochaine attaque sera la 4e
+    const dummy = new Unit(DUMMY, 'player', 4, 0); // distance 3 depuis (1,0), à portée (5)
+
+    resolveCombatTick([athos, dummy], grid, athos.species.attackSpeed);
+
+    expect(dummy.hp).toBe(DUMMY.maxHp - 50);
+    expect(dummy.paralyzedNextAttack).toBe(true);
+  });
+
+  test('une attaque paralysée ne porte aucun dégât et ne compte pas comme portée', () => {
+    const grid = new Grid(10, 10);
+    const paralyzed = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
+    paralyzed.paralyzedNextAttack = true;
+    const victim = new Unit(DUMMY, 'enemy', 1, 0); // adjacent
+
+    resolveCombatTick([paralyzed, victim], grid, paralyzed.species.attackSpeed);
+
+    expect(victim.hp).toBe(DUMMY.maxHp);
+    expect(paralyzed.paralyzedNextAttack).toBe(false);
+    expect(paralyzed.attacksLanded).toBe(0);
+  });
+
+  test('Athos — Soif de sang : régénère 40 PV sur un coup fatal, plafonné au max', () => {
+    const grid = new Grid(10, 10);
+
+    const athos = new Unit(UNDEAD_ROSTER.athos, 'enemy', 0, 0);
+    athos.hp = 100;
+    const weakTarget = new Unit(DUMMY, 'player', 4, 0);
+    weakTarget.hp = 10; // meurt sous le coup d'Athos (50 dégâts)
+    resolveCombatTick([athos, weakTarget], grid, athos.species.attackSpeed);
+    expect(weakTarget.isAlive).toBe(false);
+    expect(athos.hp).toBe(140); // 100 + 40
+
+    const athosNearCap = new Unit(UNDEAD_ROSTER.athos, 'enemy', 0, 0);
+    athosNearCap.hp = 130; // 130 + 40 = 170 > 145, doit être plafonné
+    const weakTarget2 = new Unit(DUMMY, 'player', 4, 0);
+    weakTarget2.hp = 1;
+    resolveCombatTick([athosNearCap, weakTarget2], grid, athosNearCap.species.attackSpeed);
+    expect(athosNearCap.hp).toBe(athosNearCap.species.maxHp);
+  });
+});
+
+describe('mort (rules.md 4.4)', () => {
+  test('une unité tuée est retirée du ciblage et ne compte plus comme ennemie', () => {
+    const grid = new Grid(10, 10);
+    const a = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
+    const b = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 1, 0);
+    b.hp = 1; // meurt au premier coup de a
+
+    resolveCombatTick([a, b], grid, a.species.attackSpeed);
+
+    expect(b.isAlive).toBe(false);
+    expect(chooseTarget(a, [a, b], grid)).toBeNull();
+  });
+});

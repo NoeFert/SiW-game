@@ -9,6 +9,11 @@ export default class Unit {
     this.y = y;
     this.hp = species.maxHp;
     this.status = 'idle'; // idle | moving | attacking | engaged | fleeing
+    this.target = null;
+    this.attackTimer = 0;
+    this.attacksLanded = 0;
+    this.paralyzedNextAttack = false;
+    this.moveProgress = 0;
   }
 
   get size() {
