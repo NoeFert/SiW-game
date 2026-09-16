@@ -1,0 +1,123 @@
+import {
+  createDeploymentState, deployUnit, recordReturn, PRESENCE_CAP,
+} from '../../src/logic/deployment.js';
+
+// Roster fictif minimal, isolé de units.md, pour piloter précisément plafond/copies/légendaire.
+const ROSTER = {
+  grunt: {
+    name: 'Grunt', keywords: [], attackType: 'melee', size: 1,
+    cost: 50, maxHp: 20, damage: 1, moveSpeed: 1, attackSpeed: 1, range: null, copies: 5,
+  },
+  champion: {
+    name: 'Champion', keywords: ['legendary'], attackType: 'melee', size: 1,
+    cost: 60, maxHp: 50, damage: 5, moveSpeed: 1, attackSpeed: 1, range: null, copies: 2,
+  },
+  lonely: {
+    name: 'Lonely', keywords: [], attackType: 'melee', size: 1,
+    cost: 10, maxHp: 10, damage: 1, moveSpeed: 1, attackSpeed: 1, range: null, copies: 1,
+  },
+};
+
+describe('deployUnit — plafond de points de présence (rules.md 2)', () => {
+  test('accepte des déploiements tant que le total ne dépasse pas 150', () => {
+    const state = createDeploymentState(ROSTER);
+    const onField = [];
+
+    for (let i = 0; i < 3; i++) { // 3 x 50 = 150, exactement le plafond
+      const result = deployUnit(state, 'player', ROSTER.grunt, i, 0, onField);
+      expect(result.success).toBe(true);
+      onField.push(result.unit);
+    }
+
+    expect(onField.reduce((sum, u) => sum + u.species.cost, 0)).toBe(PRESENCE_CAP);
+  });
+
+  test('refuse un déploiement qui dépasserait le plafond', () => {
+    const state = createDeploymentState(ROSTER);
+    const onField = [];
+    for (let i = 0; i < 3; i++) {
+      onField.push(deployUnit(state, 'player', ROSTER.grunt, i, 0, onField).unit);
+    }
+
+    const result = deployUnit(state, 'player', ROSTER.grunt, 9, 0, onField); // 200 > 150
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('presenceCapExceeded');
+  });
+
+  test('les points se libèrent dès qu\'une unité meurt ou fuit (le plafond est vivant)', () => {
+    const state = createDeploymentState(ROSTER);
+    let onField = [];
+    for (let i = 0; i < 3; i++) {
+      onField.push(deployUnit(state, 'player', ROSTER.grunt, i, 0, onField).unit);
+    }
+    expect(deployUnit(state, 'player', ROSTER.grunt, 9, 0, onField).success).toBe(false);
+
+    onField = onField.slice(1); // une unité retirée (morte ou en fuite, peu importe pour le plafond)
+
+    const result = deployUnit(state, 'player', ROSTER.grunt, 9, 0, onField);
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('deployUnit — copies et fuite (rules.md 2)', () => {
+  test('épuise les copies disponibles d\'une espèce', () => {
+    const state = createDeploymentState(ROSTER);
+    expect(deployUnit(state, 'player', ROSTER.lonely, 0, 0, []).success).toBe(true);
+
+    const result = deployUnit(state, 'player', ROSTER.lonely, 1, 0, []);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('noCopiesLeft');
+  });
+
+  test('redéploie une copie revenue de fuite avec ses PV réduits conservés', () => {
+    const state = createDeploymentState(ROSTER);
+    const { unit } = deployUnit(state, 'player', ROSTER.lonely, 0, 0, []);
+    unit.hp = 3; // dégâts subis avant la fuite
+
+    recordReturn(state, unit);
+    const result = deployUnit(state, 'player', ROSTER.lonely, 5, 5, []);
+
+    expect(result.success).toBe(true);
+    expect(result.unit.hp).toBe(3); // pas species.maxHp (10)
+  });
+});
+
+describe('deployUnit — limite du [Légendaire] (rules.md 2)', () => {
+  test('bloque un second exemplaire simultané, indépendamment du budget disponible', () => {
+    const state = createDeploymentState(ROSTER);
+    const first = deployUnit(state, 'player', ROSTER.champion, 0, 0, []);
+    expect(first.success).toBe(true);
+
+    const result = deployUnit(state, 'player', ROSTER.champion, 5, 5, [first.unit]);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('legendaryAlreadyDeployed');
+  });
+
+  test('une tentative refusée ne consomme pas de copie', () => {
+    const state = createDeploymentState(ROSTER);
+    const first = deployUnit(state, 'player', ROSTER.champion, 0, 0, []);
+    deployUnit(state, 'player', ROSTER.champion, 5, 5, [first.unit]); // refusé
+
+    expect(state.bySpecies.get(ROSTER.champion).freshRemaining).toBe(1); // 2 - 1 (seul le succès compte)
+  });
+
+  test('redevient déployable une fois le premier exemplaire retiré du terrain', () => {
+    const state = createDeploymentState(ROSTER);
+    deployUnit(state, 'player', ROSTER.champion, 0, 0, []);
+
+    const result = deployUnit(state, 'player', ROSTER.champion, 5, 5, []); // plus personne sur le terrain
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('deployUnit — signal de pause tactique (rules.md 2)', () => {
+  test('un déploiement réussi signale une pause ; le vrai contrôle du temps viendra de Phaser', () => {
+    const state = createDeploymentState(ROSTER);
+    const result = deployUnit(state, 'player', ROSTER.grunt, 0, 0, []);
+    expect(result.timeControl).toBe('pause');
+  });
+});

@@ -1,16 +1,19 @@
 // Outil de debug temporaire : affiche l'état d'une bataille en ASCII dans le terminal.
 // Pas une fonctionnalité du jeu — sert uniquement à vérifier la logique sans Phaser.
 import Grid from '../logic/grid.js';
-import Unit from '../logic/unit.js';
 import { footprint } from '../logic/pathfinding.js';
-import { resolveCombatTick } from '../logic/combat.js';
-import { createCommandState, commandFlee } from '../logic/commands.js';
+import { createBattle, deployPlayerUnit, issuePlayerFlee, tickBattle } from '../logic/battle.js';
 import { WYRMS_ROSTER } from '../data/wyrmsRoster.js';
+import { UNDEAD_ROSTER } from '../data/undeadRoster.js';
+import { UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
 
 const SYMBOLS = {
   'Lambton Worm': 'L',
   'Amphiptère': 'A',
   'Fafnir the Cursed One': 'F',
+  'New-reborn Skeleton': 'S',
+  'Necromant Initiate': 'N',
+  'Athos the Lord of Pain': 'H',
 };
 
 function symbolFor(unit) {
@@ -50,48 +53,72 @@ export function renderUnitList(units) {
     .join('\n');
 }
 
-export function printBattle(grid, units) {
-  console.log(renderGrid(grid, units));
-  console.log('');
-  console.log(renderUnitList(units));
+const OUTCOME_LABELS = {
+  playerVictory: 'Victoire du joueur',
+  enemyVictory: "Victoire de l'IA",
+  draw: 'Match nul',
+};
+
+// rules.md 8 : "en cours" / compte à rebours actif (camp, temps restant) / terminée (résultat).
+export function renderBattleStatus(battle) {
+  if (battle.outcome !== 'ongoing') return `Bataille terminée : ${OUTCOME_LABELS[battle.outcome]}`;
+
+  const counting = [['Joueur', battle.playerEndState], ['IA', battle.enemyEndState]]
+    .find(([, state]) => state.countdownRemaining !== null);
+  if (counting) {
+    const [label, state] = counting;
+    return `Compte à rebours (${label}) : ${state.countdownRemaining.toFixed(1)}s avant défaite automatique`;
+  }
+
+  return 'Bataille en cours';
 }
 
-// Bataille de démo : quelques Wyrms placés à la main, avec un "ennemi" (même roster,
-// faute de roster Undead pour l'instant) pour vérifier la convention majuscule/minuscule.
-function buildSampleBattle() {
+export function printBattle(battle) {
+  console.log(renderGrid(battle.grid, battle.units));
+  console.log('');
+  console.log(renderUnitList(battle.units));
+  console.log('');
+  console.log(renderBattleStatus(battle));
+}
+
+// Pilote une bataille complète via battle.js : déploiement joueur, script IA Morts-Vivants,
+// une commande de fuite en cours de route, jusqu'à la fin de bataille ou t=45s.
+function runFullBattleDemo() {
   const grid = new Grid(24, 14, [
     { x: 10, y: 5 }, { x: 10, y: 6 }, { x: 14, y: 8 },
   ]);
+  const battle = createBattle(grid, WYRMS_ROSTER, UNDEAD_ROSTER, UNDEAD_AI_SCRIPT);
 
-  const units = [
-    new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 3, 5),
-    new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 3, 8),
-    new Unit(WYRMS_ROSTER.amphiptere, 'player', 5, 2),
-    new Unit(WYRMS_ROSTER.fafnir, 'player', 2, 10), // occupe (2,10)-(3,11)
-    new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 18, 6),
-  ];
+  const deployAt = (species, x, y) => {
+    const result = deployPlayerUnit(battle, species, x, y);
+    console.log(
+      `Déploiement ${species.name} en (${x},${y}) : `
+      + (result.success ? `OK (signal: ${result.timeControl})` : `refusé (${result.reason})`),
+    );
+    return result.unit;
+  };
 
-  return { grid, units };
-}
+  console.log('=== t=0s : déploiement initial du joueur ===');
+  // 10 + 25 + 110 = 145 <= 150 : tient dans le plafond de points de présence (rules.md 2).
+  deployAt(WYRMS_ROSTER.lambtonWorm, 5, 5);
+  deployAt(WYRMS_ROSTER.amphiptere, 3, 2);
+  const fafnir = deployAt(WYRMS_ROSTER.fafnir, 2, 10);
+  console.log('');
+  printBattle(battle);
 
-// Déroule quelques ticks pour observer le comportement autonome ET l'effet d'une commande
-// manuelle (ici : fuite) — modifie librement pour tester une autre commande/scénario.
-function runDemo() {
-  const { grid, units } = buildSampleBattle();
-  const commandState = createCommandState();
+  for (let t = 1; t <= 45 && battle.outcome === 'ongoing'; t++) {
+    tickBattle(battle, 1);
 
-  console.log('=== t=0s (état initial) ===');
-  printBattle(grid, units);
+    if (t === 15) {
+      console.log(`\n--- t=${t}s : le joueur ordonne à Fafnir #${fafnir.id} de fuir ---`);
+      issuePlayerFlee(battle, fafnir);
+    }
 
-  const fleeingUnit = units.find((u) => u.x === 3 && u.y === 8);
-  console.log(`\n--- commande : fuite pour l'unité #${fleeingUnit.id} (Lambton Worm en (3,8)) ---`);
-  commandFlee(commandState, 0, fleeingUnit);
-
-  for (let tick = 1; tick <= 3; tick++) {
-    resolveCombatTick(units, grid, 1);
-    console.log(`\n=== t=${tick}s ===`);
-    printBattle(grid, units);
+    if (t % 5 === 0 || battle.outcome !== 'ongoing') {
+      console.log(`\n=== t=${t}s ===`);
+      printBattle(battle);
+    }
   }
 }
 
-runDemo();
+runFullBattleDemo();
