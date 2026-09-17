@@ -4,7 +4,9 @@ import { createAiScriptState, deployScheduledUnits } from './aiScript.js';
 import {
   createDeploymentState, deployUnit, recordReturn, consumeFreshCopy, isValidDeploymentPosition,
 } from './deployment.js';
-import { createFactionState, updateFactionEndState, evaluateBattleOutcome } from './battleEnd.js';
+import {
+  createFactionState, updateFactionEndState, evaluateBattleOutcome, surrender,
+} from './battleEnd.js';
 
 // Assemble déploiement (rules.md 2, 7), commandes (5, consommées par resolveCombatTick),
 // résolution de combat (4, 6) et fin de bataille (8) en une seule boucle par tick. Aucune
@@ -24,7 +26,13 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript) {
     playerEndState: createFactionState(),
     enemyEndState: createFactionState(),
     onFieldById: new Map(), // détecte les fuites qui viennent d'aboutir (transition on-field -> off-field)
+    abilityEvents: [], // aptitudes déclenchées au dernier tick (rules.md 6), pour feedback visuel
   };
+}
+
+// rules.md 8.2, dernière clause : abandon explicite du joueur pendant le compte à rebours.
+export function surrenderPlayer(battle) {
+  surrender(battle.playerEndState);
 }
 
 // rules.md 1/2 : déploiement du joueur — position dans sa moitié du terrain et case libre,
@@ -86,7 +94,7 @@ export function tickBattle(battle, deltaSeconds) {
 
   battle.elapsedSeconds += deltaSeconds;
   deployScriptedEnemies(battle);
-  resolveCombatTick(battle.units, battle.grid, deltaSeconds);
+  battle.abilityEvents = resolveCombatTick(battle.units, battle.grid, deltaSeconds);
   processDepartures(battle);
 
   const playerUnitsOnField = battle.units.filter((u) => u.faction === 'player' && u.isOnField);

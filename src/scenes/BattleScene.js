@@ -3,17 +3,20 @@ import Grid from '../logic/grid.js';
 import { footprint } from '../logic/pathfinding.js';
 import {
   createBattle, tickBattle, deployPlayerUnit, issuePlayerAttack, issuePlayerMoveTo, issuePlayerFlee,
+  surrenderPlayer,
 } from '../logic/battle.js';
 import { getReserve, getPresenceUsed, PRESENCE_CAP } from '../logic/deployment.js';
 import { canIssueCommand, COMMAND_COOLDOWN_SECONDS } from '../logic/commands.js';
 import { WYRMS_ROSTER } from '../data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../data/undeadRoster.js';
-import { UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
+import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
 
 // technical.md section 3 : une case de grille fait 64x64 px à l'affichage.
 export const CELL_SIZE = 64;
 
 const BOTTOM_BAR_HEIGHT = 90;
+
+const OUTCOME_LABELS = { playerVictory: 'VICTOIRE', enemyVictory: 'DÉFAITE', draw: 'ÉGALITÉ' };
 
 // Espèce -> clé d'asset chargée dans preload(). Amphiptère et Necromant Initiate n'ont pas
 // encore de sprite fourni (voir assets/README.md) : ils restent en dehors de cette table et
@@ -37,13 +40,13 @@ function healthBarColor(ratio) {
 }
 
 // Cette Scene ne contient aucune règle de jeu : elle appelle battle.js/deployment.js/
-// commands.js (déploiement, ciblage, cooldown, plafond de points...) et se contente de
-// refléter/collecter l'intention du joueur à la souris. L'IA continue de suivre son script
-// existant sans changement (rules.md 7), géré en interne par battle.js.
+// commands.js (déploiement, ciblage, cooldown, plafond de points, fin de bataille...) et se
+// contente de refléter l'état lu et de collecter l'intention du joueur à la souris. L'IA
+// continue de suivre son script existant sans changement (rules.md 7), géré par battle.js.
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super('BattleScene');
-    this.unitViews = new Map(); // unit.id -> { container, barFill, barWidth }
+    this.unitViews = new Map(); // unit.id -> { container, barFill, barWidth, paralyzedBadge }
   }
 
   preload() {
@@ -56,25 +59,16 @@ export default class BattleScene extends Phaser.Scene {
 
   create() {
     const grid = new Grid(); // 24x14, sans obstacles (positions exactes non tranchées, rules.md 1)
-    const width = grid.width * CELL_SIZE;
-    const height = grid.height * CELL_SIZE;
-    this.barY = height - BOTTOM_BAR_HEIGHT;
+    this.grid = grid;
+    this.width = grid.width * CELL_SIZE;
+    this.height = grid.height * CELL_SIZE;
+    this.barY = this.height - BOTTOM_BAR_HEIGHT;
 
-    this.add.image(0, 0, 'battlefield').setOrigin(0, 0).setDisplaySize(width, height);
+    this.add.image(0, 0, 'battlefield').setOrigin(0, 0).setDisplaySize(this.width, this.height);
     this.drawGridLines(grid);
 
-    this.battle = createBattle(grid, WYRMS_ROSTER, UNDEAD_ROSTER, UNDEAD_AI_SCRIPT);
-    this.paused = false;
-    this.pendingDeploySpecies = null;
-    this.selectedUnit = null;
-
-    this.input.mouse.disableContextMenu();
-    this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
-
-    this.createSelectionIndicator();
-    this.createDeployPanel(width);
-    this.createCommandPanel(width);
-    this.createPauseBanner(width);
+    this.battle = null; // pas encore de bataille tant que la faction n'est pas choisie
+    this.showFactionChoice();
   }
 
   drawGridLines(grid) {
@@ -88,12 +82,61 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  // -- Déploiement interactif (rules.md 2) ----------------------------------------------
+  // -- Choix de faction (rules.md 9) ------------------------------------------------------
 
-  createDeployPanel(width) {
-    this.add.rectangle(0, this.barY, width, BOTTOM_BAR_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
+  showFactionChoice() {
+    const overlay = this.add.rectangle(0, 0, this.width, this.height, 0x000000, 0.7).setOrigin(0, 0);
+    const title = this.add.text(this.width / 2, this.height / 2 - 90, 'Choisis ta faction', {
+      fontSize: '26px', color: '#ffffff',
+    }).setOrigin(0.5);
 
-    this.deployButtons = Object.values(WYRMS_ROSTER).map((species, index) => {
+    const buttonStyle = {
+      fontSize: '16px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 14, y: 10 },
+    };
+    const wyrmsBtn = this.add.text(this.width / 2 - 160, this.height / 2, 'Souveraine des Wyrms', buttonStyle)
+      .setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const undeadBtn = this.add.text(this.width / 2 + 160, this.height / 2, 'Souverain des Morts-Vivants', buttonStyle)
+      .setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    const choose = (playerFaction) => {
+      overlay.destroy();
+      title.destroy();
+      wyrmsBtn.destroy();
+      undeadBtn.destroy();
+      this.startBattle(playerFaction);
+    };
+    wyrmsBtn.on('pointerdown', () => choose('wyrms'));
+    undeadBtn.on('pointerdown', () => choose('undead'));
+  }
+
+  startBattle(playerFaction) {
+    this.playerRoster = playerFaction === 'wyrms' ? WYRMS_ROSTER : UNDEAD_ROSTER;
+    const enemyRoster = playerFaction === 'wyrms' ? UNDEAD_ROSTER : WYRMS_ROSTER;
+    const enemyScript = playerFaction === 'wyrms' ? UNDEAD_AI_SCRIPT : WYRMS_AI_SCRIPT;
+
+    this.battle = createBattle(this.grid, this.playerRoster, enemyRoster, enemyScript);
+    this.paused = false;
+    this.pendingDeploySpecies = null;
+    this.selectedUnit = null;
+
+    this.input.mouse.disableContextMenu();
+    this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
+
+    this.createSelectionIndicator();
+    this.createDeployPanel();
+    this.createCommandPanel();
+    this.createPauseBanner();
+    this.createCountdownBanner();
+    this.createResultOverlay();
+  }
+
+  // -- Déploiement interactif (rules.md 2) ------------------------------------------------
+
+  createDeployPanel() {
+    this.bottomBarBg = this.add.rectangle(0, this.barY, this.width, BOTTOM_BAR_HEIGHT, 0x000000, 0.75)
+      .setOrigin(0, 0);
+
+    this.deployButtons = Object.values(this.playerRoster).map((species, index) => {
       const x = 10 + index * 190;
       const text = this.add.text(x, this.barY + 8, '', {
         fontSize: '13px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 6, y: 4 },
@@ -107,12 +150,13 @@ export default class BattleScene extends Phaser.Scene {
       fontSize: '13px', color: '#ffffff',
     });
 
-    this.messageText = this.add.text(width / 2, this.barY - 24, '', {
+    this.messageText = this.add.text(this.width / 2, this.barY - 24, '', {
       fontSize: '13px', color: '#ff6b6b', backgroundColor: '#000000', padding: { x: 6, y: 4 },
     }).setOrigin(0.5, 0);
   }
 
   startDeployment(species) {
+    if (this.battle.outcome !== 'ongoing') return;
     this.pendingDeploySpecies = species;
     this.selectedUnit = null;
     this.paused = true;
@@ -151,21 +195,21 @@ export default class BattleScene extends Phaser.Scene {
     this.budgetText.setText(`Points de présence : ${used}/${PRESENCE_CAP}`);
   }
 
-  // -- Commandes en cours de bataille (rules.md 5) --------------------------------------
+  // -- Commandes en cours de bataille (rules.md 5) ----------------------------------------
 
-  createCommandPanel(width) {
-    this.fleeButton = this.add.text(width - 150, this.barY + 8, '\u{1F3F3} Fuir', {
+  createCommandPanel() {
+    this.fleeButton = this.add.text(this.width - 150, this.barY + 8, '\u{1F3F3} Fuir', {
       fontSize: '14px', color: '#ffffff', backgroundColor: '#7a1f1f', padding: { x: 8, y: 6 },
     })
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        if (this.selectedUnit) issuePlayerFlee(this.battle, this.selectedUnit);
+        if (this.selectedUnit && this.battle.outcome === 'ongoing') issuePlayerFlee(this.battle, this.selectedUnit);
       })
       .setVisible(false);
 
-    this.cooldownBarBg = this.add.rectangle(width - 150, this.barY + 46, 130, 10, 0x333333).setOrigin(0, 0);
-    this.cooldownBarFill = this.add.rectangle(width - 150, this.barY + 46, 130, 10, 0xe74c3c).setOrigin(0, 0);
-    this.cooldownText = this.add.text(width - 150, this.barY + 60, '', { fontSize: '11px', color: '#cccccc' });
+    this.cooldownBarBg = this.add.rectangle(this.width - 150, this.barY + 46, 130, 10, 0x333333).setOrigin(0, 0);
+    this.cooldownBarFill = this.add.rectangle(this.width - 150, this.barY + 46, 130, 10, 0xe74c3c).setOrigin(0, 0);
+    this.cooldownText = this.add.text(this.width - 150, this.barY + 60, '', { fontSize: '11px', color: '#cccccc' });
 
     for (const view of [this.fleeButton, this.cooldownBarBg, this.cooldownBarFill, this.cooldownText]) {
       view.setVisible(false);
@@ -186,12 +230,12 @@ export default class BattleScene extends Phaser.Scene {
       : COMMAND_COOLDOWN_SECONDS - (this.battle.elapsedSeconds - this.battle.playerCommandState.lastCommandTime);
 
     this.fleeButton.setAlpha(ready ? 1 : 0.5);
-    this.cooldownBarFill.width = 130 * (remaining / COMMAND_COOLDOWN_SECONDS);
+    this.cooldownBarFill.setSize(130 * (remaining / COMMAND_COOLDOWN_SECONDS), 10);
     this.cooldownText.setText(ready ? 'Commande disponible' : `Cooldown : ${remaining.toFixed(1)}s`);
   }
 
-  createPauseBanner(width) {
-    this.pauseBanner = this.add.text(width / 2, 16, '', {
+  createPauseBanner() {
+    this.pauseBanner = this.add.text(this.width / 2, 16, '', {
       fontSize: '16px', color: '#ffff00', backgroundColor: '#000000', padding: { x: 10, y: 6 },
     }).setOrigin(0.5, 0).setVisible(false);
   }
@@ -208,7 +252,138 @@ export default class BattleScene extends Phaser.Scene {
     this.pauseBanner.setVisible(true);
   }
 
-  // -- Sélection et input ----------------------------------------------------------------
+  // -- Fin de bataille (rules.md 8) --------------------------------------------------------
+
+  createCountdownBanner() {
+    this.countdownText = this.add.text(this.width / 2, 54, '', {
+      fontSize: '15px', color: '#ffcc00', backgroundColor: '#000000', padding: { x: 10, y: 6 },
+    }).setOrigin(0.5, 0).setVisible(false);
+
+    this.surrenderButton = this.add.text(this.width / 2, 90, 'Abandonner', {
+      fontSize: '13px', color: '#ffffff', backgroundColor: '#7a1f1f', padding: { x: 8, y: 6 },
+    })
+      .setOrigin(0.5, 0)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        if (this.battle.outcome === 'ongoing' && this.battle.playerEndState.countdownRemaining !== null) {
+          surrenderPlayer(this.battle);
+        }
+      })
+      .setVisible(false);
+  }
+
+  updateCountdownBanner() {
+    const playerCountdown = this.battle.playerEndState.countdownRemaining;
+    const enemyCountdown = this.battle.enemyEndState.countdownRemaining;
+
+    if (playerCountdown !== null) {
+      this.countdownText.setText(
+        `⚠ Redéploie une unité avant ${playerCountdown.toFixed(1)}s, ou défaite automatique !`,
+      );
+      this.countdownText.setVisible(true);
+      this.surrenderButton.setVisible(true);
+    } else if (enemyCountdown !== null) {
+      this.countdownText.setText(`L'IA doit redéployer avant ${enemyCountdown.toFixed(1)}s...`);
+      this.countdownText.setVisible(true);
+      this.surrenderButton.setVisible(false);
+    } else {
+      this.countdownText.setVisible(false);
+      this.surrenderButton.setVisible(false);
+    }
+  }
+
+  createResultOverlay() {
+    this.resultOverlay = this.add.rectangle(0, 0, this.width, this.height, 0x000000, 0.75)
+      .setOrigin(0, 0).setVisible(false);
+    this.resultText = this.add.text(this.width / 2, this.height / 2, '', {
+      fontSize: '42px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setVisible(false);
+  }
+
+  updateResultOverlay() {
+    const ended = this.battle.outcome !== 'ongoing';
+    this.resultOverlay.setVisible(ended);
+    this.resultText.setVisible(ended);
+    if (ended) this.resultText.setText(OUTCOME_LABELS[this.battle.outcome]);
+  }
+
+  // Cache toute l'UI de bataille une fois celle-ci terminée (rules.md 8 : plus aucune
+  // interaction possible, le jeu s'arrête proprement sur l'écran de résultat).
+  hideBattleUi() {
+    this.bottomBarBg.setVisible(false);
+    for (const { text } of this.deployButtons) text.setVisible(false);
+    this.budgetText.setVisible(false);
+    this.messageText.setVisible(false);
+    this.fleeButton.setVisible(false);
+    this.cooldownBarBg.setVisible(false);
+    this.cooldownBarFill.setVisible(false);
+    this.cooldownText.setVisible(false);
+    this.pauseBanner.setVisible(false);
+    this.countdownText.setVisible(false);
+    this.surrenderButton.setVisible(false);
+    this.selectionIndicator.setVisible(false);
+  }
+
+  // -- Feedback visuel des aptitudes (units.md, section 6) --------------------------------
+
+  processAbilityEvents() {
+    for (const event of this.battle.abilityEvents) {
+      if (event.type === 'bonusDamage') {
+        this.flashUnit(event.target, 0xffff00);
+        this.cameras.main.shake(120, 0.006);
+        this.spawnFloatingText(event.target, 'COUP CRITIQUE !', '#ffcc00');
+      } else if (event.type === 'missed') {
+        this.spawnFloatingText(event.unit, 'Raté !', '#cccccc');
+      } else if (event.type === 'heal') {
+        this.spawnFloatingText(event.unit, `+${event.amount}`, '#2ecc71');
+        this.pulseHealthBar(event.unit);
+      }
+    }
+  }
+
+  // Un sprite (Image) se teinte avec setTint/clearTint ; un placeholder (Arc) n'a pas cette
+  // méthode, on bascule temporairement sa couleur de remplissage à la place.
+  flashUnit(unit, color) {
+    const view = this.unitViews.get(unit.id);
+    if (!view) return;
+    const { visual, isSprite } = view;
+    const originalFill = visual.fillColor;
+    if (isSprite) visual.setTint(color); else visual.fillColor = color;
+
+    this.tweens.add({
+      targets: visual,
+      alpha: 0.3,
+      duration: 70,
+      yoyo: true,
+      repeat: 2,
+      onComplete: () => {
+        visual.setAlpha(1);
+        if (isSprite) visual.clearTint(); else visual.fillColor = originalFill;
+      },
+    });
+  }
+
+  spawnFloatingText(unit, message, color) {
+    const view = this.unitViews.get(unit.id);
+    if (!view) return;
+    const label = this.add.text(0, -unit.size * CELL_SIZE / 2 - 16, message, {
+      fontSize: '13px', color, fontStyle: 'bold',
+    }).setOrigin(0.5, 1);
+    view.container.add(label);
+    this.tweens.add({
+      targets: label, y: label.y - 26, alpha: 0, duration: 900, onComplete: () => label.destroy(),
+    });
+  }
+
+  pulseHealthBar(unit) {
+    const view = this.unitViews.get(unit.id);
+    if (!view) return;
+    this.tweens.add({
+      targets: view.barFill, scaleY: 2, duration: 150, yoyo: true,
+    });
+  }
+
+  // -- Sélection et input ------------------------------------------------------------------
 
   createSelectionIndicator() {
     this.selectionIndicator = this.add.rectangle(0, 0, CELL_SIZE, CELL_SIZE, 0xffff00, 0)
@@ -236,6 +411,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   handlePointerDown(pointer) {
+    if (this.battle.outcome !== 'ongoing') return; // bataille terminée : plus aucune interaction
     if (pointer.y >= this.barY) return; // les boutons de la barre gèrent eux-mêmes leur clic
 
     if (pointer.rightButtonDown()) {
@@ -268,17 +444,28 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  // -- Boucle par frame --------------------------------------------------------------------
+  // -- Boucle par frame ---------------------------------------------------------------------
 
   update(time, deltaMs) {
+    if (!this.battle) return; // en attente du choix de faction
+
     if (!this.paused && this.battle.outcome === 'ongoing') {
       tickBattle(this.battle, deltaMs / 1000);
+      this.processAbilityEvents();
     }
+
     this.syncViews();
     this.updateSelectionIndicator();
-    this.updateDeployPanel();
-    this.updateCommandPanel();
-    this.updatePauseBanner();
+    this.updateResultOverlay();
+
+    if (this.battle.outcome === 'ongoing') {
+      this.updateDeployPanel();
+      this.updateCommandPanel();
+      this.updatePauseBanner();
+      this.updateCountdownBanner();
+    } else {
+      this.hideBattleUi();
+    }
   }
 
   syncViews() {
@@ -318,7 +505,17 @@ export default class BattleScene extends Phaser.Scene {
     container.add(barBackground);
     container.add(barFill);
 
-    const view = { container, barFill, barWidth };
+    // units.md 6 — Frappe paralysante d'Athos : badge persistant tant que la prochaine
+    // attaque de cette unité est neutralisée (rules.md 6, disparaît exactement au moment
+    // où l'attaque ratée est traitée, voir le tweet flottant "Raté !" en complément).
+    const paralyzedBadge = this.add.text(footprintSize / 2 - 2, -footprintSize / 2 - 2, '\u{1F4AB}', {
+      fontSize: '14px',
+    }).setOrigin(1, 1).setVisible(false);
+    container.add(paralyzedBadge);
+
+    const view = {
+      container, barFill, barWidth, paralyzedBadge, visual, isSprite: !!spriteKey,
+    };
     this.updateUnitView(view, unit);
     return view;
   }
@@ -331,5 +528,7 @@ export default class BattleScene extends Phaser.Scene {
     const ratio = Math.max(0, unit.hp / unit.species.maxHp);
     view.barFill.setSize(view.barWidth * ratio, 6);
     view.barFill.fillColor = healthBarColor(ratio);
+
+    view.paralyzedBadge.setVisible(unit.paralyzedNextAttack === true);
   }
 }

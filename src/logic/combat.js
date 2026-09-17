@@ -118,23 +118,36 @@ function stepAwayFrom(unit, target, grid, aliveUnits, deltaSeconds) {
   }
 }
 
-// units.md — aptitudes automatiques (section 6.1) : périodiques (tous les N coups portés) ou au coup fatal.
+// units.md — aptitudes automatiques (section 6.1) : périodiques (tous les N coups portés) ou au
+// coup fatal. Renvoie aussi les aptitudes déclenchées (`triggered`), pour que la couche Phaser
+// puisse en tirer un feedback visuel sans que combat.js sache quoi que ce soit du rendu.
 function applyPeriodicAbilities(attacker, target, baseDamage) {
   let damage = baseDamage;
+  const triggered = [];
   for (const ability of attacker.species.abilities ?? []) {
     if (ability.trigger !== 'periodic' || attacker.attacksLanded % ability.every !== 0) continue;
-    if (ability.type === 'bonusDamage') damage *= ability.multiplier;
-    if (ability.type === 'paralyze') target.paralyzedNextAttack = true;
+    if (ability.type === 'bonusDamage') {
+      damage *= ability.multiplier;
+      triggered.push({ type: 'bonusDamage', unit: attacker, target, damage });
+    }
+    if (ability.type === 'paralyze') {
+      target.paralyzedNextAttack = true;
+      triggered.push({ type: 'paralyze', unit: target });
+    }
   }
-  return damage;
+  return { damage, triggered };
 }
 
 function applyOnKillAbilities(attacker) {
+  let healed = 0;
   for (const ability of attacker.species.abilities ?? []) {
     if (ability.trigger === 'onKill' && ability.type === 'heal') {
+      const before = attacker.hp;
       attacker.hp = Math.min(attacker.species.maxHp, attacker.hp + ability.amount);
+      healed += attacker.hp - before;
     }
   }
+  return healed;
 }
 
 function isOnEdge(unit, grid) {
@@ -191,25 +204,37 @@ function processMoveCommand(unit, grid, aliveUnits, deltaSeconds) {
 }
 
 // rules.md 4.1 : toutes les attaques du tick sont calculées (queueAttack) avant d'être appliquées
-// ici ensemble — aucune unité ne peut mourir "avant" une autre au sein du même tick.
+// ici ensemble — aucune unité ne peut mourir "avant" une autre au sein du même tick. Renvoie la
+// liste des évènements d'aptitude déclenchés ce tick (voir applyPeriodicAbilities), pour un
+// éventuel feedback visuel côté Phaser — combat.js ne sait rien du rendu lui-même.
 function applyAttacks(pendingAttacks) {
+  const events = [];
+
   for (const { attacker, target, mode } of pendingAttacks) {
     if (attacker.paralyzedNextAttack) {
       attacker.paralyzedNextAttack = false;
+      events.push({ type: 'missed', unit: attacker });
       continue;
     }
 
     attacker.attacksLanded += 1;
-    const damage = applyPeriodicAbilities(attacker, target, damageFor(attacker, mode));
+    const { damage, triggered } = applyPeriodicAbilities(attacker, target, damageFor(attacker, mode));
+    events.push(...triggered);
 
     const wasAlive = target.isAlive;
     target.takeDamage(damage);
-    if (wasAlive && !target.isAlive) applyOnKillAbilities(attacker);
+    if (wasAlive && !target.isAlive) {
+      const healed = applyOnKillAbilities(attacker);
+      if (healed > 0) events.push({ type: 'heal', unit: attacker, amount: healed });
+    }
   }
+
+  return events;
 }
 
 // Fait avancer la bataille de `deltaSeconds` : commandes, ciblage, mouvement, attaque
 // (rules.md sections 4, 5 et 6). Une unité sans commande garde son comportement autonome.
+// Renvoie les évènements d'aptitude déclenchés ce tick (voir applyAttacks).
 export function resolveCombatTick(units, grid, deltaSeconds) {
   const aliveUnits = units.filter((u) => u.isOnField);
   const pendingAttacks = [];
@@ -266,5 +291,5 @@ export function resolveCombatTick(units, grid, deltaSeconds) {
     }
   }
 
-  applyAttacks(pendingAttacks);
+  return applyAttacks(pendingAttacks);
 }

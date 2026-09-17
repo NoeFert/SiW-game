@@ -116,10 +116,11 @@ describe('aptitudes automatiques (rules.md 6, units.md)', () => {
     fafnir.attacksLanded = 4; // la prochaine attaque sera la 5e
     const dummy = new Unit(DUMMY, 'enemy', 3, 0); // à portée, pas adjacent
 
-    resolveCombatTick([fafnir, dummy], grid, fafnir.species.attackSpeed);
+    const events = resolveCombatTick([fafnir, dummy], grid, fafnir.species.attackSpeed);
 
     expect(dummy.hp).toBe(DUMMY.maxHp - 60); // 30 * 2
     expect(fafnir.attacksLanded).toBe(5);
+    expect(events).toContainEqual({ type: 'bonusDamage', unit: fafnir, target: dummy, damage: 60 });
   });
 
   test('Athos — Frappe paralysante : la 4e attaque marque la cible', () => {
@@ -128,10 +129,11 @@ describe('aptitudes automatiques (rules.md 6, units.md)', () => {
     athos.attacksLanded = 3; // la prochaine attaque sera la 4e
     const dummy = new Unit(DUMMY, 'player', 4, 0); // distance 3 depuis (1,0), à portée (5)
 
-    resolveCombatTick([athos, dummy], grid, athos.species.attackSpeed);
+    const events = resolveCombatTick([athos, dummy], grid, athos.species.attackSpeed);
 
     expect(dummy.hp).toBe(DUMMY.maxHp - 50);
     expect(dummy.paralyzedNextAttack).toBe(true);
+    expect(events).toContainEqual({ type: 'paralyze', unit: dummy });
   });
 
   test('une attaque paralysée ne porte aucun dégât et ne compte pas comme portée', () => {
@@ -140,11 +142,12 @@ describe('aptitudes automatiques (rules.md 6, units.md)', () => {
     paralyzed.paralyzedNextAttack = true;
     const victim = new Unit(DUMMY, 'enemy', 1, 0); // adjacent
 
-    resolveCombatTick([paralyzed, victim], grid, paralyzed.species.attackSpeed);
+    const events = resolveCombatTick([paralyzed, victim], grid, paralyzed.species.attackSpeed);
 
     expect(victim.hp).toBe(DUMMY.maxHp);
     expect(paralyzed.paralyzedNextAttack).toBe(false);
     expect(paralyzed.attacksLanded).toBe(0);
+    expect(events).toContainEqual({ type: 'missed', unit: paralyzed });
   });
 
   test('Athos — Soif de sang : régénère 40 PV sur un coup fatal, plafonné au max', () => {
@@ -154,9 +157,10 @@ describe('aptitudes automatiques (rules.md 6, units.md)', () => {
     athos.hp = 100;
     const weakTarget = new Unit(DUMMY, 'player', 4, 0);
     weakTarget.hp = 10; // meurt sous le coup d'Athos (50 dégâts)
-    resolveCombatTick([athos, weakTarget], grid, athos.species.attackSpeed);
+    const events = resolveCombatTick([athos, weakTarget], grid, athos.species.attackSpeed);
     expect(weakTarget.isAlive).toBe(false);
     expect(athos.hp).toBe(140); // 100 + 40
+    expect(events).toContainEqual({ type: 'heal', unit: athos, amount: 40 });
 
     const athosNearCap = new Unit(UNDEAD_ROSTER.athos, 'enemy', 0, 0);
     athosNearCap.hp = 130; // 130 + 40 = 170 > 145, doit être plafonné

@@ -4,7 +4,7 @@
 // (CLAUDE.md : toute logique de jeu doit avoir un test associé).
 import Grid from '../../src/logic/grid.js';
 import {
-  createBattle, deployPlayerUnit, issuePlayerFlee, tickBattle,
+  createBattle, deployPlayerUnit, issuePlayerFlee, tickBattle, surrenderPlayer,
 } from '../../src/logic/battle.js';
 
 const PLAYER_ROSTER = {
@@ -62,5 +62,24 @@ describe('battle.js — câblage déploiement/combat/fin de bataille', () => {
 
     expect(issuePlayerFlee(battle, unit)).toBe(true);
     expect(unit.command).toEqual({ type: 'flee' });
+  });
+
+  test('surrenderPlayer déclenche une défaite immédiate (rules.md 8.2)', () => {
+    const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
+    deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 0, 0);
+
+    surrenderPlayer(battle);
+    const outcome = tickBattle(battle, 1);
+
+    expect(outcome).toBe('enemyVictory');
+  });
+
+  test('tickBattle expose les évènements d\'aptitude du tick dans battle.abilityEvents', () => {
+    const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
+    deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 4, 5);
+
+    tickBattle(battle, 1);
+
+    expect(Array.isArray(battle.abilityEvents)).toBe(true);
   });
 });
