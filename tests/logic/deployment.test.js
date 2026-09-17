@@ -1,5 +1,7 @@
+import Grid from '../../src/logic/grid.js';
+import Unit from '../../src/logic/unit.js';
 import {
-  createDeploymentState, deployUnit, recordReturn, PRESENCE_CAP,
+  createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, PRESENCE_CAP,
 } from '../../src/logic/deployment.js';
 
 // Roster fictif minimal, isolé de units.md, pour piloter précisément plafond/copies/légendaire.
@@ -9,7 +11,7 @@ const ROSTER = {
     cost: 50, maxHp: 20, damage: 1, moveSpeed: 1, attackSpeed: 1, range: null, copies: 5,
   },
   champion: {
-    name: 'Champion', keywords: ['legendary'], attackType: 'melee', size: 1,
+    name: 'Champion', keywords: ['legendary'], attackType: 'melee', size: 2,
     cost: 60, maxHp: 50, damage: 5, moveSpeed: 1, attackSpeed: 1, range: null, copies: 2,
   },
   lonely: {
@@ -119,5 +121,33 @@ describe('deployUnit — signal de pause tactique (rules.md 2)', () => {
     const state = createDeploymentState(ROSTER);
     const result = deployUnit(state, 'player', ROSTER.grunt, 0, 0, []);
     expect(result.timeControl).toBe('pause');
+  });
+});
+
+describe('isValidDeploymentPosition (rules.md 1/2)', () => {
+  const grid = new Grid(10, 6, [{ x: 2, y: 2 }]); // moitié joueur : x 0-4, moitié IA : x 5-9
+
+  test('accepte une case libre dans la moitié du camp', () => {
+    expect(isValidDeploymentPosition(grid, 'player', ROSTER.grunt, 3, 3, [])).toBe(true);
+  });
+
+  test('refuse une case dans la moitié adverse', () => {
+    expect(isValidDeploymentPosition(grid, 'player', ROSTER.grunt, 6, 3, [])).toBe(false);
+    expect(isValidDeploymentPosition(grid, 'enemy', ROSTER.grunt, 3, 3, [])).toBe(false);
+  });
+
+  test('refuse une case occupée par un obstacle', () => {
+    expect(isValidDeploymentPosition(grid, 'player', ROSTER.grunt, 2, 2, [])).toBe(false);
+  });
+
+  test('refuse une case déjà occupée par une autre unité', () => {
+    const occupant = new Unit(ROSTER.grunt, 'player', 1, 1);
+    expect(isValidDeploymentPosition(grid, 'player', ROSTER.grunt, 1, 1, [occupant])).toBe(false);
+  });
+
+  test('un bloc 2x2 doit tenir entièrement dans la moitié du camp', () => {
+    // champion (taille 2) à x=4 déborderait sur la moitié adverse (4+2=6 > halfWidth=5)
+    expect(isValidDeploymentPosition(grid, 'player', ROSTER.champion, 4, 0, [])).toBe(false);
+    expect(isValidDeploymentPosition(grid, 'player', ROSTER.champion, 3, 0, [])).toBe(true);
   });
 });

@@ -47,6 +47,15 @@ describe('battle.js — câblage déploiement/combat/fin de bataille', () => {
     expect(tickBattle(battle, 1)).toBe('playerVictory'); // reste figé une fois tranchée
   });
 
+  test('deployPlayerUnit refuse une position hors de la moitié du joueur (rules.md 2)', () => {
+    const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
+
+    const result = deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 7, 5); // moitié IA (x >= 5)
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalidPosition');
+  });
+
   test('issuePlayerFlee passe par le cooldown de battle.playerCommandState', () => {
     const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
     const { unit } = deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 0, 0);

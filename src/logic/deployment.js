@@ -1,4 +1,5 @@
 import Unit from './unit.js';
+import { isPositionFree, occupiedCells } from './pathfinding.js';
 
 // rules.md 2 : plafond vivant de points de présence, identique pour chaque camp.
 export const PRESENCE_CAP = 150;
@@ -15,18 +16,41 @@ export function createDeploymentState(roster) {
   return { bySpecies };
 }
 
-function presenceUsed(faction, unitsOnField) {
+export function getPresenceUsed(faction, unitsOnField) {
   return unitsOnField
     .filter((u) => u.faction === faction)
     .reduce((sum, u) => sum + u.species.cost, 0);
+}
+
+// Réserve actuelle d'une espèce pour l'UI : copies fraîches + PV de chacune des copies
+// revenues de fuite (pour un badge/tooltip "PV réduits", rules.md 2).
+export function getReserve(state, species) {
+  const speciesState = state.bySpecies.get(species);
+  return {
+    fresh: speciesState.freshRemaining,
+    returningHp: speciesState.returning.map((entry) => entry.hp),
+  };
+}
+
+// rules.md 1/2 : une position de déploiement doit rester dans les limites du terrain, sur la
+// moitié du camp concerné, hors obstacle, et libre de toute autre unité déjà présente.
+// Séparée de `deployUnit` (qui ne connaît pas la grille) pour ne pas casser sa signature.
+export function isValidDeploymentPosition(grid, faction, species, x, y, unitsOnField) {
+  const halfWidth = Math.floor(grid.width / 2);
+  const withinHalf = faction === 'player'
+    ? x >= 0 && x + species.size <= halfWidth
+    : x >= halfWidth && x + species.size <= grid.width;
+  if (!withinHalf) return false;
+
+  return isPositionFree(x, y, species.size, grid, occupiedCells(unitsOnField, null), false);
 }
 
 // rules.md 2 : dépose une unité pour `faction` — plafond de 150 points de présence vivant
 // (dérivé de `unitsOnField`, donc se libère automatiquement à la mort/fuite d'une unité),
 // un seul [Légendaire] simultané par camp, et des copies limitées par espèce (une revenue de
 // fuite est réutilisée en priorité, avec ses PV réduits conservés, avant d'entamer le stock
-// de copies fraîches). Ne contrôle pas le temps elle-même : signale juste l'intention à
-// l'appelant (`timeControl: 'pause'`) — le vrai contrôle viendra de Phaser plus tard.
+// de copies fraîches). Ne vérifie pas la position (voir `isValidDeploymentPosition`) ni le
+// temps elle-même : signale juste l'intention à l'appelant (`timeControl: 'pause'`).
 export function deployUnit(state, faction, species, x, y, unitsOnField) {
   if (
     species.keywords.includes('legendary')
@@ -35,7 +59,7 @@ export function deployUnit(state, faction, species, x, y, unitsOnField) {
     return { success: false, reason: 'legendaryAlreadyDeployed' };
   }
 
-  if (presenceUsed(faction, unitsOnField) + species.cost > PRESENCE_CAP) {
+  if (getPresenceUsed(faction, unitsOnField) + species.cost > PRESENCE_CAP) {
     return { success: false, reason: 'presenceCapExceeded' };
   }
 

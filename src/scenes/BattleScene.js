@@ -1,13 +1,19 @@
 import Phaser from 'phaser';
 import Grid from '../logic/grid.js';
-import { createBattle, tickBattle, deployPlayerUnit } from '../logic/battle.js';
-import { createAiScriptState, deployScheduledUnits } from '../logic/aiScript.js';
+import { footprint } from '../logic/pathfinding.js';
+import {
+  createBattle, tickBattle, deployPlayerUnit, issuePlayerAttack, issuePlayerMoveTo, issuePlayerFlee,
+} from '../logic/battle.js';
+import { getReserve, getPresenceUsed, PRESENCE_CAP } from '../logic/deployment.js';
+import { canIssueCommand, COMMAND_COOLDOWN_SECONDS } from '../logic/commands.js';
 import { WYRMS_ROSTER } from '../data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../data/undeadRoster.js';
-import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
+import { UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
 
 // technical.md section 3 : une case de grille fait 64x64 px à l'affichage.
 export const CELL_SIZE = 64;
+
+const BOTTOM_BAR_HEIGHT = 90;
 
 // Espèce -> clé d'asset chargée dans preload(). Amphiptère et Necromant Initiate n'ont pas
 // encore de sprite fourni (voir assets/README.md) : ils restent en dehors de cette table et
@@ -30,14 +36,14 @@ function healthBarColor(ratio) {
   return 0xe74c3c;
 }
 
-// Cette Scene ne contient aucune règle de jeu : elle initialise une bataille via battle.js
-// (déploiement scripté des deux côtés pour l'instant, voir la note dans create()) et se
-// contente, à chaque frame, de refléter l'état qu'elle lit dans `this.battle` — positions,
-// PV, présence sur le terrain. Aucun input joueur pour cette étape.
+// Cette Scene ne contient aucune règle de jeu : elle appelle battle.js/deployment.js/
+// commands.js (déploiement, ciblage, cooldown, plafond de points...) et se contente de
+// refléter/collecter l'intention du joueur à la souris. L'IA continue de suivre son script
+// existant sans changement (rules.md 7), géré en interne par battle.js.
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super('BattleScene');
-    this.unitViews = new Map(); // unit.id -> { container, sprite, barFill, barWidth }
+    this.unitViews = new Map(); // unit.id -> { container, barFill, barWidth }
   }
 
   preload() {
@@ -52,15 +58,23 @@ export default class BattleScene extends Phaser.Scene {
     const grid = new Grid(); // 24x14, sans obstacles (positions exactes non tranchées, rules.md 1)
     const width = grid.width * CELL_SIZE;
     const height = grid.height * CELL_SIZE;
+    this.barY = height - BOTTOM_BAR_HEIGHT;
 
     this.add.image(0, 0, 'battlefield').setOrigin(0, 0).setDisplaySize(width, height);
     this.drawGridLines(grid);
 
-    // Étape rendu uniquement : les deux camps suivent temporairement un script de démo
-    // (rules.md 7.1) le temps que le vrai déploiement interactif du joueur soit codé.
     this.battle = createBattle(grid, WYRMS_ROSTER, UNDEAD_ROSTER, UNDEAD_AI_SCRIPT);
-    this.playerScript = WYRMS_AI_SCRIPT;
-    this.playerScriptState = createAiScriptState();
+    this.paused = false;
+    this.pendingDeploySpecies = null;
+    this.selectedUnit = null;
+
+    this.input.mouse.disableContextMenu();
+    this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
+
+    this.createSelectionIndicator();
+    this.createDeployPanel(width);
+    this.createCommandPanel(width);
+    this.createPauseBanner(width);
   }
 
   drawGridLines(grid) {
@@ -74,22 +88,197 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  // Déploiement scripté temporaire côté joueur (voir la note dans create()) — passe par
-  // deployPlayerUnit comme le fera plus tard le vrai clic du joueur, pour respecter le
-  // plafond de points/copies/légendaire (rules.md 2) dès maintenant.
-  deployScriptedPlayerUnits() {
-    const due = deployScheduledUnits(this.playerScript, this.playerScriptState, this.battle.elapsedSeconds, 'player');
-    for (const scripted of due) {
-      deployPlayerUnit(this.battle, scripted.species, scripted.x, scripted.y);
+  // -- Déploiement interactif (rules.md 2) ----------------------------------------------
+
+  createDeployPanel(width) {
+    this.add.rectangle(0, this.barY, width, BOTTOM_BAR_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
+
+    this.deployButtons = Object.values(WYRMS_ROSTER).map((species, index) => {
+      const x = 10 + index * 190;
+      const text = this.add.text(x, this.barY + 8, '', {
+        fontSize: '13px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 6, y: 4 },
+      })
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.startDeployment(species));
+      return { species, text };
+    });
+
+    this.budgetText = this.add.text(10, this.barY + BOTTOM_BAR_HEIGHT - 22, '', {
+      fontSize: '13px', color: '#ffffff',
+    });
+
+    this.messageText = this.add.text(width / 2, this.barY - 24, '', {
+      fontSize: '13px', color: '#ff6b6b', backgroundColor: '#000000', padding: { x: 6, y: 4 },
+    }).setOrigin(0.5, 0);
+  }
+
+  startDeployment(species) {
+    this.pendingDeploySpecies = species;
+    this.selectedUnit = null;
+    this.paused = true;
+  }
+
+  cancelDeployment() {
+    this.pendingDeploySpecies = null;
+    this.paused = false;
+  }
+
+  tryPlaceDeployment(gx, gy) {
+    const result = deployPlayerUnit(this.battle, this.pendingDeploySpecies, gx, gy);
+    if (result.success) {
+      this.pendingDeploySpecies = null;
+      this.paused = false;
+    } else {
+      this.showMessage(`Déploiement refusé : ${result.reason}`);
     }
   }
 
+  showMessage(message) {
+    this.messageText.setText(message);
+    this.time.delayedCall(1500, () => this.messageText.setText(''));
+  }
+
+  updateDeployPanel() {
+    const onField = this.battle.units.filter((u) => u.isOnField);
+    for (const { species, text } of this.deployButtons) {
+      const reserve = getReserve(this.battle.playerDeployment, species);
+      const available = reserve.fresh + reserve.returningHp.length;
+      const woundedNote = reserve.returningHp.length > 0 ? ` (fuis: ${reserve.returningHp.join(',')} PV)` : '';
+      text.setText(`${species.name}\n${species.cost}pts x${available}${woundedNote}`);
+      text.setColor(available > 0 ? '#ffffff' : '#888888');
+    }
+    const used = getPresenceUsed('player', onField);
+    this.budgetText.setText(`Points de présence : ${used}/${PRESENCE_CAP}`);
+  }
+
+  // -- Commandes en cours de bataille (rules.md 5) --------------------------------------
+
+  createCommandPanel(width) {
+    this.fleeButton = this.add.text(width - 150, this.barY + 8, '\u{1F3F3} Fuir', {
+      fontSize: '14px', color: '#ffffff', backgroundColor: '#7a1f1f', padding: { x: 8, y: 6 },
+    })
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        if (this.selectedUnit) issuePlayerFlee(this.battle, this.selectedUnit);
+      })
+      .setVisible(false);
+
+    this.cooldownBarBg = this.add.rectangle(width - 150, this.barY + 46, 130, 10, 0x333333).setOrigin(0, 0);
+    this.cooldownBarFill = this.add.rectangle(width - 150, this.barY + 46, 130, 10, 0xe74c3c).setOrigin(0, 0);
+    this.cooldownText = this.add.text(width - 150, this.barY + 60, '', { fontSize: '11px', color: '#cccccc' });
+
+    for (const view of [this.fleeButton, this.cooldownBarBg, this.cooldownBarFill, this.cooldownText]) {
+      view.setVisible(false);
+    }
+  }
+
+  updateCommandPanel() {
+    const hasSelection = !!(this.selectedUnit && this.selectedUnit.faction === 'player');
+    this.fleeButton.setVisible(hasSelection);
+    this.cooldownBarBg.setVisible(hasSelection);
+    this.cooldownBarFill.setVisible(hasSelection);
+    this.cooldownText.setVisible(hasSelection);
+    if (!hasSelection) return;
+
+    const ready = canIssueCommand(this.battle.playerCommandState, this.battle.elapsedSeconds);
+    const remaining = ready
+      ? 0
+      : COMMAND_COOLDOWN_SECONDS - (this.battle.elapsedSeconds - this.battle.playerCommandState.lastCommandTime);
+
+    this.fleeButton.setAlpha(ready ? 1 : 0.5);
+    this.cooldownBarFill.width = 130 * (remaining / COMMAND_COOLDOWN_SECONDS);
+    this.cooldownText.setText(ready ? 'Commande disponible' : `Cooldown : ${remaining.toFixed(1)}s`);
+  }
+
+  createPauseBanner(width) {
+    this.pauseBanner = this.add.text(width / 2, 16, '', {
+      fontSize: '16px', color: '#ffff00', backgroundColor: '#000000', padding: { x: 10, y: 6 },
+    }).setOrigin(0.5, 0).setVisible(false);
+  }
+
+  updatePauseBanner() {
+    if (!this.pendingDeploySpecies) {
+      this.pauseBanner.setVisible(false);
+      return;
+    }
+    this.pauseBanner.setText(
+      `⏸ PAUSE — placement de ${this.pendingDeploySpecies.name} : clique ta moitié du terrain `
+      + '(clic droit pour annuler)',
+    );
+    this.pauseBanner.setVisible(true);
+  }
+
+  // -- Sélection et input ----------------------------------------------------------------
+
+  createSelectionIndicator() {
+    this.selectionIndicator = this.add.rectangle(0, 0, CELL_SIZE, CELL_SIZE, 0xffff00, 0)
+      .setOrigin(0, 0)
+      .setStrokeStyle(3, 0xffff00)
+      .setVisible(false);
+  }
+
+  updateSelectionIndicator() {
+    if (this.selectedUnit && !this.selectedUnit.isOnField) this.selectedUnit = null;
+    if (!this.selectedUnit) {
+      this.selectionIndicator.setVisible(false);
+      return;
+    }
+    const size = this.selectedUnit.size * CELL_SIZE;
+    this.selectionIndicator.setSize(size, size);
+    this.selectionIndicator.setPosition(this.selectedUnit.x * CELL_SIZE, this.selectedUnit.y * CELL_SIZE);
+    this.selectionIndicator.setVisible(true);
+  }
+
+  unitAt(gx, gy) {
+    return this.battle.units.find(
+      (unit) => unit.isOnField && footprint(unit.x, unit.y, unit.size).some((c) => c.x === gx && c.y === gy),
+    );
+  }
+
+  handlePointerDown(pointer) {
+    if (pointer.y >= this.barY) return; // les boutons de la barre gèrent eux-mêmes leur clic
+
+    if (pointer.rightButtonDown()) {
+      this.cancelDeployment();
+      this.selectedUnit = null;
+      return;
+    }
+
+    const gx = Math.floor(pointer.x / CELL_SIZE);
+    const gy = Math.floor(pointer.y / CELL_SIZE);
+
+    if (this.pendingDeploySpecies) {
+      this.tryPlaceDeployment(gx, gy);
+      return;
+    }
+
+    const clicked = this.unitAt(gx, gy);
+
+    if (clicked && clicked.faction === 'player') {
+      this.selectedUnit = clicked === this.selectedUnit ? null : clicked;
+      return;
+    }
+
+    if (!this.selectedUnit) return;
+
+    if (clicked && clicked.faction === 'enemy') {
+      issuePlayerAttack(this.battle, this.selectedUnit, clicked);
+    } else if (!clicked) {
+      issuePlayerMoveTo(this.battle, this.selectedUnit, gx, gy);
+    }
+  }
+
+  // -- Boucle par frame --------------------------------------------------------------------
+
   update(time, deltaMs) {
-    if (this.battle.outcome === 'ongoing') {
+    if (!this.paused && this.battle.outcome === 'ongoing') {
       tickBattle(this.battle, deltaMs / 1000);
-      this.deployScriptedPlayerUnits();
     }
     this.syncViews();
+    this.updateSelectionIndicator();
+    this.updateDeployPanel();
+    this.updateCommandPanel();
+    this.updatePauseBanner();
   }
 
   syncViews() {

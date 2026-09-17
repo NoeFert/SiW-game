@@ -2,7 +2,7 @@ import { resolveCombatTick } from './combat.js';
 import { createCommandState, commandAttack, commandMoveTo, commandFlee } from './commands.js';
 import { createAiScriptState, deployScheduledUnits } from './aiScript.js';
 import {
-  createDeploymentState, deployUnit, recordReturn, consumeFreshCopy,
+  createDeploymentState, deployUnit, recordReturn, consumeFreshCopy, isValidDeploymentPosition,
 } from './deployment.js';
 import { createFactionState, updateFactionEndState, evaluateBattleOutcome } from './battleEnd.js';
 
@@ -27,11 +27,15 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript) {
   };
 }
 
-// rules.md 2 : déploiement du joueur — plafond de points, copies, limite du [Légendaire].
-// Le vrai contrôle du temps (pause tactique) viendra de Phaser ; on ne fait que relayer le
-// signal (`result.timeControl`) renvoyé par deployment.js.
+// rules.md 1/2 : déploiement du joueur — position dans sa moitié du terrain et case libre,
+// plafond de points, copies, limite du [Légendaire]. Le vrai contrôle du temps (pause
+// tactique) viendra de Phaser ; on ne fait que relayer le signal (`result.timeControl`)
+// renvoyé par deployment.js.
 export function deployPlayerUnit(battle, species, x, y) {
-  const unitsOnField = battle.units.filter((u) => u.faction === 'player' && u.isOnField);
+  const unitsOnField = battle.units.filter((u) => u.isOnField);
+  if (!isValidDeploymentPosition(battle.grid, 'player', species, x, y, unitsOnField)) {
+    return { success: false, reason: 'invalidPosition' };
+  }
   const result = deployUnit(battle.playerDeployment, 'player', species, x, y, unitsOnField);
   if (result.success) battle.units.push(result.unit);
   return result;
