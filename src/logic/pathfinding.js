@@ -53,54 +53,88 @@ export function isPositionFree(x, y, size, grid, occupied, ignoreTerrainObstacle
   return true;
 }
 
-// Chemin (liste de cases, coin haut-gauche pour un bloc 2x2) de la position de `unit`
-// vers la case libre atteignable la plus proche de (targetX, targetY), en contournant
-// les obstacles (ignorés si [Vol]) et les autres unités. Tableau vide si `unit` est
-// déjà au plus près possible (bloquée ou déjà arrivée).
+function parseKey(key) {
+  const [x, y] = key.split(',').map(Number);
+  return { x, y };
+}
+
+// Chemin le plus court (A*, coin haut-gauche pour un bloc 2x2) de la position de `unit` vers
+// la case libre atteignable la plus proche de (targetX, targetY), en contournant les
+// obstacles (ignorés si [Vol]) et les autres unités. Tableau vide si `unit` est déjà au plus
+// près possible (bloquée ou déjà arrivée). La distance de Chebyshev est un coût exact (pas
+// juste admissible) pour un déplacement 8 directions à coût uniforme : A* n'explore donc que
+// les cases utiles à un chemin optimal, jamais toute la carte comme le ferait un simple BFS.
 export function findPath(unit, targetX, targetY, grid, units) {
   const occupied = occupiedCells(units, unit);
   const ignoreTerrainObstacles = unit.isFlying;
   const size = unit.size;
+  const startX = unit.x;
+  const startY = unit.y;
 
-  const startKey = `${unit.x},${unit.y}`;
-  const visited = new Map([[startKey, { x: unit.x, y: unit.y, prevKey: null, dist: 0 }]]);
-  const queue = [startKey];
+  // Départage les cases à coût réel égal en faveur de celles les plus proches de la ligne
+  // droite start->cible (produit spontanément une ligne droite/diagonale plutôt qu'un
+  // "escalier" arbitraire). Poids minuscule : ne peut jamais rendre un chemin plus long
+  // préférable à un chemin plus court, seulement départager une vraie égalité de coût.
+  const dxLine = targetX - startX;
+  const dyLine = targetY - startY;
+  const lineBias = (x, y) => Math.abs(dxLine * (y - startY) - dyLine * (x - startX)) * 0.001;
+
+  const startKey = `${startX},${startY}`;
+  const gScore = new Map([[startKey, 0]]);
+  const cameFrom = new Map();
+  const openF = new Map([[startKey, chebyshevDistance(startX, startY, targetX, targetY)]]);
+  const closed = new Set();
 
   let bestKey = startKey;
-  let bestDist = chebyshevDistance(unit.x, unit.y, targetX, targetY);
-  let bestPathLen = 0;
+  let bestDist = chebyshevDistance(startX, startY, targetX, targetY);
+  let bestG = 0;
 
-  for (let i = 0; i < queue.length; i++) {
-    const currentKey = queue[i];
-    const current = visited.get(currentKey);
+  while (openF.size > 0) {
+    let currentKey = null;
+    let currentF = Infinity;
+    for (const [key, f] of openF) {
+      if (f < currentF) {
+        currentF = f;
+        currentKey = key;
+      }
+    }
+    openF.delete(currentKey);
+    closed.add(currentKey);
+
+    const { x: cx, y: cy } = parseKey(currentKey);
+    const g = gScore.get(currentKey);
+    const dist = chebyshevDistance(cx, cy, targetX, targetY);
+
+    if (dist < bestDist || (dist === bestDist && g < bestG)) {
+      bestKey = currentKey;
+      bestDist = dist;
+      bestG = g;
+      if (dist === 0) break; // arrivée exacte : aucun chemin ne peut faire mieux
+    }
 
     for (const { dx, dy } of DIRECTIONS) {
-      const nx = current.x + dx;
-      const ny = current.y + dy;
+      const nx = cx + dx;
+      const ny = cy + dy;
       const key = `${nx},${ny}`;
-      if (visited.has(key)) continue;
+      if (closed.has(key)) continue;
       if (!isPositionFree(nx, ny, size, grid, occupied, ignoreTerrainObstacles)) continue;
 
-      const pathLen = current.dist + 1;
-      visited.set(key, { x: nx, y: ny, prevKey: currentKey, dist: pathLen });
-      queue.push(key);
+      const tentativeG = g + 1;
+      if (gScore.has(key) && tentativeG >= gScore.get(key)) continue;
 
-      const dist = chebyshevDistance(nx, ny, targetX, targetY);
-      if (dist < bestDist || (dist === bestDist && pathLen < bestPathLen)) {
-        bestDist = dist;
-        bestKey = key;
-        bestPathLen = pathLen;
-      }
+      gScore.set(key, tentativeG);
+      cameFrom.set(key, currentKey);
+      openF.set(key, tentativeG + chebyshevDistance(nx, ny, targetX, targetY) + lineBias(nx, ny));
     }
   }
 
   if (bestKey === startKey) return [];
 
   const path = [];
-  let step = visited.get(bestKey);
-  while (step.prevKey !== null) {
-    path.unshift({ x: step.x, y: step.y });
-    step = visited.get(step.prevKey);
+  let key = bestKey;
+  while (cameFrom.has(key)) {
+    path.unshift(parseKey(key));
+    key = cameFrom.get(key);
   }
   return path;
 }

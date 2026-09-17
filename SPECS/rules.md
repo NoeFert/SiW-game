@@ -125,6 +125,7 @@ Les deux budgets restent proches du budget du joueur (150 points), pour une bata
 
 ### 8.1 Victoire immédiate
 - Si toutes les unités du camp adverse sont mortes (aucune copie restante en réserve, aucune unité vivante sur le terrain), victoire immédiate pour l'autre camp.
+- **Cas d'égalité (draw) :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — les deux camps perdent leur dernière unité au même frame, sans copie restante en réserve d'aucun côté. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire pour la v1 (pas de récompenses post-bataille à distribuer, voir `roadmap.md`).
 
 ### 8.2 Terrain vide avec réserves restantes
 - Si un camp n'a **aucune unité actuellement déployée** sur le terrain (toutes mortes ou en fuite) mais possède encore des **copies non utilisées en réserve**, ce camp reçoit un avertissement avec un **compte à rebours de 15 secondes**.

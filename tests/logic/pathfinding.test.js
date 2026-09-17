@@ -1,7 +1,7 @@
 import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
-import { findNearestEnemy, findPath } from '../../src/logic/pathfinding.js';
+import { findNearestEnemy, findPath, chebyshevDistance } from '../../src/logic/pathfinding.js';
 
 function lastStep(path) {
   return path[path.length - 1];
@@ -48,6 +48,27 @@ describe('findPath — simple movement without obstacle', () => {
       { x: 2, y: 2 },
       { x: 3, y: 3 },
     ]);
+  });
+
+  test('takes a purely horizontal straight line when the target has no vertical offset', () => {
+    const grid = new Grid(10, 10);
+    const unit = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 5);
+
+    const path = findPath(unit, 5, 5, grid, [unit]);
+
+    expect(path).toEqual([
+      { x: 1, y: 5 }, { x: 2, y: 5 }, { x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 },
+    ]);
+  });
+
+  test('never takes more steps than the Chebyshev distance (shortest path, no superfluous detour)', () => {
+    const grid = new Grid(20, 20);
+    const unit = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 2, 2);
+
+    const path = findPath(unit, 9, 5, grid, [unit]);
+
+    expect(path.length).toBe(chebyshevDistance(2, 2, 9, 5));
+    expect(lastStep(path)).toEqual({ x: 9, y: 5 });
   });
 });
 
