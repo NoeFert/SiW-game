@@ -17,6 +17,10 @@ export const CELL_SIZE = 64;
 
 const BOTTOM_BAR_HEIGHT = 90;
 
+// Quadrillage de debug : repère de case utile en dev, pas pour le joueur. Passer à true pour
+// le réafficher pendant qu'on travaille sur le placement des obstacles/scripts par exemple.
+const DEBUG_SHOW_GRID = false;
+
 const OUTCOME_LABELS = { playerVictory: 'VICTOIRE', enemyVictory: 'DÉFAITE', draw: 'ÉGALITÉ' };
 
 // Espèce -> clé d'asset chargée dans preload(). Amphiptère et Necromant Initiate n'ont pas
@@ -82,6 +86,7 @@ export default class BattleScene extends Phaser.Scene {
     for (let y = 0; y <= grid.height; y++) {
       graphics.lineBetween(0, y * CELL_SIZE, grid.width * CELL_SIZE, y * CELL_SIZE);
     }
+    graphics.setVisible(DEBUG_SHOW_GRID); // invisible pour le joueur (voir DEBUG_SHOW_GRID)
   }
 
   // rules.md 1 : obstacles infranchissables — placeholder simple en attendant un vrai visuel.
@@ -131,6 +136,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battle = createBattle(this.grid, this.playerRoster, enemyRoster, enemyScript);
     this.paused = false;
     this.pendingDeploySpecies = null;
+    this.commandModeActive = false;
     this.selectedUnit = null;
 
     this.input.mouse.disableContextMenu();
@@ -170,7 +176,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   startDeployment(species) {
-    if (this.battle.outcome !== 'ongoing') return;
+    if (this.battle.outcome !== 'ongoing' || this.commandModeActive) return;
     this.pendingDeploySpecies = species;
     this.selectedUnit = null;
     this.paused = true;
@@ -210,42 +216,62 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // -- Commandes en cours de bataille (rules.md 5) ----------------------------------------
+  // Le clic sur "Commandes" met la bataille en pause ; le joueur sélectionne alors une unité
+  // puis lui donne une seule commande (attaquer/se déplacer/fuir), après quoi le jeu reprend
+  // automatiquement. Le cooldown de 5s entre deux activations se compte en temps de bataille
+  // (battle.elapsedSeconds) : comme celui-ci n'avance pas tant que `this.paused` est vrai, il
+  // ne s'écoule jamais pendant que le panneau est ouvert.
 
   createCommandPanel() {
-    this.fleeButton = this.add.text(this.width - 150, this.barY + 8, '\u{1F3F3} Fuir', {
+    this.commandButton = this.add.text(this.width - 300, this.barY + 8, 'Commandes', {
+      fontSize: '14px', color: '#ffffff', backgroundColor: '#2c3e50', padding: { x: 10, y: 6 },
+    })
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.startCommandMode());
+
+    this.cooldownBarBg = this.add.rectangle(this.width - 300, this.barY + 40, 130, 8, 0x333333).setOrigin(0, 0);
+    this.cooldownBarFill = this.add.rectangle(this.width - 300, this.barY + 40, 130, 8, 0xe74c3c).setOrigin(0, 0);
+    this.cooldownText = this.add.text(this.width - 300, this.barY + 52, '', { fontSize: '11px', color: '#cccccc' });
+
+    this.fleeButton = this.add.text(this.width - 140, this.barY + 8, '\u{1F3F3} Fuir', {
       fontSize: '14px', color: '#ffffff', backgroundColor: '#7a1f1f', padding: { x: 8, y: 6 },
     })
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        if (this.selectedUnit && this.battle.outcome === 'ongoing') issuePlayerFlee(this.battle, this.selectedUnit);
+        if (this.selectedUnit && this.battle.outcome === 'ongoing') {
+          issuePlayerFlee(this.battle, this.selectedUnit);
+          this.exitCommandMode();
+        }
       })
       .setVisible(false);
+  }
 
-    this.cooldownBarBg = this.add.rectangle(this.width - 150, this.barY + 46, 130, 10, 0x333333).setOrigin(0, 0);
-    this.cooldownBarFill = this.add.rectangle(this.width - 150, this.barY + 46, 130, 10, 0xe74c3c).setOrigin(0, 0);
-    this.cooldownText = this.add.text(this.width - 150, this.barY + 60, '', { fontSize: '11px', color: '#cccccc' });
+  startCommandMode() {
+    if (this.battle.outcome !== 'ongoing' || this.pendingDeploySpecies) return;
+    if (!canIssueCommand(this.battle.playerCommandState, this.battle.elapsedSeconds)) return;
+    this.commandModeActive = true;
+    this.selectedUnit = null;
+    this.paused = true;
+  }
 
-    for (const view of [this.fleeButton, this.cooldownBarBg, this.cooldownBarFill, this.cooldownText]) {
-      view.setVisible(false);
-    }
+  exitCommandMode() {
+    this.commandModeActive = false;
+    this.selectedUnit = null;
+    this.paused = false;
   }
 
   updateCommandPanel() {
-    const hasSelection = !!(this.selectedUnit && this.selectedUnit.faction === 'player');
-    this.fleeButton.setVisible(hasSelection);
-    this.cooldownBarBg.setVisible(hasSelection);
-    this.cooldownBarFill.setVisible(hasSelection);
-    this.cooldownText.setVisible(hasSelection);
-    if (!hasSelection) return;
-
     const ready = canIssueCommand(this.battle.playerCommandState, this.battle.elapsedSeconds);
     const remaining = ready
       ? 0
       : COMMAND_COOLDOWN_SECONDS - (this.battle.elapsedSeconds - this.battle.playerCommandState.lastCommandTime);
 
-    this.fleeButton.setAlpha(ready ? 1 : 0.5);
-    this.cooldownBarFill.setSize(130 * (remaining / COMMAND_COOLDOWN_SECONDS), 10);
+    const canOpen = ready && !this.pendingDeploySpecies && !this.commandModeActive;
+    this.commandButton.setAlpha(canOpen ? 1 : 0.5);
+    this.cooldownBarFill.setSize(130 * (remaining / COMMAND_COOLDOWN_SECONDS), 8);
     this.cooldownText.setText(ready ? 'Commande disponible' : `Cooldown : ${remaining.toFixed(1)}s`);
+
+    this.fleeButton.setVisible(this.commandModeActive && !!this.selectedUnit);
   }
 
   createPauseBanner() {
@@ -255,15 +281,21 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updatePauseBanner() {
-    if (!this.pendingDeploySpecies) {
+    if (this.pendingDeploySpecies) {
+      this.pauseBanner.setText(
+        `⏸ PAUSE — placement de ${this.pendingDeploySpecies.name} : clique ta moitié du terrain `
+        + '(clic droit pour annuler)',
+      );
+      this.pauseBanner.setVisible(true);
+    } else if (this.commandModeActive) {
+      const instruction = this.selectedUnit
+        ? 'clique un ennemi (attaquer), une case (se déplacer), ou "Fuir"'
+        : 'sélectionne une unité';
+      this.pauseBanner.setText(`⏸ PAUSE — Commande : ${instruction} (clic droit pour annuler)`);
+      this.pauseBanner.setVisible(true);
+    } else {
       this.pauseBanner.setVisible(false);
-      return;
     }
-    this.pauseBanner.setText(
-      `⏸ PAUSE — placement de ${this.pendingDeploySpecies.name} : clique ta moitié du terrain `
-      + '(clic droit pour annuler)',
-    );
-    this.pauseBanner.setVisible(true);
   }
 
   // -- Fin de bataille (rules.md 8) --------------------------------------------------------
@@ -328,6 +360,7 @@ export default class BattleScene extends Phaser.Scene {
     for (const { text } of this.deployButtons) text.setVisible(false);
     this.budgetText.setVisible(false);
     this.messageText.setVisible(false);
+    this.commandButton.setVisible(false);
     this.fleeButton.setVisible(false);
     this.cooldownBarBg.setVisible(false);
     this.cooldownBarFill.setVisible(false);
@@ -430,7 +463,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (pointer.rightButtonDown()) {
       this.cancelDeployment();
-      this.selectedUnit = null;
+      this.exitCommandMode();
       return;
     }
 
@@ -441,6 +474,8 @@ export default class BattleScene extends Phaser.Scene {
       this.tryPlaceDeployment(gx, gy);
       return;
     }
+
+    if (!this.commandModeActive) return; // en dehors du mode "Commandes", le terrain ne réagit pas au clic
 
     const clicked = this.unitAt(gx, gy);
 
@@ -453,8 +488,10 @@ export default class BattleScene extends Phaser.Scene {
 
     if (clicked && clicked.faction === 'enemy') {
       issuePlayerAttack(this.battle, this.selectedUnit, clicked);
+      this.exitCommandMode(); // une seule commande par activation
     } else if (!clicked) {
       issuePlayerMoveTo(this.battle, this.selectedUnit, gx, gy);
+      this.exitCommandMode();
     }
   }
 
@@ -488,6 +525,7 @@ export default class BattleScene extends Phaser.Scene {
 
       if (!unit.isOnField) {
         if (view) {
+          if (view.moveTween) view.moveTween.stop();
           view.container.destroy();
           this.unitViews.delete(unit.id);
         }
@@ -529,15 +567,33 @@ export default class BattleScene extends Phaser.Scene {
 
     const view = {
       container, barFill, barWidth, paralyzedBadge, visual, isSprite: !!spriteKey,
+      lastCellX: unit.x, lastCellY: unit.y, moveTween: null,
     };
+    container.setPosition((unit.x + unit.size / 2) * CELL_SIZE, (unit.y + unit.size / 2) * CELL_SIZE);
     this.updateUnitView(view, unit);
     return view;
   }
 
+  // rules.md 4.1 : la logique avance en continu (delta-time), mais ne "commet" une case qu'une
+  // fois celle-ci pleinement franchie (voir moveToward/stepAwayFrom dans combat.js) — la Scene
+  // ne connaît donc jamais de position fractionnaire à lire directement. On obtient un rendu
+  // continu en douceur en animant (tween) le passage d'une case à l'autre plutôt qu'en
+  // "sautant" instantanément, sur la durée réelle qu'aurait dû prendre ce trajet à la vitesse
+  // de déplacement de l'unité (species.moveSpeed, en cases/s).
   updateUnitView(view, unit) {
-    const centerX = (unit.x + unit.size / 2) * CELL_SIZE;
-    const centerY = (unit.y + unit.size / 2) * CELL_SIZE;
-    view.container.setPosition(centerX, centerY);
+    if (unit.x !== view.lastCellX || unit.y !== view.lastCellY) {
+      const cellsMoved = Math.max(Math.abs(unit.x - view.lastCellX), Math.abs(unit.y - view.lastCellY));
+      view.lastCellX = unit.x;
+      view.lastCellY = unit.y;
+      if (view.moveTween) view.moveTween.stop();
+      view.moveTween = this.tweens.add({
+        targets: view.container,
+        x: (unit.x + unit.size / 2) * CELL_SIZE,
+        y: (unit.y + unit.size / 2) * CELL_SIZE,
+        duration: (cellsMoved / unit.species.moveSpeed) * 1000,
+        ease: 'Linear',
+      });
+    }
 
     const ratio = Math.max(0, unit.hp / unit.species.maxHp);
     view.barFill.setSize(view.barWidth * ratio, 6);
