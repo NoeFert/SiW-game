@@ -10,6 +10,7 @@ import { canIssueCommand, COMMAND_COOLDOWN_SECONDS } from '../logic/commands.js'
 import { WYRMS_ROSTER } from '../data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../data/undeadRoster.js';
 import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
+import { BATTLEFIELD_OBSTACLES } from '../data/battlefield.js';
 
 // technical.md section 3 : une case de grille fait 64x64 px à l'affichage.
 export const CELL_SIZE = 64;
@@ -58,7 +59,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   create() {
-    const grid = new Grid(); // 24x14, sans obstacles (positions exactes non tranchées, rules.md 1)
+    const grid = new Grid(24, 14, BATTLEFIELD_OBSTACLES); // rules.md 1
     this.grid = grid;
     this.width = grid.width * CELL_SIZE;
     this.height = grid.height * CELL_SIZE;
@@ -66,6 +67,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.add.image(0, 0, 'battlefield').setOrigin(0, 0).setDisplaySize(this.width, this.height);
     this.drawGridLines(grid);
+    this.drawObstacles(grid);
 
     this.battle = null; // pas encore de bataille tant que la faction n'est pas choisie
     this.showFactionChoice();
@@ -79,6 +81,18 @@ export default class BattleScene extends Phaser.Scene {
     }
     for (let y = 0; y <= grid.height; y++) {
       graphics.lineBetween(0, y * CELL_SIZE, grid.width * CELL_SIZE, y * CELL_SIZE);
+    }
+  }
+
+  // rules.md 1 : obstacles infranchissables — placeholder simple en attendant un vrai visuel.
+  drawObstacles(grid) {
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (grid.isObstacle(x, y)) {
+          this.add.rectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, 0x000000)
+            .setOrigin(0, 0);
+        }
+      }
     }
   }
 

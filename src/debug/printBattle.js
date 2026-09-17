@@ -6,6 +6,7 @@ import { createBattle, deployPlayerUnit, issuePlayerFlee, tickBattle } from '../
 import { WYRMS_ROSTER } from '../data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../data/undeadRoster.js';
 import { UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
+import { BATTLEFIELD_OBSTACLES } from '../data/battlefield.js';
 
 const SYMBOLS = {
   'Lambton Worm': 'L',
@@ -84,9 +85,7 @@ export function printBattle(battle) {
 // Pilote une bataille complète via battle.js : déploiement joueur, script IA Morts-Vivants,
 // une commande de fuite en cours de route, jusqu'à la fin de bataille ou t=45s.
 function runFullBattleDemo() {
-  const grid = new Grid(24, 14, [
-    { x: 10, y: 5 }, { x: 10, y: 6 }, { x: 14, y: 8 },
-  ]);
+  const grid = new Grid(24, 14, BATTLEFIELD_OBSTACLES);
   const battle = createBattle(grid, WYRMS_ROSTER, UNDEAD_ROSTER, UNDEAD_AI_SCRIPT);
 
   const deployAt = (species, x, y) => {
@@ -102,7 +101,7 @@ function runFullBattleDemo() {
   // 10 + 25 + 110 = 145 <= 150 : tient dans le plafond de points de présence (rules.md 2).
   deployAt(WYRMS_ROSTER.lambtonWorm, 5, 5);
   deployAt(WYRMS_ROSTER.amphiptere, 3, 2);
-  const fafnir = deployAt(WYRMS_ROSTER.fafnir, 2, 10);
+  const fafnir = deployAt(WYRMS_ROSTER.fafnir, 5, 10); // (3,10) est un obstacle, décalé pour l'éviter
   console.log('');
   printBattle(battle);
 
