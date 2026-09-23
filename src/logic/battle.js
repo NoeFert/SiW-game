@@ -36,15 +36,16 @@ export function surrenderPlayer(battle) {
 }
 
 // rules.md 1/2 : déploiement du joueur — position dans sa moitié du terrain et case libre,
-// plafond de points, copies, limite du [Légendaire]. Le vrai contrôle du temps (pause
-// tactique) viendra de Phaser ; on ne fait que relayer le signal (`result.timeControl`)
-// renvoyé par deployment.js.
-export function deployPlayerUnit(battle, species, x, y) {
+// plafond de points, copies, limite du [Légendaire]. `copyChoice` ('fresh', des PV précis, ou
+// omis pour le choix par défaut) laisse la sidebar garantir la copie exacte que le joueur a
+// glissée — voir deployment.js. Le vrai contrôle du temps (pause tactique) viendra de Phaser ;
+// on ne fait que relayer le signal (`result.timeControl`) renvoyé par deployment.js.
+export function deployPlayerUnit(battle, species, x, y, copyChoice) {
   const unitsOnField = battle.units.filter((u) => u.isOnField);
   if (!isValidDeploymentPosition(battle.grid, 'player', species, x, y, unitsOnField)) {
     return { success: false, reason: 'invalidPosition' };
   }
-  const result = deployUnit(battle.playerDeployment, 'player', species, x, y, unitsOnField);
+  const result = deployUnit(battle.playerDeployment, 'player', species, x, y, unitsOnField, copyChoice);
   if (result.success) battle.units.push(result.unit);
   return result;
 }

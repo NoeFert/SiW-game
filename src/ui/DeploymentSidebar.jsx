@@ -6,29 +6,61 @@ import { deployPlayerUnit } from '../logic/battle.js';
 import { CELL_SIZE } from '../renderConstants.js';
 import { interactionState } from '../state/interactionState.js';
 
+// Une ligne par variante réellement distincte d'une espèce : les copies fraîches (toutes
+// identiques entre elles) se regroupent en une ligne, et chaque valeur de PV différente parmi
+// les copies revenues de fuite obtient sa propre ligne (deux copies aux PV identiques se
+// regroupent, elles, ensemble). `choice` est ce qu'on transmettra à deployPlayerUnit pour
+// garantir que la ligne glissée est bien la copie déployée (voir deployment.js `takeCopy`).
+function buildRows(playerDeployment, speciesList) {
+  const rows = [];
+  for (const species of speciesList) {
+    const reserve = getReserve(playerDeployment, species);
+
+    if (reserve.fresh > 0) {
+      rows.push({
+        species, choice: 'fresh', hp: species.maxHp, count: reserve.fresh,
+      });
+    }
+
+    const tally = new Map();
+    for (const hp of reserve.returningHp) tally.set(hp, (tally.get(hp) ?? 0) + 1);
+    for (const [hp, count] of tally) {
+      rows.push({
+        species, choice: hp, hp, count,
+      });
+    }
+
+    if (reserve.fresh === 0 && reserve.returningHp.length === 0) {
+      rows.push({
+        species, choice: null, hp: species.maxHp, count: 0,
+      });
+    }
+  }
+  return rows;
+}
+
 // rules.md 2 : sidebar de déploiement (React) — le glisser part d'ici (Pointer Events, suivies
 // sur `window` pour ne pas dépendre du DOM de Phaser), et se termine sur le canevas (repéré par
 // son <canvas> DOM, une donnée générique, pas un objet Phaser) qui reste géré exclusivement par
-// BattleScene. La règle de déploiement elle-même (plafond, copies, légendaire, zone) est
-// entièrement dans deployment.js/battle.js, inchangée — cette sidebar ne fait qu'appeler
-// deployPlayerUnit avec la case calculée depuis la position de relâchement.
+// BattleScene. La règle de déploiement elle-même (plafond, copies, légendaire, zone, choix de
+// la copie) est entièrement dans deployment.js/battle.js, inchangée à part `copyChoice`.
 export default function DeploymentSidebar() {
   const battle = useBattle();
-  const [drag, setDrag] = useState(null); // { species, x, y } en coordonnées écran
+  const [drag, setDrag] = useState(null); // { row, x, y } en coordonnées écran
   const [message, setMessage] = useState('');
 
   if (!battle) return null;
 
-  const onField = battle.units.filter((u) => u.isOnField);
-  const used = getPresenceUsed('player', onField);
+  const used = getPresenceUsed('player', battle.units.filter((u) => u.isOnField));
   const speciesList = [...battle.playerDeployment.bySpecies.keys()];
+  const rows = buildRows(battle.playerDeployment, speciesList);
 
   const showMessage = (text) => {
     setMessage(text);
     setTimeout(() => setMessage(''), 1500);
   };
 
-  const finishDrag = (species, clientX, clientY) => {
+  const finishDrag = (row, clientX, clientY) => {
     interactionState.paused = false;
     const canvas = document.querySelector('#phaser-root canvas');
     if (!canvas) return;
@@ -38,20 +70,20 @@ export default function DeploymentSidebar() {
     }
     const gx = Math.floor((clientX - rect.left) / CELL_SIZE);
     const gy = Math.floor((clientY - rect.top) / CELL_SIZE);
-    const result = deployPlayerUnit(battle, species, gx, gy);
+    const result = deployPlayerUnit(battle, row.species, gx, gy, row.choice);
     if (!result.success) showMessage(`Déploiement refusé : ${result.reason}`);
   };
 
-  const startDrag = (species, event) => {
-    if (battle.outcome !== 'ongoing' || interactionState.commandModeActive) return;
+  const startDrag = (row, event) => {
+    if (battle.outcome !== 'ongoing' || interactionState.commandModeActive || row.choice === null) return;
     interactionState.paused = true;
-    setDrag({ species, x: event.clientX, y: event.clientY });
+    setDrag({ row, x: event.clientX, y: event.clientY });
 
-    const onMove = (e) => setDrag({ species, x: e.clientX, y: e.clientY });
+    const onMove = (e) => setDrag({ row, x: e.clientX, y: e.clientY });
     const onUp = (e) => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      finishDrag(species, e.clientX, e.clientY);
+      finishDrag(row, e.clientX, e.clientY);
       setDrag(null);
     };
     window.addEventListener('pointermove', onMove);
@@ -64,19 +96,18 @@ export default function DeploymentSidebar() {
       <p className="text-xs text-neutral-300">Points de présence : {used}/{PRESENCE_CAP}</p>
       {message && <p className="text-xs text-red-400">{message}</p>}
 
-      {speciesList.map((species) => {
-        const reserve = getReserve(battle.playerDeployment, species);
-        const available = reserve.fresh + reserve.returningHp.length;
-        const woundedNote = reserve.returningHp.length > 0 ? ` (fuis: ${reserve.returningHp.join(',')} PV)` : '';
+      {rows.map((row) => {
+        const wounded = row.hp < row.species.maxHp;
+        const label = wounded ? `${row.species.name} (${row.hp} PV)` : row.species.name;
         return (
           <Button
-            key={species.name}
-            disabled={available <= 0}
-            onPointerDown={(event) => startDrag(species, event)}
+            key={`${row.species.name}-${row.choice ?? 'none'}`}
+            disabled={row.count <= 0}
+            onPointerDown={(event) => startDrag(row, event)}
             className="w-full justify-between text-xs"
           >
-            <span>{species.name}</span>
-            <span>{species.cost}pts x{available}{woundedNote}</span>
+            <span>{label}</span>
+            <span>{row.species.cost}pts x{row.count}</span>
           </Button>
         );
       })}
@@ -89,7 +120,7 @@ export default function DeploymentSidebar() {
           }}
           className="rounded bg-primary/70 flex items-center justify-center text-[10px] text-white text-center px-1"
         >
-          {drag.species.name}
+          {drag.row.species.name}
         </div>
       )}
     </div>

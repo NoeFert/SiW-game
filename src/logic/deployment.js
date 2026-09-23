@@ -45,13 +45,43 @@ export function isValidDeploymentPosition(grid, faction, species, x, y, unitsOnF
   return isPositionFree(x, y, species.size, grid, occupiedCells(unitsOnField, null), false);
 }
 
+// Prélève une copie précise dans la réserve selon `copyChoice` :
+// - 'fresh' : exige une copie fraîche (jamais déployée), refuse même si une copie revenue de
+//   fuite existe.
+// - un nombre : exige la copie revenue de fuite ayant EXACTEMENT ces PV.
+// - omis/null : comportement historique — revenue de fuite en priorité, puis fraîche.
+// Sépararé de `deployUnit` pour rester lisible ; ne fait que muter `speciesState` ou renvoyer
+// null si la copie demandée n'est pas disponible.
+function takeCopy(speciesState, species, copyChoice) {
+  if (copyChoice === 'fresh') {
+    if (speciesState.freshRemaining <= 0) return null;
+    speciesState.freshRemaining -= 1;
+    return species.maxHp;
+  }
+
+  if (typeof copyChoice === 'number') {
+    const index = speciesState.returning.findIndex((entry) => entry.hp === copyChoice);
+    if (index === -1) return null;
+    return speciesState.returning.splice(index, 1)[0].hp;
+  }
+
+  if (speciesState.returning.length > 0) return speciesState.returning.shift().hp;
+  if (speciesState.freshRemaining > 0) {
+    speciesState.freshRemaining -= 1;
+    return species.maxHp;
+  }
+  return null;
+}
+
 // rules.md 2 : dépose une unité pour `faction` — plafond de 150 points de présence vivant
 // (dérivé de `unitsOnField`, donc se libère automatiquement à la mort/fuite d'une unité),
-// un seul [Légendaire] simultané par camp, et des copies limitées par espèce (une revenue de
-// fuite est réutilisée en priorité, avec ses PV réduits conservés, avant d'entamer le stock
-// de copies fraîches). Ne vérifie pas la position (voir `isValidDeploymentPosition`) ni le
-// temps elle-même : signale juste l'intention à l'appelant (`timeControl: 'pause'`).
-export function deployUnit(state, faction, species, x, y, unitsOnField) {
+// un seul [Légendaire] simultané par camp, et des copies limitées par espèce. `copyChoice`
+// permet à l'appelant (la sidebar de déploiement) de garantir la copie exacte affichée —
+// fraîche ('fresh') ou une copie revenue de fuite à des PV précis — plutôt que de laisser le
+// choix par défaut (revenue de fuite en priorité, voir `takeCopy`). Ne vérifie pas la position
+// (voir `isValidDeploymentPosition`) ni le temps : signale juste l'intention à l'appelant
+// (`timeControl: 'pause'`).
+export function deployUnit(state, faction, species, x, y, unitsOnField, copyChoice = null) {
   if (
     species.keywords.includes('legendary')
     && unitsOnField.some((u) => u.faction === faction && u.species === species)
@@ -63,15 +93,8 @@ export function deployUnit(state, faction, species, x, y, unitsOnField) {
     return { success: false, reason: 'presenceCapExceeded' };
   }
 
-  const speciesState = state.bySpecies.get(species);
-  let hp = species.maxHp;
-  if (speciesState.returning.length > 0) {
-    hp = speciesState.returning.shift().hp;
-  } else if (speciesState.freshRemaining > 0) {
-    speciesState.freshRemaining -= 1;
-  } else {
-    return { success: false, reason: 'noCopiesLeft' };
-  }
+  const hp = takeCopy(state.bySpecies.get(species), species, copyChoice);
+  if (hp === null) return { success: false, reason: 'noCopiesLeft' };
 
   const unit = new Unit(species, faction, x, y);
   unit.hp = hp;

@@ -86,6 +86,66 @@ describe('deployUnit — copies et fuite (rules.md 2)', () => {
   });
 });
 
+describe('deployUnit — choix explicite de la copie (sidebar : lignes séparées par variante)', () => {
+  function stateWithOneWoundedGrunt() {
+    const state = createDeploymentState(ROSTER);
+    const { unit } = deployUnit(state, 'player', ROSTER.grunt, 0, 0, []);
+    unit.hp = 7; // dégâts subis avant la fuite
+    recordReturn(state, unit);
+    return state;
+  }
+
+  test('copyChoice "fresh" garantit une copie à PV max même si une copie blessée existe', () => {
+    const state = stateWithOneWoundedGrunt();
+
+    const result = deployUnit(state, 'player', ROSTER.grunt, 1, 0, [], 'fresh');
+
+    expect(result.success).toBe(true);
+    expect(result.unit.hp).toBe(ROSTER.grunt.maxHp);
+    expect(state.bySpecies.get(ROSTER.grunt).returning).toEqual([{ hp: 7 }]); // pas consommée
+  });
+
+  test('copyChoice = PV précis déploie exactement la copie revenue de fuite correspondante', () => {
+    const state = stateWithOneWoundedGrunt();
+
+    const result = deployUnit(state, 'player', ROSTER.grunt, 1, 0, [], 7);
+
+    expect(result.success).toBe(true);
+    expect(result.unit.hp).toBe(7);
+    expect(state.bySpecies.get(ROSTER.grunt).returning).toHaveLength(0);
+  });
+
+  test('copyChoice "fresh" est refusé s\'il ne reste aucune copie fraîche, sans repli automatique', () => {
+    const state = createDeploymentState(ROSTER);
+    state.bySpecies.get(ROSTER.grunt).freshRemaining = 0;
+    const wounded = new Unit(ROSTER.grunt, 'player', 0, 0);
+    wounded.hp = 5;
+    recordReturn(state, wounded);
+
+    const result = deployUnit(state, 'player', ROSTER.grunt, 1, 0, [], 'fresh');
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('noCopiesLeft');
+  });
+
+  test('copyChoice avec des PV qui ne correspondent à aucune copie en réserve est refusé', () => {
+    const state = stateWithOneWoundedGrunt(); // une seule copie revenue, à 7 PV
+
+    const result = deployUnit(state, 'player', ROSTER.grunt, 1, 0, [], 12);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('noCopiesLeft');
+  });
+
+  test('sans copyChoice, le comportement historique (revenue de fuite en priorité) est inchangé', () => {
+    const state = stateWithOneWoundedGrunt();
+
+    const result = deployUnit(state, 'player', ROSTER.grunt, 1, 0, []);
+
+    expect(result.unit.hp).toBe(7);
+  });
+});
+
 describe('deployUnit — limite du [Légendaire] (rules.md 2)', () => {
   test('bloque un second exemplaire simultané, indépendamment du budget disponible', () => {
     const state = createDeploymentState(ROSTER);
