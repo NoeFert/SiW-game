@@ -5,27 +5,24 @@
     <title>SiW Game</title>
     <link rel="stylesheet" href="/src/index.css" />
     <style>
-      /* Layout de page uniquement (technical.md 2.2) : le canevas Phaser et la sidebar React
-         vivent côte à côte, jamais superposés. Ni l'un ni l'autre ne définit ce layout. */
-      body {
+      /* technical.md 5.4 : un seul point de montage React — App.jsx choisit l'écran affiché
+         (technical.md 5), et BattleScreen.jsx définit lui-même son propre layout canevas +
+         sidebar (technical.md 2.2/3.1) le temps qu'il est monté.
+         Desktop uniquement : sous la taille minimale, le surplus scrolle plutôt que d'écraser
+         les éléments (pas de mode "petit écran" pour la v1, technical.md 3.1). */
+      html, body, #root {
+        height: 100%;
         margin: 0;
-        display: flex;
-        align-items: flex-start;
+      }
+      body {
+        min-width: 1280px;
+        min-height: 720px;
         background: #101010;
-      }
-      #phaser-root {
-        flex: 0 0 auto;
-      }
-      #sidebar-root {
-        flex: 1 1 auto;
-        min-width: 320px;
       }
     </style>
   </head>
   <body>
-    <div id="phaser-root"></div>
-    <div id="sidebar-root"></div>
-    <script type="module" src="/src/main.js"></script>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

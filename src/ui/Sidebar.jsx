@@ -6,7 +6,7 @@ import CommandPanel from './CommandPanel.jsx';
 // DeploymentSidebar/CommandPanel gèrent déjà ce cas en ne rendant rien.
 export default function Sidebar() {
   return (
-    <div className="h-screen overflow-y-auto bg-neutral-900 text-white divide-y divide-neutral-700">
+    <div className="h-full overflow-y-auto bg-neutral-900 text-white divide-y divide-neutral-700">
       <DeploymentSidebar />
       <CommandPanel />
     </div>

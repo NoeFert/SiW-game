@@ -34,8 +34,9 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 ### 2.2 Répartition Phaser / React
 
 - **Phaser gère exclusivement le champ de bataille** : le canevas de jeu (grille, sprites d'unités, background, animations de combat, barres de vie au-dessus des unités, feedback visuel des aptitudes)
-- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la sidebar de déploiement (liste des unités disponibles, coût, copies restantes, budget de points de présence), le bouton "Commandes" et son panneau de sélection, les écrans de fin de bataille (victoire/défaite/égalité), le compte à rebours de 15 secondes, l'indicateur de cooldown des commandes
-- Le canevas Phaser et l'arbre React vivent côte à côte dans la page (la sidebar est **à côté** du champ de bataille, jamais superposée) ; aucun des deux ne manipule directement le DOM ou les objets de l'autre — ils communiquent uniquement via l'état partagé exposé par `battle.js`
+- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la sidebar de déploiement (liste des unités disponibles, coût, copies restantes, budget de points de présence), le bouton "Commandes" et son panneau de sélection, l'écran de choix de faction, les écrans de fin de bataille (récompense, défaite), l'écran d'accueil, le compte à rebours de 15 secondes, l'indicateur de cooldown des commandes
+- Le canevas Phaser et l'arbre React vivent côte à côte dans la page quand la bataille est affichée (la sidebar est **à côté** du champ de bataille, jamais superposée) ; aucun des deux ne manipule directement le DOM ou les objets de l'autre — ils communiquent uniquement via l'état partagé exposé par `battle.js`
+- Les autres écrans (choix de faction, récompense, défaite, accueil — voir section 5) sont du **React pur, sans Phaser** : le canevas de jeu n'existe que pendant l'écran de bataille
 - Largeur de la sidebar : laissée à l'appréciation de l'implémentation, à ajuster si besoin une fois affichée
 
 ### 2.3 Structure de dossiers indicative
@@ -55,11 +56,17 @@ src/
     battleScript.js
   scenes/          # Couche Phaser (rendu du champ de bataille, input sur le terrain)
     BattleScene.js
-  ui/              # Couche React (sidebar, boutons, HUD, écrans de fin de bataille)
+  ui/              # Couche React (sidebar, boutons, HUD, écrans)
+    screens/       # Les 5 écrans du jeu (voir section 5)
+      FactionChoiceScreen.jsx
+      BattleScreen.jsx
+      VictoryScreen.jsx
+      DefeatScreen.jsx
+      HomeScreen.jsx
     DeploymentSidebar.jsx
     CommandButton.jsx
-    BattleEndScreen.jsx
     components/    # Composants shadcn/8bitcn générés (ex: button.jsx)
+  App.jsx          # État de navigation entre écrans (voir section 5)
 assets/
   sprites/
     fafnir.png
@@ -89,12 +96,20 @@ tests/
 
 ## 3. Résolution de rendu
 
-- **Taille d'une case de grille : 64×64 pixels.** Avec la grille de 24×14 cases (`rules.md` section 1), le canevas de jeu Phaser fait **1536×896 pixels**. La sidebar React s'ajoute à côté, sans réduire cette taille de canevas.
+- **Taille d'une case de grille : 64×64 pixels.** Avec la grille de 24×14 cases (`rules.md` section 1), le canevas de jeu Phaser fait **1536×896 pixels** à sa taille de référence (base design resolution).
 - **Résolution des assets fournis : 2x la taille d'affichage réelle**, pour rester net sur les écrans haute densité (Retina) — Phaser réduit à l'affichage.
   - Sprites 1 case (Lambton Worm, New-reborn Skeleton, et futurs Amphiptère/Necromant Initiate) : 128×128 px, PNG avec transparence
   - Sprites 4 cases / 2×2 (Fafnir, Athos) : 256×256 px, PNG avec transparence
   - Background de bataille : 3072×1792 px si possible (2x du canevas), sinon 1536×896 px minimum, PNG ou JPG
 - Le DPI des fichiers n'a aucune incidence sur le rendu à l'écran — seule la taille en pixels compte.
+
+### 3.1 Adaptation à la taille d'écran (desktop uniquement)
+
+- **Le jeu s'adapte à la taille de la fenêtre du navigateur, desktop uniquement** — pas de layout mobile/tactile à prévoir pour la v1.
+- **Le canevas Phaser garde toujours son ratio d'aspect (24:14)** : il ne s'étire jamais de façon à déformer la grille ou les sprites. Utiliser le Scale Manager de Phaser en mode `Phaser.Scale.FIT` avec un parent redimensionnable (`Phaser.Scale.RESIZE` sur le conteneur, ou écoute de `resize` window + `scale.resize()`), pour que le canevas grandisse ou rétrécisse en conservant ses proportions.
+- **La sidebar React s'adapte plus librement** autour du canevas (largeur en `%` ou `rem`, pas de ratio imposé), tant qu'elle reste entièrement visible à côté du terrain, jamais superposée ni coupée.
+- **Taille de fenêtre minimale** : définir une largeur/hauteur minimale raisonnable (ex : 1280×720) en dessous de laquelle le jeu n'essaie pas de rétrécir davantage (scroll ou simple troncature du surplus plutôt que des éléments illisibles) — pas de vraie réflexion "petit écran" nécessaire pour la v1, desktop uniquement.
+- Les positions de jeu (grille, coordonnées d'unités) restent exprimées dans le référentiel fixe de 1536×896 dans `src/logic/` — seule la couche Phaser convertit vers la taille d'affichage réelle au moment du rendu ; aucune règle de `rules.md` ne dépend de la résolution d'écran.
 
 ---
 
@@ -108,4 +123,49 @@ tests/
   4. Conditions de fin de bataille (victoire immédiate, cas d'égalité, compte à rebours de 15s)
   5. Gestion des points de présence et des copies (plafond vivant, copie perdue vs réutilisable)
 - **Pas de tests automatisés sur la couche Phaser ni sur la couche React** (rendu, animations, input, composants UI) pour la v1 — cette partie reste validée manuellement en jouant, le coût de mise en place de tests d'interface n'étant pas justifié pour un prototype
-- Chaque règle chiffrée de `rules.md` doit pouvoir correspondre à au moins un test automatisé qui la vérifie — cohérent avec la consigne de `rules.md` ("chaque ligne doit être vérifiable")-
+- Chaque règle chiffrée de `rules.md` doit pouvoir correspondre à au moins un test automatisé qui la vérifie — cohérent avec la consigne de `rules.md` ("chaque ligne doit être vérifiable")
+
+---
+
+## 5. Écrans et navigation
+
+Le jeu v1 est composé de **cinq écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les quatre autres sont du React pur.
+
+### 5.1 Liste des écrans
+
+1. **FactionChoiceScreen** — écran de choix de faction (Souveraine des Wyrms ou Souverain des Morts-Vivants). Affiché **une seule fois**, au tout début d'une partie (pas avant chaque bataille, même une fois que plusieurs batailles existeront en v2+).
+2. **BattleScreen** — l'écran de bataille actuel : canevas Phaser (champ de bataille) + sidebar React (déploiement, bouton "Commandes").
+3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3) — le contenu réel des récompenses est hors scope v1 (`roadmap.md`).
+4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé).
+5. **HomeScreen** — écran d'accueil. **Accessible uniquement après avoir remporté la première bataille.** Pour la v1, affiche une seule ligne de texte indiquant la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms.").
+
+### 5.2 Enchaînement (v1)
+
+```
+FactionChoiceScreen (une fois)
+        │
+        ▼
+   BattleScreen ──────► DefeatScreen ──"Réessayer"──┐
+        │                                             │
+     victoire                                         │
+        │                                             │
+        ▼                                             │
+  VictoryScreen                                        │
+        │                                              │
+        ▼                                              │
+   HomeScreen                                           │
+                                                          │
+   BattleScreen ◄──────────────────────────────────────┘
+```
+
+- Au chargement de l'application, l'état persistant (localStorage, voir 5.4) est lu : s'il n'y a pas encore de faction choisie, `FactionChoiceScreen` s'affiche ; si une faction est déjà choisie mais la première bataille pas encore gagnée, l'app va directement à `BattleScreen` ; si la première bataille est déjà gagnée, l'app va directement à `HomeScreen`.
+- Une défaite ne fait perdre ni la faction choisie ni aucune autre donnée — seul un nouvel essai de la même bataille est proposé.
+
+### 5.3 Squelette de VictoryScreen et DefeatScreen pour la v1
+- Les deux écrans sont volontairement minimaux : un titre (Victoire / Défaite), et un seul bouton d'action (Continuer vers l'accueil / Réessayer)
+- Pas de contenu de récompense réel à afficher pour la v1 (le design doc prévoit un système de récompenses en v2+, hors scope) — la structure du composant doit néanmoins être prête à accueillir ce contenu plus tard sans réécriture complète
+
+### 5.4 Navigation et état persistant
+- **Gestion de la navigation entre écrans : état React simple** (ex : un state `currentScreen` géré dans le composant racine `App.jsx`), pas de librairie de routing (React Router ou équivalent) pour la v1 — le jeu est une session continue dans un seul onglet, sans besoin d'URLs distinctes par écran. Une vraie solution de routing pourra être introduite en v2+ si la sélection de niveau (plusieurs batailles) le justifie.
+- **Persistance via localStorage** : deux valeurs sont sauvegardées — la faction choisie par le joueur, et un indicateur booléen "première bataille gagnée". C'est une exception ciblée à l'absence de persistance en v1 (voir `roadmap.md`), pas un système de sauvegarde généralisé. Ces deux valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2).
+- Aucune autre donnée n'est persistée en v1 (l'état d'une bataille en cours, par exemple, repart de zéro à chaque chargement de `BattleScreen`).

@@ -15,8 +15,6 @@ import { interactionState, exitCommandMode } from '../state/interactionState.js'
 // le réafficher pendant qu'on travaille sur le placement des obstacles/scripts par exemple.
 const DEBUG_SHOW_GRID = false;
 
-const OUTCOME_LABELS = { playerVictory: 'VICTOIRE', enemyVictory: 'DÉFAITE', draw: 'ÉGALITÉ' };
-
 // Espèce -> clé d'asset chargée dans preload(). Une espèce sans entrée ici serait dessinée
 // comme un simple cercle coloré (voir PLACEHOLDER_COLORS) — plus aucune pour l'instant, tous
 // les sprites du roster v1 sont fournis.
@@ -39,13 +37,19 @@ function healthBarColor(ratio) {
 
 // Cette Scene gère exclusivement le champ de bataille (technical.md 2.2) : grille, sprites,
 // animations, clics sur le terrain (sélection/attaque/déplacement une fois le mode "Commandes"
-// activé). Le déploiement (glisser-déposer) et le panneau de commandes vivent maintenant dans
-// la sidebar React (src/ui/) ; les deux couches ne communiquent qu'à travers `interactionState`
-// et l'objet `battle` qu'il expose — ni l'une ni l'autre ne touche au DOM/objets de l'autre.
+// activé). Le déploiement (glisser-déposer) et le panneau de commandes vivent dans la sidebar
+// React (src/ui/) ; le choix de faction et l'écran de résultat vivent dans des écrans React
+// séparés (src/screens/, technical.md 5) — cette Scene est recréée par BattleScreen.jsx à
+// chaque entrée dans l'écran de bataille, faction déjà connue (voir `init`). Les deux couches
+// ne communiquent qu'à travers `interactionState` et l'objet `battle` qu'il expose.
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super('BattleScene');
     this.unitViews = new Map(); // unit.id -> { container, barFill, barWidth, paralyzedBadge }
+  }
+
+  init(data) {
+    this.playerFaction = data.playerFaction;
   }
 
   preload() {
@@ -69,8 +73,7 @@ export default class BattleScene extends Phaser.Scene {
     this.drawGridLines(grid);
     this.drawObstacles(grid);
 
-    this.battle = null; // pas encore de bataille tant que la faction n'est pas choisie
-    this.showFactionChoice();
+    this.startBattle(this.playerFaction);
   }
 
   drawGridLines(grid) {
@@ -97,33 +100,8 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  // -- Choix de faction (rules.md 9) ------------------------------------------------------
-
-  showFactionChoice() {
-    const overlay = this.add.rectangle(0, 0, this.width, this.height, 0x000000, 0.7).setOrigin(0, 0);
-    const title = this.add.text(this.width / 2, this.height / 2 - 90, 'Choisis ta faction', {
-      fontSize: '26px', color: '#ffffff',
-    }).setOrigin(0.5);
-
-    const buttonStyle = {
-      fontSize: '16px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 14, y: 10 },
-    };
-    const wyrmsBtn = this.add.text(this.width / 2 - 160, this.height / 2, 'Souveraine des Wyrms', buttonStyle)
-      .setOrigin(0.5).setInteractive({ useHandCursor: true });
-    const undeadBtn = this.add.text(this.width / 2 + 160, this.height / 2, 'Souverain des Morts-Vivants', buttonStyle)
-      .setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-    const choose = (playerFaction) => {
-      overlay.destroy();
-      title.destroy();
-      wyrmsBtn.destroy();
-      undeadBtn.destroy();
-      this.startBattle(playerFaction);
-    };
-    wyrmsBtn.on('pointerdown', () => choose('wyrms'));
-    undeadBtn.on('pointerdown', () => choose('undead'));
-  }
-
+  // rules.md 9 : le choix de faction lui-même vit maintenant dans FactionChoiceScreen (React,
+  // technical.md 5) — cette Scene reçoit `playerFaction` déjà tranché via `init(data)`.
   startBattle(playerFaction) {
     const playerRoster = playerFaction === 'wyrms' ? WYRMS_ROSTER : UNDEAD_ROSTER;
     const enemyRoster = playerFaction === 'wyrms' ? UNDEAD_ROSTER : WYRMS_ROSTER;
@@ -143,12 +121,11 @@ export default class BattleScene extends Phaser.Scene {
 
     this.createSelectionIndicator();
     this.createCountdownBanner();
-    this.createResultOverlay();
   }
 
   // -- Fin de bataille (rules.md 8) --------------------------------------------------------
-  // Le reste du HUD (compte à rebours, bouton d'abandon, écran de résultat) migrera vers React
-  // dans une étape séparée ; conservé ici tel quel pour l'instant.
+  // Le compte à rebours et le bouton d'abandon restent ici pour l'instant (ils concernent une
+  // bataille encore EN COURS) ; seul l'écran de résultat final a été extrait vers React.
 
   createCountdownBanner() {
     this.countdownText = this.add.text(this.width / 2, 16, '', {
@@ -188,23 +165,10 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  createResultOverlay() {
-    this.resultOverlay = this.add.rectangle(0, 0, this.width, this.height, 0x000000, 0.75)
-      .setOrigin(0, 0).setVisible(false);
-    this.resultText = this.add.text(this.width / 2, this.height / 2, '', {
-      fontSize: '42px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5).setVisible(false);
-  }
-
-  updateResultOverlay() {
-    const ended = this.battle.outcome !== 'ongoing';
-    this.resultOverlay.setVisible(ended);
-    this.resultText.setVisible(ended);
-    if (ended) this.resultText.setText(OUTCOME_LABELS[this.battle.outcome]);
-  }
-
   // Cache le HUD encore présent côté Phaser une fois la bataille terminée (rules.md 8 : plus
-  // aucune interaction possible). La sidebar React gère elle-même son propre état "terminé".
+  // aucune interaction possible). L'écran de résultat lui-même est maintenant VictoryScreen/
+  // DefeatScreen (React, technical.md 5) — BattleScreen.jsx navigue vers l'un ou l'autre dès
+  // que `battle.outcome` change, cette Scene n'a donc plus qu'à figer son propre affichage.
   hideBattleUi() {
     this.countdownText.setVisible(false);
     this.surrenderButton.setVisible(false);
@@ -335,8 +299,6 @@ export default class BattleScene extends Phaser.Scene {
   // -- Boucle par frame ---------------------------------------------------------------------
 
   update(time, deltaMs) {
-    if (!this.battle) return; // en attente du choix de faction
-
     if (!interactionState.paused && this.battle.outcome === 'ongoing') {
       tickBattle(this.battle, deltaMs / 1000);
       this.processAbilityEvents();
@@ -344,7 +306,6 @@ export default class BattleScene extends Phaser.Scene {
 
     this.syncViews();
     this.updateSelectionIndicator();
-    this.updateResultOverlay();
 
     if (this.battle.outcome === 'ongoing') {
       this.updateCountdownBanner();

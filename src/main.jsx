@@ -1,4 +1,4 @@
 import { createRoot } from 'react-dom/client';
-import Sidebar from './ui/Sidebar.jsx';
+import App from './App.jsx';
 
-createRoot(document.getElementById('sidebar-root')).render(<Sidebar />);
+createRoot(document.getElementById('root')).render(<App />);
