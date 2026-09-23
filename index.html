@@ -3,9 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <title>SiW Game</title>
+    <link rel="stylesheet" href="/src/index.css" />
+    <style>
+      /* Layout de page uniquement (technical.md 2.2) : le canevas Phaser et la sidebar React
+         vivent côte à côte, jamais superposés. Ni l'un ni l'autre ne définit ce layout. */
+      body {
+        margin: 0;
+        display: flex;
+        align-items: flex-start;
+        background: #101010;
+      }
+      #phaser-root {
+        flex: 0 0 auto;
+      }
+      #sidebar-root {
+        flex: 1 1 auto;
+        min-width: 320px;
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="phaser-root"></div>
+    <div id="sidebar-root"></div>
     <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
