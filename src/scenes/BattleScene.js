@@ -23,20 +23,19 @@ const DEBUG_SHOW_GRID = false;
 
 const OUTCOME_LABELS = { playerVictory: 'VICTOIRE', enemyVictory: 'DÉFAITE', draw: 'ÉGALITÉ' };
 
-// Espèce -> clé d'asset chargée dans preload(). Amphiptère et Necromant Initiate n'ont pas
-// encore de sprite fourni (voir assets/README.md) : ils restent en dehors de cette table et
-// sont dessinés comme une forme géométrique simple (voir PLACEHOLDER_COLORS).
+// Espèce -> clé d'asset chargée dans preload(). Une espèce sans entrée ici serait dessinée
+// comme un simple cercle coloré (voir PLACEHOLDER_COLORS) — plus aucune pour l'instant, tous
+// les sprites du roster v1 sont fournis.
 const SPRITE_KEYS = {
   'Lambton Worm': 'lambton-worm',
   'Fafnir the Cursed One': 'fafnir',
   'New-reborn Skeleton': 'new-reborn-skeleton',
   'Athos the Lord of Pain': 'athos',
+  Amphiptère: 'ampiptere',
+  'Necromant Initiate': 'necromant',
 };
 
-const PLACEHOLDER_COLORS = {
-  Amphiptère: 0x2ecc71,
-  'Necromant Initiate': 0x9b59b6,
-};
+const PLACEHOLDER_COLORS = {};
 
 function healthBarColor(ratio) {
   if (ratio > 0.5) return 0x2ecc71;
@@ -60,6 +59,9 @@ export default class BattleScene extends Phaser.Scene {
     this.load.image('athos', 'sprites/athos.png');
     this.load.image('lambton-worm', 'sprites/lambton-worm.png');
     this.load.image('new-reborn-skeleton', 'sprites/new-reborn-skeleton.png');
+    this.load.image('ampiptere', 'sprites/ampiptere.png');
+    this.load.image('necromant', 'sprites/necromant.png');
+    this.load.image('rocks', 'sprites/rocks.png');
   }
 
   create() {
@@ -89,13 +91,13 @@ export default class BattleScene extends Phaser.Scene {
     graphics.setVisible(DEBUG_SHOW_GRID); // invisible pour le joueur (voir DEBUG_SHOW_GRID)
   }
 
-  // rules.md 1 : obstacles infranchissables — placeholder simple en attendant un vrai visuel.
+  // rules.md 1 : obstacles infranchissables.
   drawObstacles(grid) {
     for (let y = 0; y < grid.height; y++) {
       for (let x = 0; x < grid.width; x++) {
         if (grid.isObstacle(x, y)) {
-          this.add.rectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, 0x000000)
-            .setOrigin(0, 0);
+          this.add.image((x + 0.5) * CELL_SIZE, (y + 0.5) * CELL_SIZE, 'rocks')
+            .setDisplaySize(CELL_SIZE * 0.95, CELL_SIZE * 0.95);
         }
       }
     }
@@ -150,7 +152,11 @@ export default class BattleScene extends Phaser.Scene {
     this.createResultOverlay();
   }
 
-  // -- Déploiement interactif (rules.md 2) ------------------------------------------------
+  // -- Déploiement interactif par glisser-déposer (rules.md 2) ----------------------------
+  // Glisser une icône d'unité disponible met la bataille en pause (pause tactique) ; relâcher
+  // sur une case valide de la moitié du joueur déploie l'unité (deployPlayerUnit, inchangé :
+  // plafond de points, copies, limite du [Légendaire] toujours appliqués là-bas). Relâcher
+  // ailleurs (hors du terrain, ou sur une case refusée) annule sans déployer.
 
   createDeployPanel() {
     this.bottomBarBg = this.add.rectangle(0, this.barY, this.width, BOTTOM_BAR_HEIGHT, 0x000000, 0.75)
@@ -161,8 +167,10 @@ export default class BattleScene extends Phaser.Scene {
       const text = this.add.text(x, this.barY + 8, '', {
         fontSize: '13px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 6, y: 4 },
       })
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => this.startDeployment(species));
+        .setInteractive({ useHandCursor: true, draggable: true })
+        .on('dragstart', () => this.startDeployDrag(species))
+        .on('drag', (pointer) => this.deployGhost?.setPosition(pointer.x, pointer.y))
+        .on('dragend', (pointer) => this.endDeployDrag(pointer));
       return { species, text };
     });
 
@@ -175,26 +183,39 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5, 0);
   }
 
-  startDeployment(species) {
+  startDeployDrag(species) {
     if (this.battle.outcome !== 'ongoing' || this.commandModeActive) return;
     this.pendingDeploySpecies = species;
     this.selectedUnit = null;
     this.paused = true;
+
+    const footprintSize = species.size * CELL_SIZE;
+    const spriteKey = SPRITE_KEYS[species.name];
+    this.deployGhost = spriteKey
+      ? this.add.image(0, 0, spriteKey).setDisplaySize(footprintSize * 0.9, footprintSize * 0.9)
+      : this.add.circle(0, 0, footprintSize * 0.4, PLACEHOLDER_COLORS[species.name] ?? 0xffffff);
+    this.deployGhost.setAlpha(0.6);
+  }
+
+  endDeployDrag(pointer) {
+    if (this.deployGhost) {
+      this.deployGhost.destroy();
+      this.deployGhost = null;
+    }
+    if (!this.pendingDeploySpecies) return; // le drag avait été refusé au départ (voir startDeployDrag)
+
+    if (pointer.y < this.barY) { // relâché sur le terrain : tente le déploiement
+      const result = deployPlayerUnit(this.battle, this.pendingDeploySpecies, Math.floor(pointer.x / CELL_SIZE),
+        Math.floor(pointer.y / CELL_SIZE));
+      if (!result.success) this.showMessage(`Déploiement refusé : ${result.reason}`);
+    } // relâché sur la barre du bas : annulation silencieuse (comme reposer l'icône)
+
+    this.cancelDeployment();
   }
 
   cancelDeployment() {
     this.pendingDeploySpecies = null;
     this.paused = false;
-  }
-
-  tryPlaceDeployment(gx, gy) {
-    const result = deployPlayerUnit(this.battle, this.pendingDeploySpecies, gx, gy);
-    if (result.success) {
-      this.pendingDeploySpecies = null;
-      this.paused = false;
-    } else {
-      this.showMessage(`Déploiement refusé : ${result.reason}`);
-    }
   }
 
   showMessage(message) {
@@ -283,8 +304,8 @@ export default class BattleScene extends Phaser.Scene {
   updatePauseBanner() {
     if (this.pendingDeploySpecies) {
       this.pauseBanner.setText(
-        `⏸ PAUSE — placement de ${this.pendingDeploySpecies.name} : clique ta moitié du terrain `
-        + '(clic droit pour annuler)',
+        `⏸ PAUSE — relâche ${this.pendingDeploySpecies.name} sur ta moitié du terrain `
+        + '(relâche ailleurs pour annuler)',
       );
       this.pauseBanner.setVisible(true);
     } else if (this.commandModeActive) {
@@ -467,13 +488,10 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (this.pendingDeploySpecies) return; // déploiement en cours de glisser-déposer, pas de clic ici
+
     const gx = Math.floor(pointer.x / CELL_SIZE);
     const gy = Math.floor(pointer.y / CELL_SIZE);
-
-    if (this.pendingDeploySpecies) {
-      this.tryPlaceDeployment(gx, gy);
-      return;
-    }
 
     if (!this.commandModeActive) return; // en dehors du mode "Commandes", le terrain ne réagit pas au clic
 
