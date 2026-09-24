@@ -62,6 +62,7 @@ export default function DeploymentSidebar() {
 
   const finishDrag = (row, clientX, clientY) => {
     interactionState.paused = false;
+    interactionState.deploymentDragActive = false;
     const canvas = document.querySelector('#phaser-root canvas');
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -81,17 +82,23 @@ export default function DeploymentSidebar() {
   const startDrag = (row, event) => {
     if (battle.outcome !== 'ongoing' || interactionState.commandModeActive || row.choice === null) return;
     interactionState.paused = true;
+    interactionState.deploymentDragActive = true;
     setDrag({ row, x: event.clientX, y: event.clientY });
 
     const onMove = (e) => setDrag({ row, x: e.clientX, y: e.clientY });
+    // pointercancel (le navigateur reprend la main sur le pointeur) : annulation, traitée
+    // comme un relâché hors du terrain.
     const onUp = (e) => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      finishDrag(row, e.clientX, e.clientY);
+      window.removeEventListener('pointercancel', onUp);
+      const cancelled = e.type === 'pointercancel';
+      finishDrag(row, cancelled ? -1 : e.clientX, cancelled ? -1 : e.clientY);
       setDrag(null);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   return (

@@ -34,9 +34,9 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 ### 2.2 Répartition Phaser / React
 
 - **Phaser gère exclusivement le champ de bataille** : le canevas de jeu (grille, sprites d'unités, background, animations de combat, barres de vie au-dessus des unités, feedback visuel des aptitudes)
-- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la sidebar de déploiement (liste des unités disponibles, coût, copies restantes, budget de points de présence), le bouton "Commandes" et son panneau de sélection, l'écran de choix de faction, les écrans de fin de bataille (récompense, défaite), l'écran d'accueil, le compte à rebours de 15 secondes, l'indicateur de cooldown des commandes
+- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la sidebar de déploiement (liste des unités disponibles, coût, copies restantes, budget de points de présence), le bouton "Commandes" et son panneau de sélection, l'écran de choix de faction, les écrans de fin de bataille (récompense, défaite), l'écran d'accueil, l'écran de gestion de civilisation, le compte à rebours de 15 secondes, l'indicateur de cooldown des commandes
 - Le canevas Phaser et l'arbre React vivent côte à côte dans la page quand la bataille est affichée (la sidebar est **à côté** du champ de bataille, jamais superposée) ; aucun des deux ne manipule directement le DOM ou les objets de l'autre — ils communiquent uniquement via l'état partagé exposé par `battle.js`
-- Les autres écrans (choix de faction, récompense, défaite, accueil — voir section 5) sont du **React pur, sans Phaser** : le canevas de jeu n'existe que pendant l'écran de bataille
+- Les autres écrans (choix de faction, récompense, défaite, accueil, gestion de civilisation — voir section 5) sont du **React pur, sans Phaser** : le canevas de jeu n'existe que pendant l'écran de bataille
 - Largeur de la sidebar : laissée à l'appréciation de l'implémentation, à ajuster si besoin une fois affichée
 
 ### 2.3 Structure de dossiers indicative
@@ -57,12 +57,13 @@ src/
   scenes/          # Couche Phaser (rendu du champ de bataille, input sur le terrain)
     BattleScene.js
   ui/              # Couche React (sidebar, boutons, HUD, écrans)
-    screens/       # Les 5 écrans du jeu (voir section 5)
+    screens/       # Les 6 écrans du jeu (voir section 5)
       FactionChoiceScreen.jsx
       BattleScreen.jsx
       VictoryScreen.jsx
       DefeatScreen.jsx
       HomeScreen.jsx
+      CivilizationScreen.jsx
     DeploymentSidebar.jsx
     CommandButton.jsx
     components/    # Composants shadcn/8bitcn générés (ex: button.jsx)
@@ -129,7 +130,7 @@ tests/
 
 ## 5. Écrans et navigation
 
-Le jeu v1 est composé de **cinq écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les quatre autres sont du React pur.
+Le jeu v1 est composé de **six écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les cinq autres sont du React pur.
 
 ### 5.1 Liste des écrans
 
@@ -137,7 +138,8 @@ Le jeu v1 est composé de **cinq écrans distincts**. Un seul d'entre eux (l'éc
 2. **BattleScreen** — l'écran de bataille actuel : canevas Phaser (champ de bataille) + sidebar React (déploiement, bouton "Commandes").
 3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3) — le contenu réel des récompenses est hors scope v1 (`roadmap.md`).
 4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé).
-5. **HomeScreen** — écran d'accueil. **Accessible uniquement après avoir remporté la première bataille.** Pour la v1, affiche une seule ligne de texte indiquant la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms.").
+5. **HomeScreen** — écran d'accueil. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Pour la v1, affiche une ligne de texte indiquant la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), plus un bouton vers `CivilizationScreen`.
+6. **CivilizationScreen** — écran de gestion de civilisation, accessible depuis un bouton sur `HomeScreen`. **Lecture seule en v1** (aucune action possible). Affiche une ligne par type d'unité de la faction du joueur (unités regroupées uniquement si elles partagent exactement les mêmes nom et stats — donc une ligne par espèce du roster, voir `units.md`), avec le nombre de copies restantes sur le total initial. Reflète les pertes définitives (unités tuées, pas celles ayant fui) subies pendant la bataille tutoriel.
 
 ### 5.2 Enchaînement (v1)
 
@@ -153,13 +155,13 @@ FactionChoiceScreen (une fois)
   VictoryScreen                                        │
         │                                              │
         ▼                                              │
-   HomeScreen                                           │
+   HomeScreen ──────► CivilizationScreen (lecture seule, retour possible vers HomeScreen)
                                                           │
    BattleScreen ◄──────────────────────────────────────┘
 ```
 
 - Au chargement de l'application, l'état persistant (localStorage, voir 5.4) est lu : s'il n'y a pas encore de faction choisie, `FactionChoiceScreen` s'affiche ; si une faction est déjà choisie mais la première bataille pas encore gagnée, l'app va directement à `BattleScreen` ; si la première bataille est déjà gagnée, l'app va directement à `HomeScreen`.
-- Une défaite ne fait perdre ni la faction choisie ni aucune autre donnée — seul un nouvel essai de la même bataille est proposé.
+- Une défaite ne fait perdre ni la faction choisie ni aucune autre donnée persistée — seul un nouvel essai de la même bataille est proposé, et aucune perte d'unité d'une tentative ratée n'est comptabilisée (voir 5.4).
 
 ### 5.3 Squelette de VictoryScreen et DefeatScreen pour la v1
 - Les deux écrans sont volontairement minimaux : un titre (Victoire / Défaite), et un seul bouton d'action (Continuer vers l'accueil / Réessayer)
@@ -167,5 +169,10 @@ FactionChoiceScreen (une fois)
 
 ### 5.4 Navigation et état persistant
 - **Gestion de la navigation entre écrans : état React simple** (ex : un state `currentScreen` géré dans le composant racine `App.jsx`), pas de librairie de routing (React Router ou équivalent) pour la v1 — le jeu est une session continue dans un seul onglet, sans besoin d'URLs distinctes par écran. Une vraie solution de routing pourra être introduite en v2+ si la sélection de niveau (plusieurs batailles) le justifie.
-- **Persistance via localStorage** : deux valeurs sont sauvegardées — la faction choisie par le joueur, et un indicateur booléen "première bataille gagnée". C'est une exception ciblée à l'absence de persistance en v1 (voir `roadmap.md`), pas un système de sauvegarde généralisé. Ces deux valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2).
+- **Persistance via localStorage** : trois valeurs sont sauvegardées —
+  1. la faction choisie par le joueur
+  2. un indicateur booléen "première bataille (tutoriel) gagnée"
+  3. le nombre de copies restantes par unité de la faction du joueur (une entrée par type d'unité, ex : `{ lambtonWorm: 9, amphiptere: 8, fafnir: 1 }`), calculé et sauvegardé **au moment où la victoire de la bataille tutoriel est obtenue** — pas mis à jour lors d'une tentative ratée (voir 5.2)
+- C'est une exception ciblée à l'absence de persistance en v1 (voir `roadmap.md`), pas un système de sauvegarde généralisé. Ces trois valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `CivilizationScreen`.
+- Le bouton temporaire "Reset Demo" sur `HomeScreen` efface les trois valeurs et ramène à `FactionChoiceScreen`.
 - Aucune autre donnée n'est persistée en v1 (l'état d'une bataille en cours, par exemple, repart de zéro à chaque chargement de `BattleScreen`).

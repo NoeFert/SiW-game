@@ -7,9 +7,12 @@
 // `paused` : pause tactique (déploiement en cours de glisser, ou mode "Commandes" actif).
 // `commandModeActive` / `selectedUnit` : état du panneau de sélection de commande (React),
 // mis à jour aussi par la Scene quand le joueur clique une unité/case/ennemi sur le terrain.
+// `deploymentDragActive` : une unité est en cours de glisser depuis la sidebar de déploiement
+// (la Scene affiche alors le cadre de la zone de déploiement valide, rules.md 2).
 export const interactionState = {
   battle: null,
   paused: false,
+  deploymentDragActive: false,
   commandModeActive: false,
   selectedUnit: null,
 };

@@ -113,14 +113,26 @@ export default class BattleScene extends Phaser.Scene {
     // communication entre les deux couches, aucune ne référence les objets de l'autre.
     interactionState.battle = this.battle;
     interactionState.paused = false;
+    interactionState.deploymentDragActive = false;
     interactionState.commandModeActive = false;
     interactionState.selectedUnit = null;
 
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
 
+    this.createDeploymentZoneFrame();
     this.createSelectionIndicator();
     this.createCountdownBanner();
+  }
+
+  // rules.md 2 : cadre autour de la moitié gauche du terrain (zone de déploiement du joueur,
+  // voir isValidDeploymentPosition), visible uniquement pendant un glisser depuis la sidebar.
+  createDeploymentZoneFrame() {
+    const zoneWidth = Math.floor(this.grid.width / 2) * CELL_SIZE;
+    this.deploymentZoneFrame = this.add.rectangle(0, 0, zoneWidth, this.height, 0x3fa9f5, 0.12)
+      .setOrigin(0, 0)
+      .setStrokeStyle(4, 0x3fa9f5)
+      .setVisible(false);
   }
 
   // -- Fin de bataille (rules.md 8) --------------------------------------------------------
@@ -306,6 +318,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.syncViews();
     this.updateSelectionIndicator();
+    this.deploymentZoneFrame.setVisible(interactionState.deploymentDragActive);
 
     if (this.battle.outcome === 'ongoing') {
       this.updateCountdownBanner();
