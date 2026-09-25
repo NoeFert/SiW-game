@@ -3,7 +3,6 @@ import { createCommandState, commandAttack, commandMoveTo, commandFlee } from '.
 import { createAiScriptState, deployScheduledUnits } from './aiScript.js';
 import {
   createDeploymentState, deployUnit, recordReturn, consumeFreshCopy, isValidDeploymentPosition,
-  nearestValidDeploymentPosition,
 } from './deployment.js';
 import {
   createFactionState, updateFactionEndState, evaluateBattleOutcome, surrender,
@@ -13,9 +12,11 @@ import {
 // résolution de combat (4, 6) et fin de bataille (8) en une seule boucle par tick. Aucune
 // décision d'IA ici : le script dit quoi/quand/où (7), resolveCombatTick fait le reste,
 // identique pour joueur et IA — c'est tout le principe de cette architecture par couches.
-export function createBattle(grid, playerRoster, enemyRoster, enemyScript) {
+// `rng` : source d'aléa du choix de case de l'IA (rules.md 7.2), injectable en test.
+export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng = Math.random) {
   return {
     grid,
+    rng,
     units: [],
     elapsedSeconds: 0,
     outcome: 'ongoing',
@@ -66,17 +67,13 @@ export function issuePlayerFlee(battle, unit) {
 
 // rules.md 7 : déploiements scriptés de l'IA — pré-autorisés (script déjà équilibré), donc pas
 // de passage par les vérifications de deployUnit ; seul le registre de copies est mis à jour
-// (consumeFreshCopy) pour que les réserves restent exactes côté battleEnd.js (8). Seule la
-// case est ajustée : si celle du script est occupée (rules.md 1), l'unité apparaît sur la case
-// libre la plus proche de sa moitié, à l'heure prévue.
+// (consumeFreshCopy) pour que les réserves restent exactes côté battleEnd.js (8). La case
+// d'apparition est choisie par aiScript.js (rules.md 7.2).
 function deployScriptedEnemies(battle) {
-  const due = deployScheduledUnits(battle.enemyScript, battle.aiScriptState, battle.elapsedSeconds, 'enemy');
+  const due = deployScheduledUnits(
+    battle.enemyScript, battle.aiScriptState, battle.elapsedSeconds, 'enemy', battle.grid, battle.units, battle.rng,
+  );
   for (const unit of due) {
-    const unitsOnField = battle.units.filter((u) => u.isOnField);
-    const position = nearestValidDeploymentPosition(battle.grid, 'enemy', unit.species, unit.x, unit.y, unitsOnField);
-    if (!position) continue; // moitié IA entièrement pleine : copie non consommée
-    unit.x = position.x;
-    unit.y = position.y;
     consumeFreshCopy(battle.enemyDeployment, unit.species);
     battle.units.push(unit);
   }

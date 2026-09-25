@@ -6,9 +6,8 @@
 // miroir (18,8)-(17,9) à droite — un duo diagonal ne bloque jamais le passage à lui seul dans
 // un déplacement 8 directions (rules.md 3) : les cases orthogonales entre les deux restent
 // libres. Aucun obstacle sur les colonnes 10-13 (couloir central dégagé) ni sur les rangées
-// 0-1/12-13 (bords de fuite dégagés, rules.md 5) ni sur les cases de déploiement du script IA
-// (voir battleScript.js) — vérifié à la main, pas de test dédié (ce sont des coordonnées, pas
-// une règle de comportement).
+// 0-1/12-13 (bords de fuite dégagés, rules.md 5) — vérifié à la main, pas de test dédié (ce
+// sont des coordonnées, pas une règle de comportement).
 export const BATTLEFIELD_OBSTACLES = [
   { x: 3, y: 3 }, { x: 20, y: 3 },
   { x: 3, y: 10 }, { x: 20, y: 10 },

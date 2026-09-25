@@ -23,7 +23,7 @@ const ENEMY_ROSTER = {
   },
 };
 
-const ENEMY_SCRIPT = [{ time: 0, species: ENEMY_ROSTER.grunt, x: 5, y: 5 }];
+const ENEMY_SCRIPT = [{ time: 0, species: ENEMY_ROSTER.grunt }];
 
 describe('battle.js — câblage déploiement/combat/fin de bataille', () => {
   test('deployPlayerUnit ajoute l\'unité à la bataille et signale la pause', () => {
@@ -94,7 +94,7 @@ describe('battle.js — câblage déploiement/combat/fin de bataille', () => {
 
   test('un déploiement scripté de l\'IA ne chevauche jamais une unité déjà présente (rules.md 1/7)', () => {
     const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
-    const intruder = new Unit(PLAYER_ROSTER.fighter, 'player', 5, 5); // sur la case prévue par le script
+    const intruder = new Unit(PLAYER_ROSTER.fighter, 'player', 5, 5); // dans la moitié IA
     battle.units.push(intruder);
 
     tickBattle(battle, 0.01);

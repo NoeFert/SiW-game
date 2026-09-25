@@ -34,7 +34,7 @@ Stats des unités jouables et de la faction adverse. Ce fichier contient des **d
 
 **Frappe paralysante :** toutes les 4 attaques, la cible touchée voit sa **prochaine attaque annulée** (elle continue de se déplacer et de combattre normalement ensuite, elle manque simplement son prochain coup).
 
-**Soif de sang :** chaque fois qu'Athos porte le coup fatal sur un ennemi, il **régénère 40 PV** (plafonné à son maximum de 145). Contrairement à la frappe paralysante (garantie tous les 4 coups), cet effet est conditionnel — il ne se déclenche que si Athos porte effectivement le coup qui tue, pas s'il blesse une cible achevée par un allié.
+**Soif de sang :** chaque fois qu'Athos porte le coup fatal sur un ennemi, il **régénère 40 PV** (plafonné à son maximum de 145). Contrairement à la frappe paralysante (garantie tous les 4 coups), cet effet est conditionnel — il ne se déclenche que si Athos porte effectivement le coup qui tue, pas s'il blesse une cible achevée par un allié. Si Athos et un allié tuent la cible au même instant, Athos compte comme ayant porté le coup fatal et se soigne, sauf s'il meurt lui-même à cet instant (voir `rules.md` 4.1).
 
 Ces deux aptitudes ensemble compensent une résistance de base plus faible que celle de Fafnir (145 contre 220 PV) : Athos reste plus vulnérable au burst/focus, mais peut regagner en résilience s'il enchaîne des éliminations — un profil de risque différent, cohérent avec son identité d'artillerie fragile plutôt qu'une simple copie de Fafnir. Valeurs à ajuster en playtesting.
 

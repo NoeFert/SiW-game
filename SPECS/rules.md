@@ -37,6 +37,8 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 ### 4.1 Déroulement dans le temps
 - Le temps de bataille s'écoule en continu (pas de tour par tour). Chaque unité attaque selon son propre rythme, déterminé par sa vitesse d'attaque (voir `units.md` pour les valeurs du roster).
 - Quand plusieurs unités infligent des dégâts au même instant, **toutes les attaques de cet instant sont d'abord calculées, puis appliquées ensemble** — aucune unité n'a d'avantage d'ordre sur une autre. Concrètement : si deux unités s'entretuent au même instant, elles meurent toutes les deux.
+- **Coup fatal simultané :** si plusieurs attaques du même instant tuent une cible, chacun de ces attaquants compte comme ayant porté le coup fatal (utile pour les aptitudes déclenchées au coup fatal, ex : Soif de sang d'Athos) — sauf un attaquant qui meurt lui-même à cet instant : une unité morte ne bénéficie d'aucun effet.
+- **Effets posés à un instant donné :** un effet qui vise « la prochaine attaque » d'une cible (ex : Frappe paralysante d'Athos) ne touche jamais une attaque de cette même cible portée au même instant — seulement la suivante.
 
 ### 4.2 Engagement au corps-à-corps
 - Si deux unités alliées veulent attaquer la même cible au corps-à-corps, la seconde arrivée contourne la première pour trouver une case libre également adjacente à la cible.
@@ -54,7 +56,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 ### 4.5 Attaque à distance
 - Une unité à distance a une **portée de tir**, une valeur fixe propre à l'unité (voir `units.md` pour les valeurs du roster).
 - Une attaque à distance **ne peut jamais se déclencher sur une cible adjacente** (case collée) — en dessous de sa portée minimale de 2 cases, une unité à distance ne peut pas tirer.
-- **Unité purement à distance (jamais de corps-à-corps)** : elle reste immobile et continue de tirer tant que sa cible reste dans sa portée de tir. Elle ne recule que si la cible devient adjacente (hors de portée par défaut) ; elle ne cherche pas activement à s'éloigner tant qu'elle reste à portée.
+- **Unité purement à distance (jamais de corps-à-corps)** : elle reste immobile et continue de tirer tant que sa cible reste dans sa portée de tir. Elle ne recule que si la cible devient adjacente (hors de portée par défaut) ; elle ne cherche pas activement à s'éloigner tant qu'elle reste à portée. Pour reculer, elle rejoint la case hors contact la plus proche en contournant si le recul direct est bloqué (bord, obstacle, autre unité). Si elle est complètement encerclée (aucune case hors contact atteignable), elle reste sur place **sans tirer** jusqu'à ce qu'un passage se libère.
 - **Unité hybride capable des deux modes (ex : Fafnir)** :
   - Elle attaque à distance dès que sa cible entre dans sa portée de tir
   - Contrairement à une unité purement à distance, elle **continue d'avancer** vers sa cible pendant qu'elle tire, plutôt que de rester immobile à distance
@@ -69,7 +71,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
   3. **Fuir** : l'unité doit atteindre le bord du terrain pour quitter la bataille et revenir dans la liste du joueur ; elle ne récupère pas ses points de vie avant la fin de la bataille
 - Donner une commande **met le jeu en pause** : l'activation du bouton "Commandes" arrête le temps pendant que le joueur sélectionne l'unité et sa commande ; la bataille reprend dès que la commande est donnée ou annulée (décision prise après tests de jeu).
 - Les commandes sont **optionnelles** : une unité sans commande agit de façon autonome (se déplace vers l'ennemi le plus proche, attaque à portée).
-- **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage.
+- **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage. Si **plusieurs ennemis** sont engagés au corps-à-corps sur elle, **chacun** porte sa dernière attaque, une seule fois (au moment où la fuite commence). La fuite vise la case de bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
 
 ### 5.1 Limitation des commandes
 - Le nombre de commandes est limité par un **cooldown** entre deux commandes (pas de quota fixe par bataille en v1).
@@ -96,7 +98,7 @@ Les aptitudes spécifiques de chaque unité (déclencheur exact, effet, valeurs)
 ## 7. Comportement de l'IA adverse
 
 - L'IA ne gère aucune ressource dynamiquement (pas d'achat, pas de progression) — son comportement est entièrement scripté.
-- Le script définit à l'avance, pour une bataille donnée : quelle unité est déployée, à quel instant précis depuis le début de la bataille, et à quelle position.
+- Le script définit à l'avance, pour une bataille donnée : quelle unité est déployée et à quel instant précis depuis le début de la bataille. La case d'apparition n'est pas fixée à l'avance : elle est choisie au moment du déploiement selon la situation du terrain (voir 7.2).
 - Pour la v1, **une seule bataille scriptée** est prévue (pas de courbe de difficulté sur plusieurs batailles).
 - Une fois déployée, une unité IA se comporte exactement comme une unité du joueur non commandée : mouvement et combat autonomes selon les mêmes règles (sections 3 et 4).
 
@@ -120,6 +122,26 @@ Budget total : 150 points de présence.
 Budget total : 150 points de présence.
 
 Les deux budgets sont identiques à celui du joueur (150 points), pour une bataille équilibrée quel que soit le sens du choix de faction.
+
+> Horaires et unités de ce script provisoires : à revoir (nouvelle règle à venir, avec une mécanique d'équilibrage des forces sur le terrain).
+
+### 7.2 Choix de la case d'apparition
+Au moment de déployer une unité, l'IA tire sa case **au hasard** parmi les positions retenues par les filtres suivants, appliqués dans l'ordre (un filtre qui ne laisse aucune position est ignoré) :
+
+1. **Valide** : dans la moitié IA du terrain, bloc entier (2×2 compris) sur des cases libres (ni obstacle, ni unité). Si aucune case valide n'est libre, le déploiement attend qu'une case se libère (les entrées suivantes du script aussi, pour garder l'ordre).
+2. **Stratégique**, si possible : position avantageuse (définition ci-dessous) par rapport à une **cible stratégique**.
+3. Sinon **avantageuse**, si possible, par rapport à n'importe quel ennemi.
+4. Sinon, la position valide la plus proche d'un ennemi.
+
+S'il n'y a aucun ennemi sur le terrain, la case est tirée parmi toutes les positions valides.
+
+**Position avantageuse** par rapport à une cible :
+- unité à distance ou hybride : la cible est dans sa portée de tir (entre 2 cases et sa portée, voir 4.5) ;
+- unité au corps-à-corps : collée à la cible (adjacente, voir 4.3).
+
+**Cible stratégique**, par ordre de priorité :
+1. **Renfort** : un ennemi engagé au corps-à-corps avec un allié qui a 50 % de ses PV max ou moins (dans un sens ou dans l'autre de l'engagement). Si au moins une cible de renfort existe, seules celles-ci comptent.
+2. **Éradication** : sinon, le ou les ennemis qui ont le plus de PV actuels.
 
 ## 8. Fin de bataille
 

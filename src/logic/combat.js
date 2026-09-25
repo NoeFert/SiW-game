@@ -2,7 +2,7 @@ import {
   chebyshevDistance, findPath, findPathToNearest, footprint, occupiedCells, isPositionFree, DIRECTIONS,
 } from './pathfinding.js';
 
-function minDistanceBetweenFootprints(a, b) {
+export function minDistanceBetweenFootprints(a, b) {
   let min = Infinity;
   for (const cellA of footprint(a.x, a.y, a.size)) {
     for (const cellB of footprint(b.x, b.y, b.size)) {

@@ -2,7 +2,6 @@ import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import {
   createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, countOwnedCopies,
-  nearestValidDeploymentPosition,
   PRESENCE_CAP,
 } from '../../src/logic/deployment.js';
 
@@ -233,22 +232,5 @@ describe('countOwnedCopies — copies possédées après bataille (rules.md 2, t
     const state = createDeploymentState(ROSTER);
     const enemy = new Unit(ROSTER.lonely, 'enemy', 0, 0);
     expect(countOwnedCopies(ROSTER, state, 'player', [enemy]).lonely).toBe(1);
-  });
-});
-
-describe('nearestValidDeploymentPosition — case du script IA occupée (rules.md 1/7)', () => {
-  test('renvoie la case demandée si elle est libre', () => {
-    const grid = new Grid(10, 10);
-    expect(nearestValidDeploymentPosition(grid, 'enemy', ROSTER.grunt, 6, 5, [])).toEqual({ x: 6, y: 5 });
-  });
-
-  test('bloc 2x2 : décale vers la case la plus proche où les 4 cases sont libres, dans la moitié IA', () => {
-    const grid = new Grid(10, 10);
-    const blocker = new Unit(ROSTER.grunt, 'player', 7, 6); // chevauche le bloc (6,5)-(7,6)
-    const position = nearestValidDeploymentPosition(grid, 'enemy', ROSTER.champion, 6, 5, [blocker]);
-
-    expect(position).not.toBeNull();
-    expect(Math.max(Math.abs(position.x - 6), Math.abs(position.y - 5))).toBe(1);
-    expect(isValidDeploymentPosition(grid, 'enemy', ROSTER.champion, position.x, position.y, [blocker])).toBe(true);
   });
 });
