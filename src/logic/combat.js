@@ -205,8 +205,9 @@ function processMoveCommand(unit, grid, aliveUnits, deltaSeconds) {
 
 // rules.md 4.1 : toutes les attaques du tick sont calculées (queueAttack) avant d'être appliquées
 // ici ensemble — aucune unité ne peut mourir "avant" une autre au sein du même tick. Renvoie la
-// liste des évènements d'aptitude déclenchés ce tick (voir applyPeriodicAbilities), pour un
-// éventuel feedback visuel côté Phaser — combat.js ne sait rien du rendu lui-même.
+// liste des évènements d'aptitude déclenchés ce tick (voir applyPeriodicAbilities), plus un
+// évènement 'rangedAttack' par tir à distance porté (rules.md 4.5), pour un éventuel feedback
+// visuel côté Phaser — combat.js ne sait rien du rendu lui-même.
 function applyAttacks(pendingAttacks) {
   const events = [];
 
@@ -218,6 +219,7 @@ function applyAttacks(pendingAttacks) {
     }
 
     attacker.attacksLanded += 1;
+    if (mode === 'ranged') events.push({ type: 'rangedAttack', unit: attacker, target });
     const { damage, triggered } = applyPeriodicAbilities(attacker, target, damageFor(attacker, mode));
     events.push(...triggered);
 

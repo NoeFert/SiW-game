@@ -4,8 +4,7 @@ import { footprint } from '../logic/pathfinding.js';
 import {
   createBattle, tickBattle, issuePlayerAttack, issuePlayerMoveTo, surrenderPlayer,
 } from '../logic/battle.js';
-import { WYRMS_ROSTER } from '../data/wyrmsRoster.js';
-import { UNDEAD_ROSTER } from '../data/undeadRoster.js';
+import { ROSTERS } from '../data/rosters.js';
 import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
 import { BATTLEFIELD_OBSTACLES } from '../data/battlefield.js';
 import { CELL_SIZE } from '../renderConstants.js';
@@ -28,6 +27,12 @@ const SPRITE_KEYS = {
 };
 
 const PLACEHOLDER_COLORS = {};
+
+// Couleur du missile d'attaque à distance, par faction (voir fireProjectile).
+const PROJECTILE_COLORS = {
+  wyrms: 0xff8c1a, // orange
+  undead: 0x7dffc8, // vert menthe
+};
 
 function healthBarColor(ratio) {
   if (ratio > 0.5) return 0x2ecc71;
@@ -103,8 +108,8 @@ export default class BattleScene extends Phaser.Scene {
   // rules.md 9 : le choix de faction lui-même vit maintenant dans FactionChoiceScreen (React,
   // technical.md 5) — cette Scene reçoit `playerFaction` déjà tranché via `init(data)`.
   startBattle(playerFaction) {
-    const playerRoster = playerFaction === 'wyrms' ? WYRMS_ROSTER : UNDEAD_ROSTER;
-    const enemyRoster = playerFaction === 'wyrms' ? UNDEAD_ROSTER : WYRMS_ROSTER;
+    const playerRoster = ROSTERS[playerFaction];
+    const enemyRoster = ROSTERS[playerFaction === 'wyrms' ? 'undead' : 'wyrms'];
     const enemyScript = playerFaction === 'wyrms' ? UNDEAD_AI_SCRIPT : WYRMS_AI_SCRIPT;
 
     this.battle = createBattle(this.grid, playerRoster, enemyRoster, enemyScript);
@@ -200,8 +205,41 @@ export default class BattleScene extends Phaser.Scene {
       } else if (event.type === 'heal') {
         this.spawnFloatingText(event.unit, `+${event.amount}`, '#2ecc71');
         this.pulseHealthBar(event.unit);
+      } else if (event.type === 'rangedAttack') {
+        this.fireProjectile(event.unit, event.target);
       }
     }
+  }
+
+  // rules.md 4.5 : missile purement visuel — les dégâts ont déjà été appliqués par combat.js
+  // à ce tick, ce tween ne fait que les illustrer. Couleur selon la faction réelle du tireur
+  // (orange Wyrms, vert menthe Morts-Vivants), déduite de son camp player/enemy.
+  fireProjectile(shooter, target) {
+    const from = this.unitViews.get(shooter.id)?.container;
+    const to = this.unitViews.get(target.id)?.container;
+    if (!from || !to) return;
+
+    const shooterFaction = shooter.faction === 'player'
+      ? this.playerFaction
+      : (this.playerFaction === 'wyrms' ? 'undead' : 'wyrms');
+    const color = PROJECTILE_COLORS[shooterFaction];
+
+    const missile = this.add.circle(from.x, from.y, 6, color).setStrokeStyle(2, 0xffffff).setDepth(10);
+    const impactX = to.x;
+    const impactY = to.y;
+    this.tweens.add({
+      targets: missile,
+      x: impactX,
+      y: impactY,
+      duration: 220,
+      onComplete: () => {
+        missile.destroy();
+        const impact = this.add.circle(impactX, impactY, 8, color, 0.9).setDepth(10);
+        this.tweens.add({
+          targets: impact, scale: 3, alpha: 0, duration: 180, onComplete: () => impact.destroy(),
+        });
+      },
+    });
   }
 
   // Un sprite (Image) se teinte avec setTint/clearTint ; un placeholder (Arc) n'a pas cette

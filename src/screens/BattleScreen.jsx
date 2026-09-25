@@ -39,7 +39,7 @@ export default function BattleScreen({ playerFaction, onVictory, onDefeat }) {
     const checkOutcome = () => {
       const outcome = interactionState.battle?.outcome;
       if (outcome === 'playerVictory') {
-        onVictory();
+        onVictory(interactionState.battle); // App en extrait les copies possédées (5.4)
         return;
       }
       if (outcome === 'enemyVictory' || outcome === 'draw') {

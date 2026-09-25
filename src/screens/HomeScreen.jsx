@@ -7,10 +7,11 @@ const FACTION_LABELS = {
   undead: 'le Souverain des Morts-Vivants',
 };
 
-export default function HomeScreen({ playerFaction, onReset }) {
+export default function HomeScreen({ playerFaction, onOpenCivilization, onReset }) {
   return (
     <div className="h-screen w-screen flex items-center justify-center gap-4 bg-neutral-900 text-white">
       <p>Vous jouez {FACTION_LABELS[playerFaction] ?? playerFaction}.</p>
+      <Button onClick={onOpenCivilization}>Civilisation</Button>
       {/* Outil de test temporaire, pas une fonctionnalité joueur — taille réduite, libellé
           explicite et couleur d'alerte pour bien le distinguer des boutons du jeu. */}
       <Button variant="destructive" size="sm" onClick={onReset}>

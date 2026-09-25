@@ -1,7 +1,8 @@
 import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import {
-  createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, PRESENCE_CAP,
+  createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, countOwnedCopies,
+  PRESENCE_CAP,
 } from '../../src/logic/deployment.js';
 
 // Roster fictif minimal, isolé de units.md, pour piloter précisément plafond/copies/légendaire.
@@ -209,5 +210,27 @@ describe('isValidDeploymentPosition (rules.md 1/2)', () => {
     // champion (taille 2) à x=4 déborderait sur la moitié adverse (4+2=6 > halfWidth=5)
     expect(isValidDeploymentPosition(grid, 'player', ROSTER.champion, 4, 0, [])).toBe(false);
     expect(isValidDeploymentPosition(grid, 'player', ROSTER.champion, 3, 0, [])).toBe(true);
+  });
+});
+
+describe('countOwnedCopies — copies possédées après bataille (rules.md 2, technical.md 5.4)', () => {
+  test('une copie tuée est perdue, une copie en fuite ou encore sur le terrain reste possédée', () => {
+    const state = createDeploymentState(ROSTER);
+    const killed = deployUnit(state, 'player', ROSTER.grunt, 0, 0, []).unit;
+    const fled = deployUnit(state, 'player', ROSTER.grunt, 1, 0, []).unit;
+    const standing = deployUnit(state, 'player', ROSTER.grunt, 2, 0, []).unit;
+
+    killed.hp = 0;
+    fled.hasFled = true;
+    recordReturn(state, fled);
+
+    const onField = [killed, fled, standing].filter((u) => u.isOnField);
+    expect(countOwnedCopies(ROSTER, state, 'player', onField)).toEqual({ grunt: 4, champion: 2, lonely: 1 });
+  });
+
+  test('ignore les unités du camp adverse de même espèce', () => {
+    const state = createDeploymentState(ROSTER);
+    const enemy = new Unit(ROSTER.lonely, 'enemy', 0, 0);
+    expect(countOwnedCopies(ROSTER, state, 'player', [enemy]).lonely).toBe(1);
   });
 });

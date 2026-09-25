@@ -116,6 +116,17 @@ export function consumeFreshCopy(state, species) {
   speciesState.freshRemaining = Math.max(0, speciesState.freshRemaining - 1);
 }
 
+// rules.md 2 / technical.md 5.4 : copies encore possédées par espèce, indexées par clé de roster
+// (ex : { lambtonWorm: 9, ... }). Une copie tuée n'est plus nulle part ; toutes les autres sont
+// soit en réserve (fraîches ou revenues de fuite), soit encore sur le terrain.
+export function countOwnedCopies(roster, state, faction, unitsOnField) {
+  return Object.fromEntries(Object.entries(roster).map(([key, species]) => {
+    const speciesState = state.bySpecies.get(species);
+    const onField = unitsOnField.filter((u) => u.faction === faction && u.species === species).length;
+    return [key, speciesState.freshRemaining + speciesState.returning.length + onField];
+  }));
+}
+
 // rules.md 8.1/8.2 : ce camp a-t-il encore une copie disponible (fraîche ou revenue de fuite),
 // toutes espèces confondues ?
 export function hasAnyReserves(state) {

@@ -4,8 +4,12 @@ import BattleScreen from './screens/BattleScreen.jsx';
 import VictoryScreen from './screens/VictoryScreen.jsx';
 import DefeatScreen from './screens/DefeatScreen.jsx';
 import HomeScreen from './screens/HomeScreen.jsx';
+import CivilizationScreen from './screens/CivilizationScreen.jsx';
+import { ROSTERS } from './data/rosters.js';
+import { countOwnedCopies } from './logic/deployment.js';
 import {
-  getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, clearProgress,
+  getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, saveOwnedCopies,
+  clearProgress,
 } from './persistence.js';
 
 // technical.md 5.2 : l'écran de départ se déduit de l'état persistant, pas d'un routeur.
@@ -27,10 +31,14 @@ export default function App() {
     setScreen('battle');
   }, []);
 
-  const handleVictory = useCallback(() => {
+  // technical.md 5.4 : les copies possédées ne sont figées qu'à la victoire — une tentative
+  // ratée ne sauvegarde rien, ses pertes sont donc oubliées au "Réessayer".
+  const handleVictory = useCallback((battle) => {
+    const unitsOnField = battle.units.filter((u) => u.isOnField);
+    saveOwnedCopies(countOwnedCopies(ROSTERS[playerFaction], battle.playerDeployment, 'player', unitsOnField));
     markFirstBattleWon();
     setScreen('victory');
-  }, []);
+  }, [playerFaction]);
 
   const handleDefeat = useCallback(() => setScreen('defeat'), []);
 
@@ -70,5 +78,15 @@ export default function App() {
     return <DefeatScreen onRetry={retryBattle} />;
   }
 
-  return <HomeScreen playerFaction={playerFaction} onReset={resetDemo} />;
+  if (screen === 'civilization') {
+    return <CivilizationScreen playerFaction={playerFaction} onBack={goHome} />;
+  }
+
+  return (
+    <HomeScreen
+      playerFaction={playerFaction}
+      onOpenCivilization={() => setScreen('civilization')}
+      onReset={resetDemo}
+    />
+  );
 }
