@@ -10,7 +10,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 
 - Le terrain de bataille est une grille rectangulaire de **24 cases de large × 14 cases de haut**.
 - Deux unités ne peuvent jamais occuper la même case.
-- Certaines cases peuvent être des obstacles infranchissables. Pour la bataille v1 : **8 obstacles d'une case chacun**, dispersés sur le terrain plutôt que concentrés, en évitant de former des couloirs fermés ou des culs-de-sac (position exacte à définir en phase de construction du niveau).
+- Certaines cases peuvent être des obstacles infranchissables. Pour la bataille v1 : **16 obstacles d'une case chacun**, dispersés sur le terrain plutôt que concentrés, en évitant de former des couloirs fermés ou des culs-de-sac, répartis symétriquement de part et d'autre de la ligne médiane pour que le terrain reste équitable quel que soit le camp (positions exactes : `src/data/battlefield.js`).
 
 ## 2. Déploiement
 
@@ -67,7 +67,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
   1. **Attaquer** : désigner une cible ennemie précise
   2. **Se déplacer** : désigner une case du terrain à atteindre
   3. **Fuir** : l'unité doit atteindre le bord du terrain pour quitter la bataille et revenir dans la liste du joueur ; elle ne récupère pas ses points de vie avant la fin de la bataille
-- Donner une commande **ne met pas le jeu en pause** : le temps continue de s'écouler normalement.
+- Donner une commande **met le jeu en pause** : l'activation du bouton "Commandes" arrête le temps pendant que le joueur sélectionne l'unité et sa commande ; la bataille reprend dès que la commande est donnée ou annulée (décision prise après tests de jeu).
 - Les commandes sont **optionnelles** : une unité sans commande agit de façon autonome (se déplace vers l'ennemi le plus proche, attaque à portée).
 - **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage.
 
@@ -109,7 +109,7 @@ Le même schéma de timing s'applique quelle que soit la faction jouée par l'IA
 - t=20s : déployer 1 Ver de Lambton
 - t=35s : déployer Fafnir
 
-Budget total : 155 points de présence.
+Budget total : 150 points de présence.
 
 **Si l'IA joue les Morts-Vivants :**
 - t=0s : déployer 1 New-reborn Skeleton
@@ -117,9 +117,9 @@ Budget total : 155 points de présence.
 - t=20s : déployer 1 New-reborn Skeleton
 - t=35s : déployer Athos
 
-Budget total : 147 points de présence.
+Budget total : 150 points de présence.
 
-Les deux budgets restent proches du budget du joueur (150 points), pour une bataille équilibrée quel que soit le sens du choix de faction.
+Les deux budgets sont identiques à celui du joueur (150 points), pour une bataille équilibrée quel que soit le sens du choix de faction.
 
 ## 8. Fin de bataille
 

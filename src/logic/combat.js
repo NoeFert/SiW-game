@@ -85,18 +85,20 @@ function queueAttack(unit, target, mode, deltaSeconds, pendingAttacks) {
   }
 }
 
+// Renvoie false si l'unité ne peut plus se rapprocher de la cible (déjà au plus près possible).
 function moveToward(unit, targetX, targetY, grid, aliveUnits, deltaSeconds) {
   unit.moveProgress += unit.species.moveSpeed * deltaSeconds;
   while (unit.moveProgress >= 1) {
     const path = findPath(unit, targetX, targetY, grid, aliveUnits);
     if (path.length === 0) {
       unit.moveProgress = 0;
-      break;
+      return false;
     }
     unit.x = path[0].x;
     unit.y = path[0].y;
     unit.moveProgress -= 1;
   }
+  return true;
 }
 
 // rules.md 4.5 : une unité purement à distance ne recule que si sa cible devient adjacente.
@@ -191,6 +193,8 @@ function processFlee(unit, grid, aliveUnits, deltaSeconds, pendingAttacks) {
 }
 
 // rules.md 5 : "se déplacer" ignore le combat autonome tant que la destination n'est pas atteinte.
+// Une destination inatteignable (obstacle, bloc 2x2 qui déborderait de la grille, case occupée)
+// termine la commande au plus près possible, sinon l'unité resterait figée sans riposter.
 function processMoveCommand(unit, grid, aliveUnits, deltaSeconds) {
   const { x, y } = unit.command;
   if (unit.x === x && unit.y === y) {
@@ -199,8 +203,8 @@ function processMoveCommand(unit, grid, aliveUnits, deltaSeconds) {
     return;
   }
   unit.status = 'moving';
-  moveToward(unit, x, y, grid, aliveUnits, deltaSeconds);
-  if (unit.x === x && unit.y === y) unit.command = null;
+  const canProgress = moveToward(unit, x, y, grid, aliveUnits, deltaSeconds);
+  if (!canProgress || (unit.x === x && unit.y === y)) unit.command = null;
 }
 
 // rules.md 4.1 : toutes les attaques du tick sont calculées (queueAttack) avant d'être appliquées

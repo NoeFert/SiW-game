@@ -1,5 +1,4 @@
-// 16 obstacles d'une case (doublé depuis les 8 de rules.md 1, à la demande explicite — la spec
-// n'a pas été mise à jour en conséquence), dispersés plutôt que concentrés, sans former de
+// 16 obstacles d'une case (rules.md 1), dispersés plutôt que concentrés, sans former de
 // couloir fermé ni de cul-de-sac. Répartis en 8 paires symétriques de part et d'autre de la
 // ligne médiane (x=11.5, la frontière entre les deux moitiés de déploiement, rules.md 2) pour
 // que le terrain reste équitable quel que soit le camp choisi par le joueur (rules.md 9).

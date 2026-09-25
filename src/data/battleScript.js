@@ -7,7 +7,7 @@ import { UNDEAD_ROSTER } from './undeadRoster.js';
 // différentes plutôt qu'empilées sur une seule colonne, et vérifiées à la main pour ne
 // chevaucher aucun obstacle de battlefield.js.
 
-// IA jouant les Wyrms — budget total 155 points de présence (rules.md 7.1).
+// IA jouant les Wyrms — budget 150 points de présence (rules.md 7.1).
 export const WYRMS_AI_SCRIPT = [
   { time: 0, species: WYRMS_ROSTER.lambtonWorm, x: 15, y: 4 },
   { time: 8, species: WYRMS_ROSTER.amphiptere, x: 18, y: 9 },
@@ -15,7 +15,7 @@ export const WYRMS_AI_SCRIPT = [
   { time: 35, species: WYRMS_ROSTER.fafnir, x: 17, y: 6 }, // occupe (17,6)-(18,7)
 ];
 
-// IA jouant les Morts-Vivants — budget total 147 points de présence (rules.md 7.1).
+// IA jouant les Morts-Vivants — budget 150 points de présence (rules.md 7.1).
 export const UNDEAD_AI_SCRIPT = [
   { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton, x: 15, y: 4 },
   { time: 8, species: UNDEAD_ROSTER.necromantInitiate, x: 18, y: 9 },

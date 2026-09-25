@@ -40,6 +40,31 @@ describe('commandMoveTo (rules.md 5)', () => {
     expect(unit.y).toBe(0);
     expect(unit.command).toBeNull();
   });
+
+  test('destination sur un obstacle : s\'arrête au plus près puis reprend le combat autonome', () => {
+    const grid = new Grid(20, 20, [{ x: 5, y: 0 }]);
+    const state = createCommandState();
+    const unit = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
+    const enemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 10, 5);
+
+    commandMoveTo(state, 0, unit, 5, 0);
+    for (let i = 0; i < 60; i++) resolveCombatTick([unit, enemy], grid, 0.1);
+
+    expect(unit.command).toBeNull();
+    expect(enemy.hp).toBeLessThan(enemy.species.maxHp); // a repris le combat
+  });
+
+  test('bloc 2x2 envoyé sur la dernière colonne (il n\'y tient pas) : la commande se termine', () => {
+    const grid = new Grid(20, 20);
+    const state = createCommandState();
+    const fafnir = new Unit(WYRMS_ROSTER.fafnir, 'player', 10, 5);
+
+    commandMoveTo(state, 0, fafnir, 19, 5);
+    for (let i = 0; i < 60; i++) resolveCombatTick([fafnir], grid, 0.1);
+
+    expect(fafnir.x).toBe(18); // au plus près possible
+    expect(fafnir.command).toBeNull();
+  });
 });
 
 describe('commandFlee — atteindre le bord (rules.md 5 et 2)', () => {

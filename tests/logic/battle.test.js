@@ -3,6 +3,8 @@
 // demandé explicitement, mais un smoke test reste utile pour attraper une erreur de câblage
 // (CLAUDE.md : toute logique de jeu doit avoir un test associé).
 import Grid from '../../src/logic/grid.js';
+import Unit from '../../src/logic/unit.js';
+import { getReserve } from '../../src/logic/deployment.js';
 import {
   createBattle, deployPlayerUnit, issuePlayerFlee, tickBattle, surrenderPlayer,
 } from '../../src/logic/battle.js';
@@ -72,6 +74,35 @@ describe('battle.js — câblage déploiement/combat/fin de bataille', () => {
     const outcome = tickBattle(battle, 1);
 
     expect(outcome).toBe('enemyVictory');
+  });
+
+  test('une unité tuée au tick où elle fuit ne revient pas en réserve (rules.md 2/4.4)', () => {
+    const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, []);
+    const { unit } = deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 0, 5); // déjà sur le bord
+    const enemy = new Unit(ENEMY_ROSTER.grunt, 'enemy', 1, 5);
+    enemy.hp = 1000;
+    battle.units.push(enemy);
+    tickBattle(battle, 0.01); // engagement au corps-à-corps
+    unit.hp = 1; // la dernière attaque au désengagement (1 dégât) sera fatale
+
+    issuePlayerFlee(battle, unit);
+    tickBattle(battle, 0.01);
+
+    expect(unit.isAlive).toBe(false);
+    expect(getReserve(battle.playerDeployment, PLAYER_ROSTER.fighter)).toEqual({ fresh: 2, returningHp: [] });
+  });
+
+  test('un déploiement scripté de l\'IA ne chevauche jamais une unité déjà présente (rules.md 1/7)', () => {
+    const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
+    const intruder = new Unit(PLAYER_ROSTER.fighter, 'player', 5, 5); // sur la case prévue par le script
+    battle.units.push(intruder);
+
+    tickBattle(battle, 0.01);
+
+    const grunt = battle.units.find((u) => u.faction === 'enemy');
+    expect(grunt).toBeDefined();
+    expect([grunt.x, grunt.y]).not.toEqual([5, 5]);
+    expect(grunt.x).toBeGreaterThanOrEqual(5); // toujours dans la moitié IA
   });
 
   test('tickBattle expose les évènements d\'aptitude du tick dans battle.abilityEvents', () => {

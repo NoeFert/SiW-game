@@ -45,6 +45,24 @@ export function isValidDeploymentPosition(grid, faction, species, x, y, unitsOnF
   return isPositionFree(x, y, species.size, grid, occupiedCells(unitsOnField, null), false);
 }
 
+// rules.md 1/7 : case valide la plus proche de (x, y) — par anneaux de distance croissante —
+// pour un déploiement scripté de l'IA dont la case prévue est déjà occupée (une unité ne peut
+// jamais en chevaucher une autre). `null` si toute la moitié du camp est pleine.
+export function nearestValidDeploymentPosition(grid, faction, species, x, y, unitsOnField) {
+  const maxRadius = Math.max(grid.width, grid.height);
+  for (let radius = 0; radius <= maxRadius; radius++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+        if (isValidDeploymentPosition(grid, faction, species, x + dx, y + dy, unitsOnField)) {
+          return { x: x + dx, y: y + dy };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // Prélève une copie précise dans la réserve selon `copyChoice` :
 // - 'fresh' : exige une copie fraîche (jamais déployée), refuse même si une copie revenue de
 //   fuite existe.

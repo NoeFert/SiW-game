@@ -3,6 +3,7 @@ import { createCommandState, commandAttack, commandMoveTo, commandFlee } from '.
 import { createAiScriptState, deployScheduledUnits } from './aiScript.js';
 import {
   createDeploymentState, deployUnit, recordReturn, consumeFreshCopy, isValidDeploymentPosition,
+  nearestValidDeploymentPosition,
 } from './deployment.js';
 import {
   createFactionState, updateFactionEndState, evaluateBattleOutcome, surrender,
@@ -65,10 +66,17 @@ export function issuePlayerFlee(battle, unit) {
 
 // rules.md 7 : déploiements scriptés de l'IA — pré-autorisés (script déjà équilibré), donc pas
 // de passage par les vérifications de deployUnit ; seul le registre de copies est mis à jour
-// (consumeFreshCopy) pour que les réserves restent exactes côté battleEnd.js (8).
+// (consumeFreshCopy) pour que les réserves restent exactes côté battleEnd.js (8). Seule la
+// case est ajustée : si celle du script est occupée (rules.md 1), l'unité apparaît sur la case
+// libre la plus proche de sa moitié, à l'heure prévue.
 function deployScriptedEnemies(battle) {
   const due = deployScheduledUnits(battle.enemyScript, battle.aiScriptState, battle.elapsedSeconds, 'enemy');
   for (const unit of due) {
+    const unitsOnField = battle.units.filter((u) => u.isOnField);
+    const position = nearestValidDeploymentPosition(battle.grid, 'enemy', unit.species, unit.x, unit.y, unitsOnField);
+    if (!position) continue; // moitié IA entièrement pleine : copie non consommée
+    unit.x = position.x;
+    unit.y = position.y;
     consumeFreshCopy(battle.enemyDeployment, unit.species);
     battle.units.push(unit);
   }
@@ -77,10 +85,12 @@ function deployScriptedEnemies(battle) {
 // rules.md 2 : une unité qui fuit et atteint le bord retourne en réserve (PV réduits conservés).
 // Détecté par transition (elle était sur le terrain au tick précédent, ne l'est plus) plutôt
 // que par un évènement explicite de combat.js, pour ne pas coupler ces deux modules.
+// Une unité tuée au tick même où elle atteint le bord est morte, pas en fuite (rules.md 4.4) :
+// sa copie est perdue, elle ne revient jamais en réserve.
 function processDepartures(battle) {
   for (const unit of battle.units) {
     const wasOnField = battle.onFieldById.get(unit.id) ?? true;
-    if (wasOnField && !unit.isOnField && unit.hasFled) {
+    if (wasOnField && !unit.isOnField && unit.hasFled && unit.isAlive) {
       const deployment = unit.faction === 'player' ? battle.playerDeployment : battle.enemyDeployment;
       recordReturn(deployment, unit);
     }
