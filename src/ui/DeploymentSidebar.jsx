@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/8bit/button.jsx';
 import { useBattle } from './useBattle.js';
 import { getReserve, getPresenceUsed, PRESENCE_CAP } from '../logic/deployment.js';
@@ -48,6 +48,8 @@ export default function DeploymentSidebar() {
   const battle = useBattle();
   const [drag, setDrag] = useState(null); // { row, x, y } en coordonnées écran
   const [message, setMessage] = useState('');
+  const messageTimer = useRef(null);
+  useEffect(() => () => clearTimeout(messageTimer.current), []);
 
   if (!battle) return null;
 
@@ -55,9 +57,11 @@ export default function DeploymentSidebar() {
   const speciesList = [...battle.playerDeployment.bySpecies.keys()];
   const rows = buildRows(battle.playerDeployment, speciesList);
 
+  // Un nouveau message remplace le précédent et repart pour sa pleine durée d'affichage.
   const showMessage = (text) => {
+    clearTimeout(messageTimer.current);
     setMessage(text);
-    setTimeout(() => setMessage(''), 1500);
+    messageTimer.current = setTimeout(() => setMessage(''), 1500);
   };
 
   const finishDrag = (row, clientX, clientY) => {
@@ -85,20 +89,27 @@ export default function DeploymentSidebar() {
     interactionState.deploymentDragActive = true;
     setDrag({ row, x: event.clientX, y: event.clientY });
 
+    // La capture garantit de recevoir le relâché même hors de la fenêtre du navigateur ; sinon
+    // le jeu resterait en pause avec le fantôme collé au curseur.
+    event.currentTarget.setPointerCapture(event.pointerId);
+
     const onMove = (e) => setDrag({ row, x: e.clientX, y: e.clientY });
-    // pointercancel (le navigateur reprend la main sur le pointeur) : annulation, traitée
-    // comme un relâché hors du terrain.
-    const onUp = (e) => {
+    const end = (clientX, clientY) => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-      const cancelled = e.type === 'pointercancel';
-      finishDrag(row, cancelled ? -1 : e.clientX, cancelled ? -1 : e.clientY);
+      window.removeEventListener('pointercancel', onCancel);
+      window.removeEventListener('blur', onCancel);
+      finishDrag(row, clientX, clientY);
       setDrag(null);
     };
+    const onUp = (e) => end(e.clientX, e.clientY);
+    // pointercancel (le navigateur reprend la main sur le pointeur) ou perte de focus de la
+    // fenêtre (alt-tab) : annulation, traitée comme un relâché hors du terrain.
+    const onCancel = () => end(-1, -1);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
+    window.addEventListener('pointercancel', onCancel);
+    window.addEventListener('blur', onCancel);
   };
 
   return (

@@ -104,6 +104,35 @@ describe('commandFlee — atteindre le bord (rules.md 5 et 2)', () => {
     expect(a.hp).toBe(a.species.maxHp - b.species.damage); // dernière attaque de b encaissée
     expect(b.hp).toBe(b.species.maxHp); // a ne riposte pas, elle fuit
   });
+
+  test('chaque ennemi engagé sur l\'unité porte sa dernière attaque, une seule fois', () => {
+    const grid = new Grid(10, 10);
+    const state = createCommandState();
+    const a = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 5);
+    const left = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 4, 5);
+    const right = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 6, 5);
+    resolveCombatTick([a, left, right], grid, 0.1); // engagement mutuel, pas encore de coup
+
+    commandFlee(state, 0.1, a);
+    resolveCombatTick([a, left, right], grid, 0.1);
+    expect(a.hp).toBe(a.species.maxHp - 2 * left.species.damage);
+
+    resolveCombatTick([a, left, right], grid, 0.1); // déjà en fuite : pas de nouvelle attaque gratuite
+    expect(a.hp).toBe(a.species.maxHp - 2 * left.species.damage);
+  });
+
+  test('bord le plus proche bloqué : contourne vers une autre case de bord', () => {
+    const grid = new Grid(10, 10);
+    const state = createCommandState();
+    const unit = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 1, 1);
+    const blockers = [[0, 0], [1, 0], [2, 0], [0, 1], [0, 2]]
+      .map(([x, y]) => new Unit(WYRMS_ROSTER.lambtonWorm, 'player', x, y)); // alliées, immobiles
+
+    commandFlee(state, 0, unit);
+    for (let i = 0; i < 20; i++) resolveCombatTick([unit, ...blockers], grid, 0.1);
+
+    expect(unit.hasFled).toBe(true);
+  });
 });
 
 describe('cooldown des commandes (rules.md 5.1)', () => {

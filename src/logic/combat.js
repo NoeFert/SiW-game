@@ -1,5 +1,5 @@
 import {
-  chebyshevDistance, findPath, footprint, occupiedCells, isPositionFree, DIRECTIONS,
+  chebyshevDistance, findPath, findPathToNearest, footprint, occupiedCells, isPositionFree, DIRECTIONS,
 } from './pathfinding.js';
 
 function minDistanceBetweenFootprints(a, b) {
@@ -85,11 +85,13 @@ function queueAttack(unit, target, mode, deltaSeconds, pendingAttacks) {
   }
 }
 
-// Renvoie false si l'unité ne peut plus se rapprocher de la cible (déjà au plus près possible).
-function moveToward(unit, targetX, targetY, grid, aliveUnits, deltaSeconds) {
+// Avance case par case au rythme de la vitesse de déplacement, en redemandant le chemin à
+// chaque case (`nextPath`). Renvoie false si l'unité ne peut plus progresser (déjà arrivée,
+// ou au plus près possible).
+function advance(unit, deltaSeconds, nextPath) {
   unit.moveProgress += unit.species.moveSpeed * deltaSeconds;
   while (unit.moveProgress >= 1) {
-    const path = findPath(unit, targetX, targetY, grid, aliveUnits);
+    const path = nextPath();
     if (path.length === 0) {
       unit.moveProgress = 0;
       return false;
@@ -101,30 +103,26 @@ function moveToward(unit, targetX, targetY, grid, aliveUnits, deltaSeconds) {
   return true;
 }
 
-// rules.md 4.5 : une unité purement à distance ne recule que si sa cible devient adjacente.
+function moveToward(unit, targetX, targetY, grid, aliveUnits, deltaSeconds) {
+  return advance(unit, deltaSeconds, () => findPath(unit, targetX, targetY, grid, aliveUnits));
+}
+
+// rules.md 4.5 : une unité purement à distance ne recule que si sa cible devient adjacente —
+// vers la case hors contact la plus proche, en contournant si le recul direct est bloqué
+// (coin du terrain, obstacle, autre unité) plutôt que de rester collée sans pouvoir tirer.
 function stepAwayFrom(unit, target, grid, aliveUnits, deltaSeconds) {
-  unit.moveProgress += unit.species.moveSpeed * deltaSeconds;
-  while (unit.moveProgress >= 1) {
-    const dx = Math.sign(unit.x - target.x) || 1;
-    const dy = Math.sign(unit.y - target.y) || 1;
-    const nx = unit.x + dx;
-    const ny = unit.y + dy;
-    const occupied = occupiedCells(aliveUnits, unit);
-    if (!isPositionFree(nx, ny, unit.size, grid, occupied, unit.isFlying)) {
-      unit.moveProgress = 0;
-      break;
-    }
-    unit.x = nx;
-    unit.y = ny;
-    unit.moveProgress -= 1;
-  }
+  const isOutOfContact = (x, y) => minDistanceBetweenFootprints({ x, y, size: unit.size }, target) > 1;
+  advance(unit, deltaSeconds, () => findPathToNearest(unit, grid, aliveUnits, isOutOfContact));
 }
 
 // units.md — aptitudes automatiques (section 6.1) : périodiques (tous les N coups portés) ou au
 // coup fatal. Renvoie aussi les aptitudes déclenchées (`triggered`), pour que la couche Phaser
 // puisse en tirer un feedback visuel sans que combat.js sache quoi que ce soit du rendu.
+// La paralysie n'est que signalée (`paralyzes`) : applyAttacks la pose après coup, pour qu'elle
+// ne touche jamais une attaque du même tick (rules.md 4.1).
 function applyPeriodicAbilities(attacker, target, baseDamage) {
   let damage = baseDamage;
+  let paralyzes = false;
   const triggered = [];
   for (const ability of attacker.species.abilities ?? []) {
     if (ability.trigger !== 'periodic' || attacker.attacksLanded % ability.every !== 0) continue;
@@ -133,11 +131,11 @@ function applyPeriodicAbilities(attacker, target, baseDamage) {
       triggered.push({ type: 'bonusDamage', unit: attacker, target, damage });
     }
     if (ability.type === 'paralyze') {
-      target.paralyzedNextAttack = true;
+      paralyzes = true;
       triggered.push({ type: 'paralyze', unit: target });
     }
   }
-  return { damage, triggered };
+  return { damage, paralyzes, triggered };
 }
 
 function applyOnKillAbilities(attacker) {
@@ -152,41 +150,30 @@ function applyOnKillAbilities(attacker) {
   return healed;
 }
 
-function isOnEdge(unit, grid) {
-  return footprint(unit.x, unit.y, unit.size).some(
-    ({ x, y }) => x === 0 || y === 0 || x === grid.width - 1 || y === grid.height - 1,
+function isOnEdge(x, y, size, grid) {
+  return footprint(x, y, size).some(
+    ({ x: cx, y: cy }) => cx === 0 || cy === 0 || cx === grid.width - 1 || cy === grid.height - 1,
   );
 }
 
-// Bord du terrain le plus proche (rules.md 5 : la fuite vise le bord, pas un point précis).
-function nearestEdgeTarget(unit, grid) {
-  const candidates = [
-    { x: 0, y: unit.y, dist: unit.x },
-    { x: grid.width - unit.size, y: unit.y, dist: grid.width - unit.size - unit.x },
-    { x: unit.x, y: 0, dist: unit.y },
-    { x: unit.x, y: grid.height - unit.size, dist: grid.height - unit.size - unit.y },
-  ];
-  return candidates.reduce((best, candidate) => (candidate.dist < best.dist ? candidate : best));
-}
-
 // rules.md 5 : la fuite est toujours possible immédiatement, même engagée au corps-à-corps —
-// l'adversaire alors engagé porte une dernière attaque, hors de son propre timer d'attaque.
+// chaque ennemi alors engagé sur elle porte une dernière attaque au désengagement (une seule
+// fois, au premier tick de fuite), hors de son propre timer d'attaque. La fuite vise la case de
+// bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
 function processFlee(unit, grid, aliveUnits, deltaSeconds, pendingAttacks) {
-  if (unit.status === 'engaged' && unit.target?.isOnField) {
-    pendingAttacks.push({ attacker: unit.target, target: unit, mode: 'melee' });
+  if (unit.status !== 'fleeing') {
+    for (const enemy of aliveUnits) {
+      if (enemy.faction !== unit.faction && enemy.status === 'engaged' && enemy.target === unit) {
+        pendingAttacks.push({ attacker: enemy, target: unit, mode: 'melee' });
+      }
+    }
   }
 
   unit.status = 'fleeing';
-  if (isOnEdge(unit, grid)) {
-    unit.hasFled = true;
-    unit.command = null;
-    return;
-  }
+  const onEdge = (x, y) => isOnEdge(x, y, unit.size, grid);
+  advance(unit, deltaSeconds, () => findPathToNearest(unit, grid, aliveUnits, onEdge));
 
-  const { x, y } = nearestEdgeTarget(unit, grid);
-  moveToward(unit, x, y, grid, aliveUnits, deltaSeconds);
-
-  if (isOnEdge(unit, grid)) {
+  if (onEdge(unit.x, unit.y)) {
     unit.hasFled = true;
     unit.command = null;
   }
@@ -212,8 +199,14 @@ function processMoveCommand(unit, grid, aliveUnits, deltaSeconds) {
 // liste des évènements d'aptitude déclenchés ce tick (voir applyPeriodicAbilities), plus un
 // évènement 'rangedAttack' par tir à distance porté (rules.md 4.5), pour un éventuel feedback
 // visuel côté Phaser — combat.js ne sait rien du rendu lui-même.
+// Le résultat ne dépend jamais de l'ordre des attaques dans la liste : une paralysie posée ce
+// tick ne vise que la prochaine attaque (tick suivant), et quand plusieurs attaques du même
+// tick tuent une cible, chacun de ces attaquants compte comme ayant porté le coup fatal —
+// sauf s'il meurt lui-même ce tick (un mort ne se soigne pas).
 function applyAttacks(pendingAttacks) {
   const events = [];
+  const landed = [];
+  const toParalyze = [];
 
   for (const { attacker, target, mode } of pendingAttacks) {
     if (attacker.paralyzedNextAttack) {
@@ -224,15 +217,22 @@ function applyAttacks(pendingAttacks) {
 
     attacker.attacksLanded += 1;
     if (mode === 'ranged') events.push({ type: 'rangedAttack', unit: attacker, target });
-    const { damage, triggered } = applyPeriodicAbilities(attacker, target, damageFor(attacker, mode));
+    const { damage, paralyzes, triggered } = applyPeriodicAbilities(attacker, target, damageFor(attacker, mode));
     events.push(...triggered);
+    if (paralyzes) toParalyze.push(target);
+    landed.push({ attacker, target, damage, targetWasAlive: target.isAlive });
+  }
 
-    const wasAlive = target.isAlive;
-    target.takeDamage(damage);
-    if (wasAlive && !target.isAlive) {
-      const healed = applyOnKillAbilities(attacker);
-      if (healed > 0) events.push({ type: 'heal', unit: attacker, amount: healed });
-    }
+  for (const { target, damage } of landed) target.takeDamage(damage);
+  for (const target of toParalyze) target.paralyzedNextAttack = true;
+
+  const credited = new Set();
+  for (const { attacker, target, targetWasAlive } of landed) {
+    const key = `${attacker.id}->${target.id}`;
+    if (!targetWasAlive || target.isAlive || !attacker.isAlive || credited.has(key)) continue;
+    credited.add(key);
+    const healed = applyOnKillAbilities(attacker);
+    if (healed > 0) events.push({ type: 'heal', unit: attacker, amount: healed });
   }
 
   return events;
@@ -246,6 +246,10 @@ export function resolveCombatTick(units, grid, deltaSeconds) {
   const pendingAttacks = [];
 
   for (const unit of aliveUnits) {
+    // Le timer d'attaque ne court que pendant un échange de coups : une unité qui arrive au
+    // contact ou à portée repart de zéro, sans frappe instantanée héritée d'un combat précédent.
+    if (unit.status !== 'engaged' && unit.status !== 'attacking') unit.attackTimer = 0;
+
     if (unit.command?.type === 'flee') {
       processFlee(unit, grid, aliveUnits, deltaSeconds, pendingAttacks);
       continue;

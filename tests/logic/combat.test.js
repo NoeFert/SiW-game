@@ -197,3 +197,68 @@ describe('mort (rules.md 4.4)', () => {
     expect(chooseTarget(a, [a, b], grid)).toBeNull();
   });
 });
+
+describe('recul d\'une unité à distance acculée (rules.md 4.5)', () => {
+  test('coincée dans un coin, elle contourne pour sortir du contact puis tire', () => {
+    const grid = new Grid(10, 10);
+    const shooter = new Unit(WYRMS_ROSTER.amphiptere, 'player', 9, 9); // recul direct hors grille
+    const dummy = new Unit(DUMMY, 'enemy', 8, 8);
+
+    for (let i = 0; i < 10; i++) resolveCombatTick([shooter, dummy], grid, 0.1);
+    expect(isAdjacent(shooter, dummy)).toBe(false);
+
+    for (let i = 0; i < 20; i++) resolveCombatTick([shooter, dummy], grid, 0.1);
+    expect(dummy.hp).toBeLessThan(DUMMY.maxHp);
+  });
+});
+
+describe('résolution simultanée indépendante de l\'ordre (rules.md 4.1)', () => {
+  test('une paralysie posée ce tick n\'annule pas l\'attaque de la cible au même tick', () => {
+    const grid = new Grid(10, 10);
+    const athos = new Unit(UNDEAD_ROSTER.athos, 'enemy', 0, 0); // traité en premier
+    athos.attacksLanded = 3;
+    athos.status = 'attacking';
+    athos.attackTimer = athos.species.attackSpeed - 0.01;
+    const worm = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 4, 0);
+    worm.status = 'engaged';
+    worm.attackTimer = worm.species.attackSpeed - 0.01;
+    const dummy = new Unit(DUMMY, 'enemy', 5, 0);
+
+    resolveCombatTick([athos, worm, dummy], grid, 0.02);
+
+    expect(dummy.hp).toBe(DUMMY.maxHp - 8); // le coup du ver porte bien
+    expect(worm.paralyzedNextAttack).toBe(true); // c'est son coup suivant qui sera raté
+  });
+
+  test('Soif de sang : Athos se soigne même si un allié frappe la même cible au même tick', () => {
+    const grid = new Grid(10, 10);
+    const worm = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 5, 0); // traité avant Athos
+    worm.status = 'engaged';
+    worm.attackTimer = worm.species.attackSpeed - 0.01;
+    const athos = new Unit(UNDEAD_ROSTER.athos, 'enemy', 0, 0);
+    athos.hp = 100;
+    athos.status = 'attacking';
+    athos.attackTimer = athos.species.attackSpeed - 0.01;
+    const victim = new Unit(DUMMY, 'player', 4, 0);
+    victim.hp = 5; // le ver seul suffirait à la tuer
+
+    resolveCombatTick([worm, athos, victim], grid, 0.02);
+
+    expect(victim.isAlive).toBe(false);
+    expect(athos.hp).toBe(140);
+  });
+});
+
+describe('timer d\'attaque', () => {
+  test('une unité qui arrive au contact ne frappe pas instantanément avec un timer hérité', () => {
+    const grid = new Grid(10, 10);
+    const worm = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
+    worm.status = 'moving';
+    worm.attackTimer = 0.9; // reste d'un combat précédent
+    const dummy = new Unit(DUMMY, 'enemy', 1, 0);
+
+    resolveCombatTick([worm, dummy], grid, 0.2);
+
+    expect(dummy.hp).toBe(DUMMY.maxHp);
+  });
+});

@@ -40,7 +40,9 @@ export default function App() {
     setScreen('victory');
   }, [playerFaction]);
 
-  const handleDefeat = useCallback(() => setScreen('defeat'), []);
+  // rules.md 8.1 : un match nul n'est pas une victoire — même suite qu'une défaite (réessayer),
+  // mais annoncé comme tel.
+  const handleDefeat = useCallback((outcome) => setScreen(outcome === 'draw' ? 'draw' : 'defeat'), []);
 
   const retryBattle = useCallback(() => {
     setBattleAttempt((n) => n + 1);
@@ -74,8 +76,8 @@ export default function App() {
     return <VictoryScreen onContinue={goHome} />;
   }
 
-  if (screen === 'defeat') {
-    return <DefeatScreen onRetry={retryBattle} />;
+  if (screen === 'defeat' || screen === 'draw') {
+    return <DefeatScreen isDraw={screen === 'draw'} onRetry={retryBattle} />;
   }
 
   if (screen === 'civilization') {

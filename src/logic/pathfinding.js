@@ -53,6 +53,38 @@ export function isPositionFree(x, y, size, grid, occupied, ignoreTerrainObstacle
   return true;
 }
 
+// Chemin le plus court (parcours en largeur, 8 directions à coût uniforme) de la position de
+// `unit` vers la case libre la plus proche qui satisfait `isGoal(x, y)` (coin haut-gauche pour
+// un bloc 2x2). Tableau vide si `unit` y est déjà, ou si aucune case de ce type n'est
+// atteignable. Utile quand la destination n'est pas un point précis mais une condition
+// (n'importe quel bord pour la fuite, n'importe quelle case hors contact pour un recul).
+export function findPathToNearest(unit, grid, units, isGoal) {
+  if (isGoal(unit.x, unit.y)) return [];
+  const occupied = occupiedCells(units, unit);
+  const startKey = `${unit.x},${unit.y}`;
+  const cameFrom = new Map([[startKey, null]]);
+  const queue = [{ x: unit.x, y: unit.y }];
+
+  for (let i = 0; i < queue.length; i++) {
+    const current = queue[i];
+    for (const { dx, dy } of DIRECTIONS) {
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      const key = `${nx},${ny}`;
+      if (cameFrom.has(key)) continue;
+      if (!isPositionFree(nx, ny, unit.size, grid, occupied, unit.isFlying)) continue;
+      cameFrom.set(key, `${current.x},${current.y}`);
+      if (isGoal(nx, ny)) {
+        const path = [];
+        for (let k = key; k !== startKey; k = cameFrom.get(k)) path.unshift(parseKey(k));
+        return path;
+      }
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return [];
+}
+
 function parseKey(key) {
   const [x, y] = key.split(',').map(Number);
   return { x, y };

@@ -123,7 +123,7 @@ export default class BattleScene extends Phaser.Scene {
     interactionState.selectedUnit = null;
 
     this.input.mouse.disableContextMenu();
-    this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
+    this.input.on('pointerdown', (pointer, currentlyOver) => this.handlePointerDown(pointer, currentlyOver));
 
     this.createDeploymentZoneFrame();
     this.createSelectionIndicator();
@@ -316,11 +316,15 @@ export default class BattleScene extends Phaser.Scene {
     );
   }
 
-  handlePointerDown(pointer) {
+  handlePointerDown(pointer, currentlyOver) {
     if (this.battle.outcome !== 'ongoing') return; // bataille terminée : plus aucune interaction
+    // Un clic sur un bouton du HUD (ex : "Abandonner") n'est pas un clic sur le terrain.
+    if (currentlyOver.includes(this.surrenderButton)) return;
 
     if (pointer.rightButtonDown()) {
-      exitCommandMode();
+      // Annule seulement le mode "Commandes" : sans ce garde-fou, un clic droit pendant un
+      // glisser de déploiement relancerait le temps (exitCommandMode lève la pause).
+      if (interactionState.commandModeActive) exitCommandMode();
       return;
     }
 

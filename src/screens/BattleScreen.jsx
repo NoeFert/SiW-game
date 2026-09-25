@@ -43,7 +43,7 @@ export default function BattleScreen({ playerFaction, onVictory, onDefeat }) {
         return;
       }
       if (outcome === 'enemyVictory' || outcome === 'draw') {
-        onDefeat();
+        onDefeat(outcome); // 'draw' : match nul (rules.md 8.1), annoncé comme tel
         return;
       }
       frameId = requestAnimationFrame(checkOutcome);
