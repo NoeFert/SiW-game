@@ -7,7 +7,7 @@ import {
 import { ROSTERS } from '../data/rosters.js';
 import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
 import { BATTLEFIELD_OBSTACLES } from '../data/battlefield.js';
-import { CELL_SIZE } from '../renderConstants.js';
+import { CELL_SIZE, cellCenter } from '../renderConstants.js';
 import { interactionState, exitCommandMode } from '../state/interactionState.js';
 
 // Quadrillage de debug : repère de case utile en dev, pas pour le joueur. Passer à true pour
@@ -76,7 +76,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.add.image(0, 0, 'battlefield').setOrigin(0, 0).setDisplaySize(this.width, this.height);
     this.drawGridLines(grid);
-    this.drawObstacles(grid);
+    this.drawObstacles(BATTLEFIELD_OBSTACLES);
 
     this.startBattle(this.playerFaction);
   }
@@ -93,15 +93,12 @@ export default class BattleScene extends Phaser.Scene {
     graphics.setVisible(DEBUG_SHOW_GRID); // invisible pour le joueur (voir DEBUG_SHOW_GRID)
   }
 
-  // rules.md 1 : obstacles infranchissables.
-  drawObstacles(grid) {
-    for (let y = 0; y < grid.height; y++) {
-      for (let x = 0; x < grid.width; x++) {
-        if (grid.isObstacle(x, y)) {
-          this.add.image((x + 0.5) * CELL_SIZE, (y + 0.5) * CELL_SIZE, 'rocks')
-            .setDisplaySize(CELL_SIZE * 0.95, CELL_SIZE * 0.95);
-        }
-      }
+  // rules.md 1 : obstacles infranchissables — un bloc 2x2 est dessiné comme un seul gros rocher.
+  drawObstacles(obstacles) {
+    for (const { x, y, size = 1 } of obstacles) {
+      const center = cellCenter(x, y, size);
+      this.add.image(center.x, center.y, 'rocks')
+        .setDisplaySize(CELL_SIZE * size * 0.95, CELL_SIZE * size * 0.95);
     }
   }
 
@@ -419,7 +416,8 @@ export default class BattleScene extends Phaser.Scene {
       container, barFill, barWidth, paralyzedBadge, visual, isSprite: !!spriteKey,
       lastCellX: unit.x, lastCellY: unit.y, moveTween: null,
     };
-    container.setPosition((unit.x + unit.size / 2) * CELL_SIZE, (unit.y + unit.size / 2) * CELL_SIZE);
+    const center = cellCenter(unit.x, unit.y, unit.size);
+    container.setPosition(center.x, center.y);
     this.updateUnitView(view, unit);
     return view;
   }
@@ -436,10 +434,11 @@ export default class BattleScene extends Phaser.Scene {
       view.lastCellX = unit.x;
       view.lastCellY = unit.y;
       if (view.moveTween) view.moveTween.stop();
+      const center = cellCenter(unit.x, unit.y, unit.size);
       view.moveTween = this.tweens.add({
         targets: view.container,
-        x: (unit.x + unit.size / 2) * CELL_SIZE,
-        y: (unit.y + unit.size / 2) * CELL_SIZE,
+        x: center.x,
+        y: center.y,
         duration: (cellsMoved / unit.species.moveSpeed) * 1000,
         ease: 'Linear',
       });

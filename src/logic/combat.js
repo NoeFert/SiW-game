@@ -107,6 +107,15 @@ function moveToward(unit, targetX, targetY, grid, aliveUnits, deltaSeconds) {
   return advance(unit, deltaSeconds, () => findPath(unit, targetX, targetY, grid, aliveUnits));
 }
 
+// rules.md 4.5 : unité purement à distance qui tire en avançant (ex : Athos) — elle continue
+// d'approcher sa cible pendant qu'elle tire, mais s'arrête à 2 cases (portée minimale de tir) :
+// un pas ne réduit la distance que d'une case, elle n'entre donc jamais au contact.
+function advanceToMinRange(unit, target, grid, aliveUnits, deltaSeconds) {
+  advance(unit, deltaSeconds, () => (
+    minDistanceBetweenFootprints(unit, target) <= 2 ? [] : findPath(unit, target.x, target.y, grid, aliveUnits)
+  ));
+}
+
 // rules.md 4.5 : une unité purement à distance ne recule que si sa cible devient adjacente —
 // vers la case hors contact la plus proche, en contournant si le recul direct est bloqué
 // (coin du terrain, obstacle, autre unité) plutôt que de rester collée sans pouvoir tirer.
@@ -294,6 +303,8 @@ export function resolveCombatTick(units, grid, deltaSeconds) {
       queueAttack(unit, target, 'ranged', deltaSeconds, pendingAttacks);
       if (unit.species.attackType === 'hybrid') {
         moveToward(unit, target.x, target.y, grid, aliveUnits, deltaSeconds);
+      } else if (unit.species.firesWhileMoving) {
+        advanceToMinRange(unit, target, grid, aliveUnits, deltaSeconds);
       }
     } else {
       unit.status = 'moving';

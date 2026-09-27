@@ -40,6 +40,13 @@ describe('Grid', () => {
       expect(grid.isObstacle(0, 0)).toBe(false);
     });
 
+    test('an obstacle with size 2 blocks its whole 2x2 square from its top-left corner', () => {
+      const grid = new Grid(5, 3, [{ x: 1, y: 0, size: 2 }]);
+      for (const [x, y] of [[1, 0], [2, 0], [1, 1], [2, 1]]) expect(grid.isObstacle(x, y)).toBe(true);
+      expect(grid.isObstacle(3, 0)).toBe(false);
+      expect(grid.isObstacle(1, 2)).toBe(false);
+    });
+
     test('no obstacles by default', () => {
       const grid = new Grid(5, 3);
       expect(grid.isObstacle(0, 0)).toBe(false);

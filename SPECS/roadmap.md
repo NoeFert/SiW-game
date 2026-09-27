@@ -16,7 +16,7 @@ Deux parties : le MVP (scope v1), puis la suite (scope v2+). Anciennement `scope
 - Combat autonome (dégâts, PV, mort définitive)
 - Aptitudes automatiques propres à certaines unités (voir `rules.md` section 6 et `units.md`)
 - Commandes du joueur (attaquer, aller à, fuir), déclenchées via un bouton "Commandes" dédié qui met le jeu en pause, avec cooldown de 5 secondes en temps de bataille (voir `rules.md` section 5)
-- IA adverse scriptée, une seule bataille pour la v1, script symétrique selon la faction jouée par l'IA (voir `rules.md` section 7)
+- IA adverse scriptée, une seule bataille pour la v1, script symétrique selon la faction jouée par l'IA ; la case d'apparition de chaque unité IA est choisie au moment du déploiement selon la situation du terrain (voir `rules.md` section 7)
 - Conditions de fin de bataille : victoire immédiate, cas d'égalité, ou compte à rebours de 15s si le terrain adverse est vide mais qu'il reste des réserves (voir `rules.md` section 8)
 - **Enchaînement d'écrans complet** (voir `technical.md` section 5) : écran de choix de faction (une seule fois, au tout début) → écran de bataille (canevas Phaser + sidebar de déploiement React) → à l'issue de la bataille, écran de récompense (victoire) ou écran de défaite avec bouton "réessayer" → après la victoire de cette première bataille (traitée comme un tutoriel), écran d'accueil affichant la faction choisie par le joueur, avec accès à l'écran de gestion de civilisation
 - **Écran de gestion de civilisation (lecture seule)** : accessible depuis un bouton sur l'écran d'accueil, affiche une ligne par type d'unité de la faction choisie (unités regroupées uniquement si elles partagent exactement les mêmes nom et stats) avec le nombre de copies restantes sur le total initial (`units.md`) — reflète les pertes définitives (unités tuées) subies pendant la bataille tutoriel. Aucune action possible sur cette page en v1 (pas de gestion, d'amélioration ou de renforcement)
@@ -66,13 +66,14 @@ Deux parties : le MVP (scope v1), puis la suite (scope v2+). Anciennement `scope
 | Pathfinding d'une unité 4-cases | Bloc 2×2 rigide, chemin le plus court |
 | Conflit [Vol] + retraite sans bord accessible | Hors scope v1 : un bord est toujours géométriquement atteignable |
 | Déclenchement du script IA | Timing en temps absolu depuis le début de la bataille |
+| Case d'apparition des unités IA | Choisie au déploiement, au hasard parmi les positions valides, en privilégiant les positions stratégiques (renfort, puis éradication), sinon avantageuses, sinon les plus proches d'un ennemi (`rules.md` 7.2) |
 | Nombre de batailles scriptées | Une seule par faction adverse possible (2 scripts au total, symétriques) — traitée comme la bataille tutoriel |
 | Choix de faction | Réintégré en v1 (contrairement à la décision initiale) : le joueur choisit entre Wyrms et Morts-Vivants, l'IA joue l'autre — pour préserver la cohérence narrative. Écran séparé, une seule fois au début, choix persistant (localStorage) |
 | Points de présence | Plafond vivant de 150 points, se libère à la mort/fuite d'une unité |
 | Quantité de copies par unité | Nombre fixe par bataille (voir `units.md`) ; une copie tuée est perdue définitivement, une copie en fuite reste réutilisable |
 | Fin de bataille | Victoire immédiate si l'adversaire n'a plus aucune unité (avec cas d'égalité possible) ; défaite automatique après 15s si le terrain est vide avec des réserves non redéployées |
 | Aptitudes | Deux types définis : automatique (sans action du joueur) et à usage limité (activée par le joueur) — seul le type automatique est utilisé par le roster v1 |
-| Après une défaite | Écran de défaite dédié avec bouton "réessayer" qui relance la même bataille (faction déjà choisie conservée, aucune perte de la tentative ratée persistée) |
+| Après une défaite | Écran de défaite dédié avec bouton "réessayer" qui relance la même bataille (faction déjà choisie conservée, aucune perte de la tentative ratée persistée) ; même écran après un match nul, titré « Match nul » |
 | Après la victoire | Écran de récompense (squelette pour la v1) puis écran d'accueil affichant la faction choisie, avec accès à l'écran de gestion de civilisation |
 | Gestion de civilisation | Écran en lecture seule listant les unités restantes de la faction du joueur (une ligne par type d'unité), reflétant les pertes définitives de la bataille tutoriel ; aucune action possible en v1 |
 | Stack UI | Phaser 3 pour le champ de bataille uniquement ; React + Tailwind + shadcn/ui (thème 8bitcn) pour toute l'UI autour (sidebar, boutons, écrans) — voir `technical.md` |

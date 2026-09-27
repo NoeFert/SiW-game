@@ -204,7 +204,7 @@ describe('recul d\'une unité à distance acculée (rules.md 4.5)', () => {
     const shooter = new Unit(WYRMS_ROSTER.amphiptere, 'player', 9, 9); // recul direct hors grille
     const dummy = new Unit(DUMMY, 'enemy', 8, 8);
 
-    for (let i = 0; i < 10; i++) resolveCombatTick([shooter, dummy], grid, 0.1);
+    for (let i = 0; i < 20; i++) resolveCombatTick([shooter, dummy], grid, 0.1);
     expect(isAdjacent(shooter, dummy)).toBe(false);
 
     for (let i = 0; i < 20; i++) resolveCombatTick([shooter, dummy], grid, 0.1);
@@ -260,5 +260,24 @@ describe('timer d\'attaque', () => {
     resolveCombatTick([worm, dummy], grid, 0.2);
 
     expect(dummy.hp).toBe(DUMMY.maxHp);
+  });
+});
+
+describe('Athos — tire en avançant (rules.md 4.5)', () => {
+  test('tire tout en se rapprochant, puis s\'arrête à 2 cases sans jamais entrer au contact', () => {
+    const grid = new Grid(20, 10);
+    const athos = new Unit(UNDEAD_ROSTER.athos, 'enemy', 0, 0); // occupe (0,0)-(1,1)
+    const dummy = new Unit(DUMMY, 'player', 6, 0); // à 5 cases : à portée dès le départ
+
+    let everAdjacent = false;
+    for (let i = 0; i < 100; i++) {
+      resolveCombatTick([athos, dummy], grid, 0.1);
+      if (isAdjacent(athos, dummy)) everAdjacent = true;
+    }
+
+    expect(dummy.hp).toBeLessThan(DUMMY.maxHp); // a tiré
+    expect(athos.x).toBeGreaterThan(0); // a avancé en tirant
+    expect(isInRange(athos, dummy)).toBe(true); // à distance de tir minimale (2 cases)
+    expect(everAdjacent).toBe(false);
   });
 });

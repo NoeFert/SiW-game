@@ -1,5 +1,5 @@
 import Unit from './unit.js';
-import { isValidDeploymentPosition } from './deployment.js';
+import { isValidDeploymentPosition, getPresenceUsed, PRESENCE_CAP } from './deployment.js';
 import { minDistanceBetweenFootprints } from './combat.js';
 
 // rules.md 7 : le script ne fait QUE définir quoi/quand déployer, et la case est choisie au
@@ -64,13 +64,16 @@ function chooseDeploymentPosition(species, faction, grid, unitsOnField, rng) {
 // `script` doit être trié par `time` croissant (voir src/data/battleScript.js). Renvoie les
 // unités à déployer pour ce tick — celles dont l'heure de déploiement (temps absolu depuis
 // le début de la bataille) est atteinte depuis le dernier appel — sans jamais en redéployer
-// une deuxième fois. Si aucune case valide n'est libre, l'entrée attend le tick suivant (les
-// suivantes aussi, pour garder l'ordre du script). `rng` : source d'aléa, injectable en test.
+// une deuxième fois. Si l'unité ferait dépasser le plafond vivant de points de présence
+// (rules.md 2, identique pour l'IA) ou si aucune case valide n'est libre, l'entrée attend un
+// tick suivant (les suivantes aussi, pour garder l'ordre du script). `rng` : source d'aléa,
+// injectable en test.
 export function deployScheduledUnits(script, state, elapsedSeconds, faction, grid, units, rng = Math.random) {
   const unitsOnField = units.filter((u) => u.isOnField);
   const deployed = [];
   while (state.nextIndex < script.length && script[state.nextIndex].time <= elapsedSeconds) {
     const { species } = script[state.nextIndex];
+    if (getPresenceUsed(faction, unitsOnField) + species.cost > PRESENCE_CAP) break;
     const position = chooseDeploymentPosition(species, faction, grid, unitsOnField, rng);
     if (!position) break;
     const unit = new Unit(species, faction, position.x, position.y);

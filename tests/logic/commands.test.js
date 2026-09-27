@@ -60,7 +60,7 @@ describe('commandMoveTo (rules.md 5)', () => {
     const fafnir = new Unit(WYRMS_ROSTER.fafnir, 'player', 10, 5);
 
     commandMoveTo(state, 0, fafnir, 19, 5);
-    for (let i = 0; i < 60; i++) resolveCombatTick([fafnir], grid, 0.1);
+    for (let i = 0; i < 150; i++) resolveCombatTick([fafnir], grid, 0.1);
 
     expect(fafnir.x).toBe(18); // au plus près possible
     expect(fafnir.command).toBeNull();

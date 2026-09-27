@@ -2,7 +2,7 @@ import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import { createAiScriptState, deployScheduledUnits } from '../../src/logic/aiScript.js';
 import { isAdjacent, isInRange } from '../../src/logic/combat.js';
-import { isValidDeploymentPosition } from '../../src/logic/deployment.js';
+import { isValidDeploymentPosition, PRESENCE_CAP } from '../../src/logic/deployment.js';
 import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../../src/data/battleScript.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
@@ -13,7 +13,21 @@ function deployOne(species, units, rng = Math.random) {
   return unit;
 }
 
-describe('deployScheduledUnits — horaires (rules.md 7.1)', () => {
+const costOf = (speciesList) => speciesList.reduce((sum, species) => sum + species.cost, 0);
+
+describe('deployScheduledUnits — horaires et plafond (rules.md 7.1, 2)', () => {
+  test('les 4 unités du script, dans l\'ordre et aux instants documentés', () => {
+    const entries = (script) => script.map(({ time, species }) => [time, species]);
+    expect(entries(WYRMS_AI_SCRIPT)).toEqual([
+      [0, WYRMS_ROSTER.lambtonWorm], [8, WYRMS_ROSTER.amphiptere],
+      [20, WYRMS_ROSTER.lambtonWorm], [35, WYRMS_ROSTER.fafnir],
+    ]);
+    expect(entries(UNDEAD_AI_SCRIPT)).toEqual([
+      [0, UNDEAD_ROSTER.newRebornSkeleton], [8, UNDEAD_ROSTER.necromantInitiate],
+      [20, UNDEAD_ROSTER.newRebornSkeleton], [35, UNDEAD_ROSTER.athos],
+    ]);
+  });
+
   test('déploie la bonne unité au bon instant (script Wyrms)', () => {
     const state = createAiScriptState();
     const grid = new Grid();
@@ -31,28 +45,33 @@ describe('deployScheduledUnits — horaires (rules.md 7.1)', () => {
     expect(deployed[0].species).toBe(WYRMS_ROSTER.amphiptere);
   });
 
-  test('ne redéploie jamais deux fois la même entrée du script', () => {
+  test('le plafond vivant n\'est jamais dépassé — la suite attend qu\'il se libère', () => {
+    const { athos, necromantInitiate } = UNDEAD_ROSTER;
+    const script = [athos, necromantInitiate, necromantInitiate].map((species) => ({ time: 0, species })); // 160 pts
     const state = createAiScriptState();
-    const first = deployScheduledUnits(WYRMS_AI_SCRIPT, state, 100, 'enemy', new Grid(), []);
+    const grid = new Grid();
 
-    const again = deployScheduledUnits(WYRMS_AI_SCRIPT, state, 200, 'enemy', new Grid(), first);
+    const deployed = deployScheduledUnits(script, state, 0, 'enemy', grid, []);
+    expect(deployed.map((u) => u.species)).toEqual([athos, necromantInitiate]); // 135 pts, le 3e ferait 160
+    expect(costOf(deployed.map((u) => u.species))).toBeLessThanOrEqual(PRESENCE_CAP);
+    deployed.forEach((unit, i) => {
+      const others = deployed.filter((_, j) => j !== i);
+      expect(isValidDeploymentPosition(grid, 'enemy', unit.species, unit.x, unit.y, others)).toBe(true);
+    });
 
-    expect(again).toHaveLength(0);
+    expect(deployScheduledUnits(script, state, 1, 'enemy', grid, deployed)).toHaveLength(0); // toujours plein
+
+    deployed[1].hp = 0; // un Necromant meurt : ses points se libèrent
+    expect(deployScheduledUnits(script, state, 2, 'enemy', grid, deployed)).toHaveLength(1);
   });
 
-  test('les 4 vagues sortent dans l\'ordre documenté, sans se chevaucher', () => {
-    for (const [script, roster] of [
-      [WYRMS_AI_SCRIPT, [WYRMS_ROSTER.lambtonWorm, WYRMS_ROSTER.amphiptere, WYRMS_ROSTER.lambtonWorm, WYRMS_ROSTER.fafnir]],
-      [UNDEAD_AI_SCRIPT, [UNDEAD_ROSTER.newRebornSkeleton, UNDEAD_ROSTER.necromantInitiate, UNDEAD_ROSTER.newRebornSkeleton, UNDEAD_ROSTER.athos]],
-    ]) {
-      const deployed = deployScheduledUnits(script, createAiScriptState(), 35, 'enemy', new Grid(), []);
-
-      expect(deployed.map((u) => u.species)).toEqual(roster);
-      deployed.forEach((unit, i) => {
-        const others = deployed.filter((_, j) => j !== i);
-        expect(isValidDeploymentPosition(new Grid(), 'enemy', unit.species, unit.x, unit.y, others)).toBe(true);
-      });
+  test('ne redéploie jamais deux fois la même entrée du script', () => {
+    const state = createAiScriptState();
+    for (let t = 100; state.nextIndex < WYRMS_AI_SCRIPT.length; t++) {
+      deployScheduledUnits(WYRMS_AI_SCRIPT, state, t, 'enemy', new Grid(), []); // terrain vidé à chaque appel
     }
+
+    expect(deployScheduledUnits(WYRMS_AI_SCRIPT, state, 1000, 'enemy', new Grid(), [])).toHaveLength(0);
   });
 
   test('une unité déployée par le script est un Unit normal, sans marquage spécial "IA"', () => {

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/8bit/button.jsx';
 import { useBattle } from './useBattle.js';
 import { getReserve, getPresenceUsed, PRESENCE_CAP } from '../logic/deployment.js';
 import { deployPlayerUnit } from '../logic/battle.js';
-import { CELL_SIZE, GAME_WIDTH } from '../renderConstants.js';
+import { getCanvasRect, screenToGrid } from '../renderConstants.js';
 import { interactionState } from '../state/interactionState.js';
 
 // Une ligne par variante réellement distincte d'une espèce : les copies fraîches (toutes
@@ -67,18 +67,14 @@ export default function DeploymentSidebar() {
   const finishDrag = (row, clientX, clientY) => {
     interactionState.paused = false;
     interactionState.deploymentDragActive = false;
-    const canvas = document.querySelector('#phaser-root canvas');
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
+    const rect = getCanvasRect();
+    if (!rect) return;
     if (clientX < rect.left || clientX >= rect.right || clientY < rect.top || clientY >= rect.bottom) {
       return; // relâché hors du terrain : annulation silencieuse (comme reposer l'icône)
     }
-    // technical.md 3.1 : le canevas est affiché à une taille CSS variable (Phaser.Scale.FIT),
-    // mais src/logic/ raisonne toujours dans le référentiel fixe de GAME_WIDTH (1536px) — il
-    // faut donc ramener le point de relâchement à cette échelle avant de calculer la case.
-    const scale = rect.width / GAME_WIDTH;
-    const gx = Math.floor((clientX - rect.left) / scale / CELL_SIZE);
-    const gy = Math.floor((clientY - rect.top) / scale / CELL_SIZE);
+    // technical.md 3.1 : src/logic/ raisonne dans le référentiel fixe de 1536px, quelle que soit
+    // la taille CSS réelle du canevas — screenToGrid ramène le point de relâchement à une case.
+    const { x: gx, y: gy } = screenToGrid(rect, clientX, clientY);
     const result = deployPlayerUnit(battle, row.species, gx, gy, row.choice);
     if (!result.success) showMessage(`Déploiement refusé : ${result.reason}`);
   };

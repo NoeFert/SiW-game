@@ -10,7 +10,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 
 - Le terrain de bataille est une grille rectangulaire de **24 cases de large × 14 cases de haut**.
 - Deux unités ne peuvent jamais occuper la même case.
-- Certaines cases peuvent être des obstacles infranchissables. Pour la bataille v1 : **16 obstacles d'une case chacun**, dispersés sur le terrain plutôt que concentrés, en évitant de former des couloirs fermés ou des culs-de-sac, répartis symétriquement de part et d'autre de la ligne médiane pour que le terrain reste équitable quel que soit le camp (positions exactes : `src/data/battlefield.js`).
+- Certaines cases peuvent être des obstacles infranchissables. Pour la bataille v1 : **16 obstacles : 12 d'une case et 4 blocs de 2×2 cases**, dispersés sur le terrain plutôt que concentrés, en évitant de former des couloirs fermés ou des culs-de-sac, répartis symétriquement de part et d'autre de la ligne médiane pour que le terrain reste équitable quel que soit le camp (positions exactes : `src/data/battlefield.js`).
 
 ## 2. Déploiement
 
@@ -20,7 +20,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 - Ce plafond est **vivant, pas un budget dépensé une seule fois** : le coût en points de présence d'une unité se libère dès qu'elle meurt ou fuit le terrain (commande de retraite, section 5), permettant au joueur de redéployer d'autres unités en cours de bataille tant que le total des unités actuellement sur le terrain reste sous le plafond.
 - **Limite de quantité par unité [Légendaire] :** un seul exemplaire de l'unité [Légendaire] d'une faction (Fafnir ou Athos selon le camp) peut être déployé simultanément sur le terrain, indépendamment du budget de points disponible.
 - **Copies disponibles pour la bataille :** chaque unité (légendaire ou non) dispose d'un nombre fixe de copies pour une même bataille (voir `units.md` pour le détail par unité).
-  - Une unité **tuée** en combat consomme définitivement une copie (perdue pour le reste de la bataille, cohérent avec la mort définitive, section 4.4).
+  - Une unité **tuée** en combat consomme définitivement une copie (perdue pour le reste de la bataille, cohérent avec la mort définitive, section 4.4). C'est aussi le cas d'une unité tuée à l'instant même où elle atteint le bord en fuyant : elle est morte, pas en fuite.
   - Une unité qui **fuit** (retraite, section 5) retourne en réserve avec ses points de vie réduits conservés, et **reste disponible** pour un redéploiement ultérieur dans la même bataille — sa copie n'est pas perdue.
 - L'IA se déploie sur l'autre moitié du terrain (12 colonnes), selon un script prédéfini (voir section 7).
 
@@ -35,7 +35,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 ## 4. Combat
 
 ### 4.1 Déroulement dans le temps
-- Le temps de bataille s'écoule en continu (pas de tour par tour). Chaque unité attaque selon son propre rythme, déterminé par sa vitesse d'attaque (voir `units.md` pour les valeurs du roster).
+- Le temps de bataille s'écoule en continu (pas de tour par tour). Chaque unité attaque selon son propre rythme, déterminé par sa vitesse d'attaque (voir `units.md` pour les valeurs du roster). Ce rythme repart de zéro chaque fois qu'une unité arrive au contact ou à portée de tir : elle porte son premier coup après un intervalle complet, jamais instantanément.
 - Quand plusieurs unités infligent des dégâts au même instant, **toutes les attaques de cet instant sont d'abord calculées, puis appliquées ensemble** — aucune unité n'a d'avantage d'ordre sur une autre. Concrètement : si deux unités s'entretuent au même instant, elles meurent toutes les deux.
 - **Coup fatal simultané :** si plusieurs attaques du même instant tuent une cible, chacun de ces attaquants compte comme ayant porté le coup fatal (utile pour les aptitudes déclenchées au coup fatal, ex : Soif de sang d'Athos) — sauf un attaquant qui meurt lui-même à cet instant : une unité morte ne bénéficie d'aucun effet.
 - **Effets posés à un instant donné :** un effet qui vise « la prochaine attaque » d'une cible (ex : Frappe paralysante d'Athos) ne touche jamais une attaque de cette même cible portée au même instant — seulement la suivante.
@@ -57,6 +57,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 - Une unité à distance a une **portée de tir**, une valeur fixe propre à l'unité (voir `units.md` pour les valeurs du roster).
 - Une attaque à distance **ne peut jamais se déclencher sur une cible adjacente** (case collée) — en dessous de sa portée minimale de 2 cases, une unité à distance ne peut pas tirer.
 - **Unité purement à distance (jamais de corps-à-corps)** : elle reste immobile et continue de tirer tant que sa cible reste dans sa portée de tir. Elle ne recule que si la cible devient adjacente (hors de portée par défaut) ; elle ne cherche pas activement à s'éloigner tant qu'elle reste à portée. Pour reculer, elle rejoint la case hors contact la plus proche en contournant si le recul direct est bloqué (bord, obstacle, autre unité). Si elle est complètement encerclée (aucune case hors contact atteignable), elle reste sur place **sans tirer** jusqu'à ce qu'un passage se libère.
+- **Unité purement à distance qui tire en avançant (ex : Athos)** : exception à la règle précédente — comme une unité hybride, elle **continue d'avancer** vers sa cible pendant qu'elle tire, mais elle **s'arrête à 2 cases** (sa portée minimale de tir) : elle n'entre jamais au contact, puisqu'elle ne peut pas combattre au corps-à-corps. Si la cible vient malgré tout se coller à elle, elle recule comme toute unité purement à distance.
 - **Unité hybride capable des deux modes (ex : Fafnir)** :
   - Elle attaque à distance dès que sa cible entre dans sa portée de tir
   - Contrairement à une unité purement à distance, elle **continue d'avancer** vers sa cible pendant qu'elle tire, plutôt que de rester immobile à distance
@@ -67,7 +68,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 
 - Le joueur peut donner 3 types de commandes à une unité déployée :
   1. **Attaquer** : désigner une cible ennemie précise
-  2. **Se déplacer** : désigner une case du terrain à atteindre
+  2. **Se déplacer** : désigner une case du terrain à atteindre. Si cette case est inatteignable (obstacle, case occupée, bloc 2×2 qui déborderait du terrain), l'unité s'arrête au plus près possible et reprend son comportement autonome.
   3. **Fuir** : l'unité doit atteindre le bord du terrain pour quitter la bataille et revenir dans la liste du joueur ; elle ne récupère pas ses points de vie avant la fin de la bataille
 - Donner une commande **met le jeu en pause** : l'activation du bouton "Commandes" arrête le temps pendant que le joueur sélectionne l'unité et sa commande ; la bataille reprend dès que la commande est donnée ou annulée (décision prise après tests de jeu).
 - Les commandes sont **optionnelles** : une unité sans commande agit de façon autonome (se déplace vers l'ennemi le plus proche, attaque à portée).
@@ -123,6 +124,8 @@ Budget total : 150 points de présence.
 
 Les deux budgets sont identiques à celui du joueur (150 points), pour une bataille équilibrée quel que soit le sens du choix de faction.
 
+**Plafond de présence :** l'IA est soumise au même plafond vivant de 150 points que le joueur (section 2) : les unités IA encore sur le terrain comptent, et une unité du script qui ferait dépasser le plafond **attend** qu'assez de points se libèrent (mort ou fuite d'une unité IA) ; les unités suivantes du script attendent derrière elle pour garder l'ordre.
+
 > Horaires et unités de ce script provisoires : à revoir (nouvelle règle à venir, avec une mécanique d'équilibrage des forces sur le terrain).
 
 ### 7.2 Choix de la case d'apparition
@@ -147,7 +150,7 @@ S'il n'y a aucun ennemi sur le terrain, la case est tirée parmi toutes les posi
 
 ### 8.1 Victoire immédiate
 - Si toutes les unités du camp adverse sont mortes (aucune copie restante en réserve, aucune unité vivante sur le terrain), victoire immédiate pour l'autre camp.
-- **Cas d'égalité (draw) :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — les deux camps perdent leur dernière unité au même frame, sans copie restante en réserve d'aucun côté. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire pour la v1 (pas de récompenses post-bataille à distribuer, voir `roadmap.md`).
+- **Cas d'égalité (draw) :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — les deux camps perdent leur dernière unité au même frame, sans copie restante en réserve d'aucun côté. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire pour la v1 (pas de récompenses post-bataille à distribuer, voir `roadmap.md`). Un match nul n'est pas une victoire : la bataille tutoriel n'est pas validée, le joueur voit un écran « Match nul » et peut réessayer, comme après une défaite (voir `technical.md` 5.1).
 
 ### 8.2 Terrain vide avec réserves restantes
 - Si un camp n'a **aucune unité actuellement déployée** sur le terrain (toutes mortes ou en fuite) mais possède encore des **copies non utilisées en réserve**, ce camp reçoit un avertissement avec un **compte à rebours de 15 secondes**.

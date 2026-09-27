@@ -137,7 +137,7 @@ Le jeu v1 est composé de **six écrans distincts**. Un seul d'entre eux (l'écr
 1. **FactionChoiceScreen** — écran de choix de faction (Souveraine des Wyrms ou Souverain des Morts-Vivants). Affiché **une seule fois**, au tout début d'une partie (pas avant chaque bataille, même une fois que plusieurs batailles existeront en v2+).
 2. **BattleScreen** — l'écran de bataille actuel : canevas Phaser (champ de bataille) + sidebar React (déploiement, bouton "Commandes").
 3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3) — le contenu réel des récompenses est hors scope v1 (`roadmap.md`).
-4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé).
+4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé). Sert aussi après un match nul (`rules.md` 8.1), avec le titre « Match nul » au lieu de « Défaite » : même suite, aucun vainqueur.
 5. **HomeScreen** — écran d'accueil. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Pour la v1, affiche une ligne de texte indiquant la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), plus un bouton vers `CivilizationScreen`.
 6. **CivilizationScreen** — écran de gestion de civilisation, accessible depuis un bouton sur `HomeScreen`. **Lecture seule en v1** (aucune action possible). Affiche une ligne par type d'unité de la faction du joueur (unités regroupées uniquement si elles partagent exactement les mêmes nom et stats — donc une ligne par espèce du roster, voir `units.md`), avec le nombre de copies restantes sur le total initial. Reflète les pertes définitives (unités tuées, pas celles ayant fui) subies pendant la bataille tutoriel.
 
@@ -164,7 +164,7 @@ FactionChoiceScreen (une fois)
 - Une défaite ne fait perdre ni la faction choisie ni aucune autre donnée persistée — seul un nouvel essai de la même bataille est proposé, et aucune perte d'unité d'une tentative ratée n'est comptabilisée (voir 5.4).
 
 ### 5.3 Squelette de VictoryScreen et DefeatScreen pour la v1
-- Les deux écrans sont volontairement minimaux : un titre (Victoire / Défaite), et un seul bouton d'action (Continuer vers l'accueil / Réessayer)
+- Les deux écrans sont volontairement minimaux : un titre (Victoire / Défaite ou Match nul), et un seul bouton d'action (Continuer vers l'accueil / Réessayer)
 - Pas de contenu de récompense réel à afficher pour la v1 (le design doc prévoit un système de récompenses en v2+, hors scope) — la structure du composant doit néanmoins être prête à accueillir ce contenu plus tard sans réécriture complète
 
 ### 5.4 Navigation et état persistant

@@ -65,8 +65,9 @@ export function issuePlayerFlee(battle, unit) {
   return commandFlee(battle.playerCommandState, battle.elapsedSeconds, unit);
 }
 
-// rules.md 7 : déploiements scriptés de l'IA — pré-autorisés (script déjà équilibré), donc pas
-// de passage par les vérifications de deployUnit ; seul le registre de copies est mis à jour
+// rules.md 7 : déploiements scriptés de l'IA — le plafond vivant et la case sont vérifiés par
+// aiScript.js (les copies et le [Légendaire] unique sont garantis par le contenu du script,
+// voir battleScript.test.js), donc pas de passage par deployUnit ; seul le registre de copies est mis à jour
 // (consumeFreshCopy) pour que les réserves restent exactes côté battleEnd.js (8). La case
 // d'apparition est choisie par aiScript.js (rules.md 7.2).
 function deployScriptedEnemies(battle) {
