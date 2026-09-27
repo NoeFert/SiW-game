@@ -11,6 +11,23 @@ export const GRID_HEIGHT = 14;
 export const GAME_WIDTH = GRID_WIDTH * CELL_SIZE; // 1536
 export const GAME_HEIGHT = GRID_HEIGHT * CELL_SIZE; // 896
 
+// Couleur d'une barre de vie selon le ratio PV/PV max — même code visuel sur le terrain
+// (Phaser) et dans la tour (React), voir `cssColor`.
+export function healthBarColor(ratio) {
+  if (ratio > 0.5) return 0x2ecc71;
+  if (ratio > 0.25) return 0xf1c40f;
+  return 0xe74c3c;
+}
+
+// Couleur d'alerte des PV d'une unité blessée dans la tour : rouge au même seuil que la barre.
+export function woundedHpColor(ratio) {
+  return ratio > 0.25 ? 0xff9f1a : 0xe74c3c;
+}
+
+export function cssColor(hex) {
+  return `#${hex.toString(16).padStart(6, '0')}`;
+}
+
 // Centre (en px, référentiel fixe GAME_WIDTH x GAME_HEIGHT) d'un bloc de `size` x `size` cases
 // dont le coin haut-gauche est la case (x, y) : une seule formule case -> pixel pour la Scene.
 export function cellCenter(x, y, size = 1) {

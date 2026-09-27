@@ -1,7 +1,7 @@
 import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import {
-  createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, countOwnedCopies,
+  createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, countOwnedCopies, getTowerRows,
   PRESENCE_CAP,
 } from '../../src/logic/deployment.js';
 
@@ -232,5 +232,88 @@ describe('countOwnedCopies — copies possédées après bataille (rules.md 2, t
     const state = createDeploymentState(ROSTER);
     const enemy = new Unit(ROSTER.lonely, 'enemy', 0, 0);
     expect(countOwnedCopies(ROSTER, state, 'player', [enemy]).lonely).toBe(1);
+  });
+});
+
+describe('getTowerRows — liste des unités déployables de la tour (ui-battle-screen-decisions.md 2.2)', () => {
+  function returnWithHp(state, species, hp) {
+    const unit = new Unit(species, 'player', 0, 0);
+    unit.hp = hp;
+    recordReturn(state, unit);
+  }
+
+  test('une ligne par espèce en réserve, les espèces épuisées disparaissent', () => {
+    const state = createDeploymentState(ROSTER);
+    state.bySpecies.get(ROSTER.lonely).freshRemaining = 0;
+
+    const rows = getTowerRows(state, 'player', []);
+
+    expect(rows.map((r) => [r.species.name, r.count])).toEqual([['Grunt', 5], ['Champion', 2]]);
+    expect(rows[0]).toMatchObject({
+      hp: 20, maxHp: 20, damage: 1, cost: 50, keywords: [], wounded: false, deployable: true,
+    });
+  });
+
+  test('les unités sur le terrain ne sont pas dans la liste', () => {
+    const state = createDeploymentState(ROSTER);
+    const { unit } = deployUnit(state, 'player', ROSTER.grunt, 0, 0, []);
+
+    const rows = getTowerRows(state, 'player', [unit]);
+
+    expect(rows.find((r) => r.species === ROSTER.grunt).count).toBe(4);
+  });
+
+  test('regroupement strict : même espèce et mêmes PV seulement', () => {
+    const state = createDeploymentState(ROSTER);
+    state.bySpecies.get(ROSTER.grunt).freshRemaining = 2;
+    returnWithHp(state, ROSTER.grunt, 20); // fuite sans blessure : rejoint le groupe intact
+    returnWithHp(state, ROSTER.grunt, 12);
+    returnWithHp(state, ROSTER.grunt, 7);
+    returnWithHp(state, ROSTER.grunt, 12);
+
+    const grunts = getTowerRows(state, 'player', []).filter((r) => r.species === ROSTER.grunt);
+
+    expect(grunts.map((r) => [r.hp, r.count, r.wounded])).toEqual([[20, 3, false], [12, 2, true], [7, 1, true]]);
+  });
+
+  test('un blessé apparaît juste sous le groupe de son espèce, avant l\'espèce suivante', () => {
+    const state = createDeploymentState(ROSTER);
+    returnWithHp(state, ROSTER.grunt, 5);
+
+    const names = getTowerRows(state, 'player', []).map((r) => `${r.species.name}:${r.hp}`);
+
+    expect(names).toEqual(['Grunt:20', 'Grunt:5', 'Champion:50', 'Lonely:10']);
+  });
+
+  test('la ligne intacte reste déployable même si elle ne contient que des copies revenues de fuite', () => {
+    const state = createDeploymentState(ROSTER);
+    state.bySpecies.get(ROSTER.lonely).freshRemaining = 0;
+    returnWithHp(state, ROSTER.lonely, 10);
+    const [row] = getTowerRows(state, 'player', []).filter((r) => r.species === ROSTER.lonely);
+
+    const result = deployUnit(state, 'player', ROSTER.lonely, 0, 0, [], row.copyChoice);
+
+    expect(result.success).toBe(true);
+    expect(result.unit.hp).toBe(10);
+  });
+
+  test('indicateur "déployable" faux si le coût dépasse le budget de présence restant', () => {
+    const state = createDeploymentState(ROSTER);
+    const onField = [];
+    for (let x = 0; x < 2; x++) onField.push(deployUnit(state, 'player', ROSTER.grunt, x, 0, onField).unit); // 100/150
+
+    const rows = getTowerRows(state, 'player', onField);
+    const deployable = Object.fromEntries(rows.map((r) => [r.species.name, r.deployable]));
+
+    expect(deployable).toEqual({ Grunt: true, Champion: false, Lonely: true }); // 50 ok, 60 > 50
+  });
+
+  test('indicateur "déployable" faux pour un [Légendaire] déjà sur le terrain', () => {
+    const state = createDeploymentState(ROSTER);
+    const { unit } = deployUnit(state, 'player', ROSTER.champion, 0, 0, []);
+
+    const champion = getTowerRows(state, 'player', [unit]).find((r) => r.species === ROSTER.champion);
+
+    expect(champion.deployable).toBe(false);
   });
 });

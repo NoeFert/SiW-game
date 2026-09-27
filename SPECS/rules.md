@@ -14,19 +14,21 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 
 ## 2. Déploiement
 
+- Le camp du joueur est la **moitié gauche** du terrain, collée à la tour de commandement ; l'IA occupe la moitié droite. Le joueur attaque donc de gauche à droite.
 - Le joueur peut déployer ses unités sur **toute sa moitié du terrain** (12 colonnes de large sur les 24), pas seulement sur une ligne de départ.
-- Déposer une unité sur le terrain **arrête le temps** : la bataille se met en pause pendant que le joueur choisit et positionne son unité.
+- Déployer une unité **arrête le temps** : la bataille se met en pause (pause d'interaction, section 5.2) dès le début du glisser-déposer, pendant que le joueur choisit et positionne son unité.
 - Le déploiement est limité par les **points de présence** disponibles : le joueur dispose d'un plafond de **150 points de présence pouvant être déployés simultanément** (voir section 9 et `units.md` pour le détail du coût de chaque unité).
 - Ce plafond est **vivant, pas un budget dépensé une seule fois** : le coût en points de présence d'une unité se libère dès qu'elle meurt ou fuit le terrain (commande de retraite, section 5), permettant au joueur de redéployer d'autres unités en cours de bataille tant que le total des unités actuellement sur le terrain reste sous le plafond.
 - **Limite de quantité par unité [Légendaire] :** un seul exemplaire de l'unité [Légendaire] d'une faction (Fafnir ou Athos selon le camp) peut être déployé simultanément sur le terrain, indépendamment du budget de points disponible.
 - **Copies disponibles pour la bataille :** chaque unité (légendaire ou non) dispose d'un nombre fixe de copies pour une même bataille (voir `units.md` pour le détail par unité).
   - Une unité **tuée** en combat consomme définitivement une copie (perdue pour le reste de la bataille, cohérent avec la mort définitive, section 4.4). C'est aussi le cas d'une unité tuée à l'instant même où elle atteint le bord en fuyant : elle est morte, pas en fuite.
   - Une unité qui **fuit** (retraite, section 5) retourne en réserve avec ses points de vie réduits conservés, et **reste disponible** pour un redéploiement ultérieur dans la même bataille — sa copie n'est pas perdue.
-- L'IA se déploie sur l'autre moitié du terrain (12 colonnes), selon un script prédéfini (voir section 7).
+- L'IA se déploie sur l'autre moitié du terrain (moitié droite, 12 colonnes), selon un script prédéfini (voir section 7).
 
 ## 3. Mouvement
 
 - Le déplacement est possible en 8 directions (y compris diagonale).
+- Par défaut, les unités du joueur avancent de gauche à droite et celles de l'IA de droite à gauche (camps définis en section 2).
 - Une unité se déplace vers l'ennemi le plus proche par défaut, en contournant les obstacles et les autres unités qui bloquent le passage.
 - Chaque unité a sa propre vitesse de déplacement (voir `units.md` pour les valeurs du roster).
 - **Unités occupant 4 cases (2×2) :** se déplacent comme un bloc rigide — un déplacement n'est valide que si les 4 cases de destination sont toutes libres. Si le passage est trop étroit (couloir d'une seule case de large), l'unité attend ou contourne, exactement comme une unité normale face à un obstacle.
@@ -70,14 +72,28 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
   1. **Attaquer** : désigner une cible ennemie précise
   2. **Se déplacer** : désigner une case du terrain à atteindre. Si cette case est inatteignable (obstacle, case occupée, bloc 2×2 qui déborderait du terrain), l'unité s'arrête au plus près possible et reprend son comportement autonome.
   3. **Fuir** : l'unité doit atteindre le bord du terrain pour quitter la bataille et revenir dans la liste du joueur ; elle ne récupère pas ses points de vie avant la fin de la bataille
-- Donner une commande **met le jeu en pause** : l'activation du bouton "Commandes" arrête le temps pendant que le joueur sélectionne l'unité et sa commande ; la bataille reprend dès que la commande est donnée ou annulée (décision prise après tests de jeu).
+- Donner une commande **met le jeu en pause** (pause d'interaction, section 5.2) : l'ouverture de la barre de commandes arrête le temps dès le clic sur "Commandes", pendant que le joueur choisit l'ordre, l'unité et la cible ; la bataille reprend dès que la commande est donnée ou annulée, **sauf** si la pause principale est active (décision prise après tests de jeu).
+- **Déroulé d'une commande** (après ouverture de la barre) :
+  - **Voie 1 (guidée)** : choisir l'ordre (Aller, Attaquer, Fuir), puis une unité du joueur, puis la cible — un ennemi pour Attaquer, une case pour Aller, aucune pour Fuir.
+  - **Voie 2 (raccourci)** : cliquer directement une unité du joueur sans choisir d'ordre ; l'ordre est déduit de la cible (ennemi = Attaquer, case = Aller). Fuir n'est jamais déduit : il passe obligatoirement par la voie 1.
+  - **Annulation** possible à n'importe quel stade : aucune commande n'est émise et le cooldown n'est pas consommé.
 - Les commandes sont **optionnelles** : une unité sans commande agit de façon autonome (se déplace vers l'ennemi le plus proche, attaque à portée).
 - **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage. Si **plusieurs ennemis** sont engagés au corps-à-corps sur elle, **chacun** porte sa dernière attaque, une seule fois (au moment où la fuite commence). La fuite vise la case de bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
 
 ### 5.1 Limitation des commandes
 - Le nombre de commandes est limité par un **cooldown** entre deux commandes (pas de quota fixe par bataille en v1).
-- Durée du cooldown : **5 secondes** entre deux commandes.
+- Durée du cooldown : **5 secondes** de temps de bataille entre deux commandes. Le cooldown **ne s'écoule pas pendant les pauses** (section 5.2). Pendant le cooldown, la barre de commandes ne peut pas s'ouvrir.
 - Cette limitation de cooldown diminue avec le niveau du joueur (mécanique de déblocage progressif — détail de la courbe hors scope v1, une seule valeur fixe suffit pour la v1).
+
+### 5.2 Pauses
+Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s'écoule que si **aucune** n'est active.
+
+- **Pause principale** : interrupteur activé et désactivé par le joueur (bouton ⏸ / ▶, raccourci barre Espace). Pendant cette pause, le joueur peut encore déployer et donner une commande.
+- **Pause d'interaction** : automatique pendant un glisser-déposer de déploiement (section 2) et pendant la sélection d'une commande (dès l'ouverture de la barre, section 5). Elle se termine d'elle-même à la fin ou à l'annulation du geste.
+- Pendant toute pause, **tous les compteurs sont gelés** : timers d'attaque, mouvements, cooldown des commandes, script de l'IA (section 7) et compte à rebours de 15 secondes (section 8.2). Les animations des unités sont gelées elles aussi.
+- Le cooldown étant gelé, **une seule commande est possible par pause principale**.
+- Le déploiement reste possible **plusieurs fois** pendant une pause principale, dans la limite du plafond de points de présence (section 2).
+- Après un déploiement ou une commande effectués pendant la pause principale, le jeu **reste en pause** jusqu'à ce que le joueur la relance.
 
 ## 6. Aptitudes
 
@@ -155,7 +171,7 @@ S'il n'y a aucun ennemi sur le terrain, la case est tirée parmi toutes les posi
 ### 8.2 Terrain vide avec réserves restantes
 - Si un camp n'a **aucune unité actuellement déployée** sur le terrain (toutes mortes ou en fuite) mais possède encore des **copies non utilisées en réserve**, ce camp reçoit un avertissement avec un **compte à rebours de 15 secondes**.
 - Pendant ce délai, le camp concerné doit redéployer au moins une unité pour continuer la bataille.
-- Si le compte à rebours expire sans redéploiement, ou si le joueur choisit explicitement d'abandonner, c'est une **défaite automatique** pour ce camp — mais ses unités survivantes en réserve ne sont **pas exterminées** (elles restent disponibles pour la suite, contrairement à une unité tuée au combat qui est perdue définitivement, voir section 4.4).
+- Si le compte à rebours expire sans redéploiement, ou si le joueur choisit explicitement d'abandonner (bouton Abandonner, disponible à tout moment de la bataille, tutoriel compris, avec confirmation), c'est une **défaite automatique** pour ce camp — mais ses unités survivantes en réserve ne sont **pas exterminées** (elles restent disponibles pour la suite, contrairement à une unité tuée au combat qui est perdue définitivement, voir section 4.4).
 - Cette règle s'applique symétriquement au joueur et à l'IA.
 
 ## 9. Roster

@@ -1,32 +1,24 @@
 import Phaser from 'phaser';
 import Grid from '../logic/grid.js';
-import { footprint } from '../logic/pathfinding.js';
-import {
-  createBattle, tickBattle, issuePlayerAttack, issuePlayerMoveTo, surrenderPlayer,
-} from '../logic/battle.js';
+import { createBattle, tickBattle } from '../logic/battle.js';
+import { isBattleTimeRunning } from '../logic/pause.js';
+import { clickField, cancelCommand, getClickableHighlights } from '../logic/commandSelection.js';
 import { ROSTERS } from '../data/rosters.js';
 import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
 import { BATTLEFIELD_OBSTACLES } from '../data/battlefield.js';
-import { CELL_SIZE, cellCenter } from '../renderConstants.js';
-import { interactionState, exitCommandMode } from '../state/interactionState.js';
+import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
+import { CELL_SIZE, cellCenter, healthBarColor } from '../renderConstants.js';
+import { interactionState } from '../state/interactionState.js';
 
 // Quadrillage de debug : repère de case utile en dev, pas pour le joueur. Passer à true pour
 // le réafficher pendant qu'on travaille sur le placement des obstacles/scripts par exemple.
 const DEBUG_SHOW_GRID = false;
 
-// Espèce -> clé d'asset chargée dans preload(). Une espèce sans entrée ici serait dessinée
-// comme un simple cercle coloré (voir PLACEHOLDER_COLORS) — plus aucune pour l'instant, tous
-// les sprites du roster v1 sont fournis.
-const SPRITE_KEYS = {
-  'Lambton Worm': 'lambton-worm',
-  'Fafnir the Cursed One': 'fafnir',
-  'New-reborn Skeleton': 'new-reborn-skeleton',
-  'Athos the Lord of Pain': 'athos',
-  Amphiptère: 'ampiptere',
-  'Necromant Initiate': 'necromant',
-};
-
-const PLACEHOLDER_COLORS = {};
+// Signaux de pause (ui-battle-screen-decisions.md 3) : saturation appliquée au terrain via un
+// FX ColorMatrix (-1 = niveaux de gris). Complète pendant la pause principale, partielle
+// pendant une pause d'interaction ; ce qui est cliquable garde toujours ses couleurs.
+const FULL_DESATURATION = -1;
+const PARTIAL_DESATURATION = -0.7;
 
 // Couleur du missile d'attaque à distance, par faction (voir fireProjectile).
 const PROJECTILE_COLORS = {
@@ -34,16 +26,10 @@ const PROJECTILE_COLORS = {
   undead: 0x7dffc8, // vert menthe
 };
 
-function healthBarColor(ratio) {
-  if (ratio > 0.5) return 0x2ecc71;
-  if (ratio > 0.25) return 0xf1c40f;
-  return 0xe74c3c;
-}
-
 // Cette Scene gère exclusivement le champ de bataille (technical.md 2.2) : grille, sprites,
-// animations, clics sur le terrain (sélection/attaque/déplacement une fois le mode "Commandes"
-// activé). Le déploiement (glisser-déposer) et le panneau de commandes vivent dans la sidebar
-// React (src/ui/) ; le choix de faction et l'écran de résultat vivent dans des écrans React
+// animations, clics sur le terrain pendant la sélection d'une commande, signaux visuels de
+// pause. Le déploiement (glisser-déposer) et la barre de commandes vivent dans la tour de
+// commandement React (src/ui/) ; le choix de faction et l'écran de résultat vivent dans des écrans React
 // séparés (src/screens/, technical.md 5) — cette Scene est recréée par BattleScreen.jsx à
 // chaque entrée dans l'écran de bataille, faction déjà connue (voir `init`). Les deux couches
 // ne communiquent qu'à travers `interactionState` et l'objet `battle` qu'il expose.
@@ -59,12 +45,7 @@ export default class BattleScene extends Phaser.Scene {
 
   preload() {
     this.load.image('battlefield', 'backgrounds/battlefield-01.png');
-    this.load.image('fafnir', 'sprites/fafnir.png');
-    this.load.image('athos', 'sprites/athos.png');
-    this.load.image('lambton-worm', 'sprites/lambton-worm.png');
-    this.load.image('new-reborn-skeleton', 'sprites/new-reborn-skeleton.png');
-    this.load.image('ampiptere', 'sprites/ampiptere.png');
-    this.load.image('necromant', 'sprites/necromant.png');
+    for (const { key } of Object.values(SPECIES_SPRITES)) this.load.image(key, spritePath(key));
     this.load.image('rocks', 'sprites/rocks.png');
   }
 
@@ -74,7 +55,12 @@ export default class BattleScene extends Phaser.Scene {
     this.width = grid.width * CELL_SIZE;
     this.height = grid.height * CELL_SIZE;
 
-    this.add.image(0, 0, 'battlefield').setOrigin(0, 0).setDisplaySize(this.width, this.height);
+    this.background = this.add.image(0, 0, 'battlefield').setOrigin(0, 0).setDisplaySize(this.width, this.height);
+    this.backgroundFx = this.background.preFX?.addColorMatrix();
+    // Copie non filtrée du background, rognée sur la zone cliquable pendant une interaction
+    // (voir applyPauseColors) : c'est elle qui "reste en couleur" au-dessus du terrain désaturé.
+    this.colorBackground = this.add.image(0, 0, 'battlefield').setOrigin(0, 0)
+      .setDisplaySize(this.width, this.height).setVisible(false);
     this.drawGridLines(grid);
     this.drawObstacles(BATTLEFIELD_OBSTACLES);
 
@@ -95,11 +81,12 @@ export default class BattleScene extends Phaser.Scene {
 
   // rules.md 1 : obstacles infranchissables — un bloc 2x2 est dessiné comme un seul gros rocher.
   drawObstacles(obstacles) {
-    for (const { x, y, size = 1 } of obstacles) {
+    this.obstacleViews = obstacles.map(({ x, y, size = 1 }) => {
       const center = cellCenter(x, y, size);
-      this.add.image(center.x, center.y, 'rocks')
+      const image = this.add.image(center.x, center.y, 'rocks')
         .setDisplaySize(CELL_SIZE * size * 0.95, CELL_SIZE * size * 0.95);
-    }
+      return { x, y, fx: image.preFX?.addColorMatrix() };
+    });
   }
 
   // rules.md 9 : le choix de faction lui-même vit maintenant dans FactionChoiceScreen (React,
@@ -111,16 +98,12 @@ export default class BattleScene extends Phaser.Scene {
 
     this.battle = createBattle(this.grid, playerRoster, enemyRoster, enemyScript);
 
-    // Publie l'état pour la sidebar React (technical.md 2.2) : c'est le seul canal de
+    // Publie l'état pour la tour de commandement React (technical.md 2.2) : c'est le seul canal de
     // communication entre les deux couches, aucune ne référence les objets de l'autre.
     interactionState.battle = this.battle;
-    interactionState.paused = false;
-    interactionState.deploymentDragActive = false;
-    interactionState.commandModeActive = false;
-    interactionState.selectedUnit = null;
 
     this.input.mouse.disableContextMenu();
-    this.input.on('pointerdown', (pointer, currentlyOver) => this.handlePointerDown(pointer, currentlyOver));
+    this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
 
     this.createDeploymentZoneFrame();
     this.createSelectionIndicator();
@@ -128,7 +111,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // rules.md 2 : cadre autour de la moitié gauche du terrain (zone de déploiement du joueur,
-  // voir isValidDeploymentPosition), visible uniquement pendant un glisser depuis la sidebar.
+  // voir isValidDeploymentPosition), visible uniquement pendant un glisser depuis la tour.
   createDeploymentZoneFrame() {
     const zoneWidth = Math.floor(this.grid.width / 2) * CELL_SIZE;
     this.deploymentZoneFrame = this.add.rectangle(0, 0, zoneWidth, this.height, 0x3fa9f5, 0.12)
@@ -138,25 +121,13 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // -- Fin de bataille (rules.md 8) --------------------------------------------------------
-  // Le compte à rebours et le bouton d'abandon restent ici pour l'instant (ils concernent une
-  // bataille encore EN COURS) ; seul l'écran de résultat final a été extrait vers React.
+  // Le compte à rebours reste ici pour l'instant (son affichage définitif est à concevoir) ;
+  // l'abandon est dans la tour React, l'écran de résultat final dans des écrans React.
 
   createCountdownBanner() {
     this.countdownText = this.add.text(this.width / 2, 16, '', {
       fontSize: '15px', color: '#ffcc00', backgroundColor: '#000000', padding: { x: 10, y: 6 },
     }).setOrigin(0.5, 0).setVisible(false);
-
-    this.surrenderButton = this.add.text(this.width / 2, 52, 'Abandonner', {
-      fontSize: '13px', color: '#ffffff', backgroundColor: '#7a1f1f', padding: { x: 8, y: 6 },
-    })
-      .setOrigin(0.5, 0)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => {
-        if (this.battle.outcome === 'ongoing' && this.battle.playerEndState.countdownRemaining !== null) {
-          surrenderPlayer(this.battle);
-        }
-      })
-      .setVisible(false);
   }
 
   updateCountdownBanner() {
@@ -168,14 +139,11 @@ export default class BattleScene extends Phaser.Scene {
         `⚠ Redéploie une unité avant ${playerCountdown.toFixed(1)}s, ou défaite automatique !`,
       );
       this.countdownText.setVisible(true);
-      this.surrenderButton.setVisible(true);
     } else if (enemyCountdown !== null) {
       this.countdownText.setText(`L'IA doit redéployer avant ${enemyCountdown.toFixed(1)}s...`);
       this.countdownText.setVisible(true);
-      this.surrenderButton.setVisible(false);
     } else {
       this.countdownText.setVisible(false);
-      this.surrenderButton.setVisible(false);
     }
   }
 
@@ -185,7 +153,6 @@ export default class BattleScene extends Phaser.Scene {
   // que `battle.outcome` change, cette Scene n'a donc plus qu'à figer son propre affichage.
   hideBattleUi() {
     this.countdownText.setVisible(false);
-    this.surrenderButton.setVisible(false);
     this.selectionIndicator.setVisible(false);
   }
 
@@ -239,14 +206,11 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  // Un sprite (Image) se teinte avec setTint/clearTint ; un placeholder (Arc) n'a pas cette
-  // méthode, on bascule temporairement sa couleur de remplissage à la place.
   flashUnit(unit, color) {
     const view = this.unitViews.get(unit.id);
     if (!view) return;
-    const { visual, isSprite } = view;
-    const originalFill = visual.fillColor;
-    if (isSprite) visual.setTint(color); else visual.fillColor = color;
+    const { visual } = view;
+    visual.setTint(color);
 
     this.tweens.add({
       targets: visual,
@@ -256,7 +220,7 @@ export default class BattleScene extends Phaser.Scene {
       repeat: 2,
       onComplete: () => {
         visual.setAlpha(1);
-        if (isSprite) visual.clearTint(); else visual.fillColor = originalFill;
+        visual.clearTint();
       },
     });
   }
@@ -282,9 +246,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // -- Sélection et input sur le terrain (rules.md 5) --------------------------------------
-  // Le mode "Commandes" est activé/désactivé par la sidebar React (interactionState) ; cette
-  // Scene se contente de réagir aux clics sur le terrain tant que ce mode est actif : cliquer
-  // une unité du joueur la sélectionne, cliquer un ennemi/une case donne la commande.
+  // La barre de commandes est ouverte par la tour React ; tant qu'elle l'est, chaque clic sur
+  // le terrain est transmis à commandSelection.js, qui décide de l'étape (unité, cible, ordre
+  // déduit). Clic droit : annule la commande en cours.
 
   createSelectionIndicator() {
     this.selectionIndicator = this.add.rectangle(0, 0, CELL_SIZE, CELL_SIZE, 0xffff00, 0)
@@ -294,70 +258,72 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updateSelectionIndicator() {
-    const selected = interactionState.selectedUnit;
-    if (selected && !selected.isOnField) interactionState.selectedUnit = null;
-    if (!interactionState.selectedUnit) {
+    const unit = this.battle.commandSelection?.unit;
+    if (!unit?.isOnField) {
       this.selectionIndicator.setVisible(false);
       return;
     }
-    const unit = interactionState.selectedUnit;
     const size = unit.size * CELL_SIZE;
     this.selectionIndicator.setSize(size, size);
     this.selectionIndicator.setPosition(unit.x * CELL_SIZE, unit.y * CELL_SIZE);
     this.selectionIndicator.setVisible(true);
   }
 
-  unitAt(gx, gy) {
-    return this.battle.units.find(
-      (unit) => unit.isOnField && footprint(unit.x, unit.y, unit.size).some((c) => c.x === gx && c.y === gy),
-    );
+  handlePointerDown(pointer) {
+    if (this.battle.outcome !== 'ongoing') return; // bataille terminée : plus aucune interaction
+    if (pointer.rightButtonDown()) {
+      cancelCommand(this.battle);
+      return;
+    }
+    clickField(this.battle, Math.floor(pointer.x / CELL_SIZE), Math.floor(pointer.y / CELL_SIZE));
   }
 
-  handlePointerDown(pointer, currentlyOver) {
-    if (this.battle.outcome !== 'ongoing') return; // bataille terminée : plus aucune interaction
-    // Un clic sur un bouton du HUD (ex : "Abandonner") n'est pas un clic sur le terrain.
-    if (currentlyOver.includes(this.surrenderButton)) return;
+  // -- Signaux visuels de pause (ui-battle-screen-decisions.md 3) ---------------------------
+  // Chaque élément du terrain porte son propre FX ColorMatrix : terrain désaturé, sauf ce qui
+  // est cliquable (getClickableHighlights). Pas de calque opaque : tout reste visible et
+  // cliquable. Sans WebGL (fallback Canvas), preFX n'existe pas et le signal est absent.
 
-    if (pointer.rightButtonDown()) {
-      // Annule seulement le mode "Commandes" : sans ce garde-fou, un clic droit pendant un
-      // glisser de déploiement relancerait le temps (exitCommandMode lève la pause).
-      if (interactionState.commandModeActive) exitCommandMode();
-      return;
+  applyPauseColors() {
+    const { main, interaction } = this.battle.pause;
+    let level = 0;
+    if (main) level = FULL_DESATURATION;
+    else if (interaction) level = PARTIAL_DESATURATION;
+
+    const { zone, unitIds } = getClickableHighlights(this.battle);
+    const inZone = (x, y) => zone !== null
+      && x >= zone.x && y >= zone.y && x < zone.x + zone.width && y < zone.y + zone.height;
+
+    this.backgroundFx?.saturate(level);
+    this.colorBackground.setVisible(level !== 0 && zone !== null);
+    if (zone) {
+      const scale = this.colorBackground.frame.width / this.width; // px de texture par px affiché
+      this.colorBackground.setCrop(
+        zone.x * CELL_SIZE * scale,
+        zone.y * CELL_SIZE * scale,
+        zone.width * CELL_SIZE * scale,
+        zone.height * CELL_SIZE * scale,
+      );
     }
-
-    if (!interactionState.commandModeActive) return; // hors du mode "Commandes", le terrain ignore le clic
-
-    const gx = Math.floor(pointer.x / CELL_SIZE);
-    const gy = Math.floor(pointer.y / CELL_SIZE);
-    const clicked = this.unitAt(gx, gy);
-
-    if (clicked && clicked.faction === 'player') {
-      interactionState.selectedUnit = clicked === interactionState.selectedUnit ? null : clicked;
-      return;
-    }
-
-    if (!interactionState.selectedUnit) return;
-
-    if (clicked && clicked.faction === 'enemy') {
-      issuePlayerAttack(this.battle, interactionState.selectedUnit, clicked);
-      exitCommandMode(); // une seule commande par activation
-    } else if (!clicked) {
-      issuePlayerMoveTo(this.battle, interactionState.selectedUnit, gx, gy);
-      exitCommandMode();
-    }
+    for (const obstacle of this.obstacleViews) obstacle.fx?.saturate(inZone(obstacle.x, obstacle.y) ? 0 : level);
+    for (const [id, view] of this.unitViews) view.fx?.saturate(unitIds.has(id) ? 0 : level);
   }
 
   // -- Boucle par frame ---------------------------------------------------------------------
 
   update(time, deltaMs) {
-    if (!interactionState.paused && this.battle.outcome === 'ongoing') {
+    // Pendant toute pause (rules.md 5.2), la logique ne tick plus et les animations (tweens
+    // de déplacement, missiles, textes flottants) sont gelées avec elle.
+    const running = isBattleTimeRunning(this.battle.pause) && this.battle.outcome === 'ongoing';
+    this.tweens.paused = !running;
+    if (running) {
       tickBattle(this.battle, deltaMs / 1000);
       this.processAbilityEvents();
     }
 
     this.syncViews();
     this.updateSelectionIndicator();
-    this.deploymentZoneFrame.setVisible(interactionState.deploymentDragActive);
+    this.applyPauseColors();
+    this.deploymentZoneFrame.setVisible(this.battle.pause.interaction === 'deploy');
 
     if (this.battle.outcome === 'ongoing') {
       this.updateCountdownBanner();
@@ -391,10 +357,12 @@ export default class BattleScene extends Phaser.Scene {
     const container = this.add.container(0, 0);
     const footprintSize = unit.size * CELL_SIZE;
 
-    const spriteKey = SPRITE_KEYS[unit.species.name];
-    const visual = spriteKey
-      ? this.add.image(0, 0, spriteKey).setDisplaySize(footprintSize * 0.9, footprintSize * 0.9)
-      : this.add.circle(0, 0, footprintSize * 0.4, PLACEHOLDER_COLORS[unit.species.name] ?? 0xffffff);
+    // Le joueur attaque vers la droite, l'IA vers la gauche : on retourne le dessin si besoin.
+    const { key, facing } = SPECIES_SPRITES[unit.species.name];
+    const attackDirection = unit.faction === 'player' ? 'right' : 'left';
+    const visual = this.add.image(0, 0, key)
+      .setDisplaySize(footprintSize * 0.9, footprintSize * 0.9)
+      .setFlipX(facing !== null && facing !== attackDirection);
     container.add(visual);
 
     const barWidth = footprintSize * 0.8;
@@ -413,7 +381,7 @@ export default class BattleScene extends Phaser.Scene {
     container.add(paralyzedBadge);
 
     const view = {
-      container, barFill, barWidth, paralyzedBadge, visual, isSprite: !!spriteKey,
+      container, barFill, barWidth, paralyzedBadge, visual, fx: visual.preFX?.addColorMatrix(),
       lastCellX: unit.x, lastCellY: unit.y, moveTween: null,
     };
     const center = cellCenter(unit.x, unit.y, unit.size);

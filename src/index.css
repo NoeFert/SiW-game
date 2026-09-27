@@ -8,6 +8,8 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+    --color-faction-wyrms: var(--faction-wyrms);
+    --color-faction-undead: var(--faction-undead);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,6 +51,9 @@
 }
 
 :root {
+    /* Couleur principale de chaque faction (jauge de présence, ui-battle-screen-decisions.md 2.1). */
+    --faction-wyrms: oklch(0.8 0.15 85); /* doré */
+    --faction-undead: oklch(0.86 0.13 165); /* menthe */
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);

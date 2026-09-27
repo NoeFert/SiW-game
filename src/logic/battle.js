@@ -7,11 +7,15 @@ import {
 import {
   createFactionState, updateFactionEndState, evaluateBattleOutcome, surrender,
 } from './battleEnd.js';
+import {
+  createPauseState, isBattleTimeRunning, startInteraction, endInteraction, canStartDeploymentDuringPause,
+  recordPlayerAction,
+} from './pause.js';
 
 // Assemble déploiement (rules.md 2, 7), commandes (5, consommées par resolveCombatTick),
-// résolution de combat (4, 6) et fin de bataille (8) en une seule boucle par tick. Aucune
-// décision d'IA ici : le script dit quoi/quand/où (7), resolveCombatTick fait le reste,
-// identique pour joueur et IA — c'est tout le principe de cette architecture par couches.
+// pauses (5.2), résolution de combat (4, 6) et fin de bataille (8) en une seule boucle par
+// tick. Aucune décision d'IA ici : le script dit quoi/quand/où (7), resolveCombatTick fait le
+// reste, identique pour joueur et IA — c'est tout le principe de cette architecture par couches.
 // `rng` : source d'aléa du choix de case de l'IA (rules.md 7.2), injectable en test.
 export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng = Math.random) {
   return {
@@ -20,6 +24,8 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
     units: [],
     elapsedSeconds: 0,
     outcome: 'ongoing',
+    pause: createPauseState(), // rules.md 5.2, voir pause.js
+    commandSelection: null, // barre de commandes ouverte, voir commandSelection.js
     playerCommandState: createCommandState(),
     aiScriptState: createAiScriptState(),
     enemyScript,
@@ -32,23 +38,42 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
   };
 }
 
-// rules.md 8.2, dernière clause : abandon explicite du joueur pendant le compte à rebours.
+// rules.md 8.2, dernière clause : abandon explicite du joueur, possible à tout moment. Le
+// verdict est posé tout de suite : pendant une pause, aucun tick ne viendrait le calculer.
 export function surrenderPlayer(battle) {
+  if (battle.outcome !== 'ongoing') return;
   surrender(battle.playerEndState);
+  battle.outcome = evaluateOutcome(battle);
+}
+
+// rules.md 5.2 : un drag de déploiement déclenche la pause d'interaction. Refusé pendant la
+// sélection d'une commande (les deux gestes sont exclusifs).
+export function startDeploymentDrag(battle) {
+  if (battle.outcome !== 'ongoing' || battle.commandSelection || !canStartDeploymentDuringPause(battle.pause)) {
+    return false;
+  }
+  startInteraction(battle.pause, 'deploy');
+  return true;
+}
+
+export function endDeploymentDrag(battle) {
+  if (battle.pause.interaction === 'deploy') endInteraction(battle.pause);
 }
 
 // rules.md 1/2 : déploiement du joueur — position dans sa moitié du terrain et case libre,
 // plafond de points, copies, limite du [Légendaire]. `copyChoice` ('fresh', des PV précis, ou
-// omis pour le choix par défaut) laisse la sidebar garantir la copie exacte que le joueur a
-// glissée — voir deployment.js. Le vrai contrôle du temps (pause tactique) viendra de Phaser ;
-// on ne fait que relayer le signal (`result.timeControl`) renvoyé par deployment.js.
+// omis pour le choix par défaut) laisse la tour garantir la copie exacte que le joueur a
+// glissée — voir deployment.js. La pause tactique elle-même est gérée par startDeploymentDrag.
 export function deployPlayerUnit(battle, species, x, y, copyChoice) {
   const unitsOnField = battle.units.filter((u) => u.isOnField);
   if (!isValidDeploymentPosition(battle.grid, 'player', species, x, y, unitsOnField)) {
     return { success: false, reason: 'invalidPosition' };
   }
   const result = deployUnit(battle.playerDeployment, 'player', species, x, y, unitsOnField, copyChoice);
-  if (result.success) battle.units.push(result.unit);
+  if (result.success) {
+    battle.units.push(result.unit);
+    recordPlayerAction(battle.pause, 'deploy');
+  }
   return result;
 }
 
@@ -96,26 +121,31 @@ function processDepartures(battle) {
   }
 }
 
+function unitsOnFieldOf(battle, faction) {
+  return battle.units.filter((u) => u.faction === faction && u.isOnField);
+}
+
+function evaluateOutcome(battle) {
+  return evaluateBattleOutcome(
+    { factionState: battle.playerEndState, unitsOnField: unitsOnFieldOf(battle, 'player'), deploymentState: battle.playerDeployment },
+    { factionState: battle.enemyEndState, unitsOnField: unitsOnFieldOf(battle, 'enemy'), deploymentState: battle.enemyDeployment },
+  );
+}
+
 // Fait avancer la bataille de `deltaSeconds` et renvoie le verdict à jour
-// ('ongoing' | 'playerVictory' | 'enemyVictory' | 'draw').
+// ('ongoing' | 'playerVictory' | 'enemyVictory' | 'draw'). Pendant une pause (rules.md 5.2),
+// rien n'avance : tous les compteurs restent gelés.
 export function tickBattle(battle, deltaSeconds) {
-  if (battle.outcome !== 'ongoing') return battle.outcome;
+  if (battle.outcome !== 'ongoing' || !isBattleTimeRunning(battle.pause)) return battle.outcome;
 
   battle.elapsedSeconds += deltaSeconds;
   deployScriptedEnemies(battle);
   battle.abilityEvents = resolveCombatTick(battle.units, battle.grid, deltaSeconds);
   processDepartures(battle);
 
-  const playerUnitsOnField = battle.units.filter((u) => u.faction === 'player' && u.isOnField);
-  const enemyUnitsOnField = battle.units.filter((u) => u.faction === 'enemy' && u.isOnField);
+  updateFactionEndState(battle.playerEndState, unitsOnFieldOf(battle, 'player'), battle.playerDeployment, deltaSeconds);
+  updateFactionEndState(battle.enemyEndState, unitsOnFieldOf(battle, 'enemy'), battle.enemyDeployment, deltaSeconds);
 
-  updateFactionEndState(battle.playerEndState, playerUnitsOnField, battle.playerDeployment, deltaSeconds);
-  updateFactionEndState(battle.enemyEndState, enemyUnitsOnField, battle.enemyDeployment, deltaSeconds);
-
-  battle.outcome = evaluateBattleOutcome(
-    { factionState: battle.playerEndState, unitsOnField: playerUnitsOnField, deploymentState: battle.playerDeployment },
-    { factionState: battle.enemyEndState, unitsOnField: enemyUnitsOnField, deploymentState: battle.enemyDeployment },
-  );
-
+  battle.outcome = evaluateOutcome(battle);
   return battle.outcome;
 }

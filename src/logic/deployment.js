@@ -32,6 +32,43 @@ export function getReserve(state, species) {
   };
 }
 
+// Lignes de la tour de commandement (ui-battle-screen-decisions.md 2.2) : uniquement les
+// copies en réserve (ni mortes, ni sur le terrain). Deux copies partagent une ligne seulement
+// si elles sont strictement identiques. En v1, nom, stats et keywords viennent de l'espèce :
+// l'identité se résume donc à (espèce, PV actuels). Les traits (v2+) s'ajouteront à cette clé.
+// Ordre : roster, puis copies intactes, puis blessés (PV décroissants) juste sous leur groupe.
+// `deployable` est faux si le coût dépasse le budget restant (ou si le [Légendaire] est déjà
+// déployé). `copyChoice` (= les PV de la ligne) est à transmettre à deployUnit.
+export function getTowerRows(state, faction, unitsOnField) {
+  const remainingBudget = PRESENCE_CAP - getPresenceUsed(faction, unitsOnField);
+  const rows = [];
+  for (const [species, speciesState] of state.bySpecies) {
+    const legendaryOnField = species.keywords.includes('legendary')
+      && unitsOnField.some((u) => u.faction === faction && u.species === species);
+    const addRow = (hp, count) => rows.push({
+      species,
+      copyChoice: hp,
+      count,
+      hp,
+      maxHp: species.maxHp,
+      damage: species.damage,
+      cost: species.cost,
+      keywords: species.keywords,
+      wounded: hp < species.maxHp,
+      deployable: species.cost <= remainingBudget && !legendaryOnField,
+    });
+
+    // Une copie revenue de fuite sans blessure est identique à une fraîche : même ligne.
+    const countByHp = new Map([[species.maxHp, speciesState.freshRemaining]]);
+    for (const { hp } of speciesState.returning) countByHp.set(hp, (countByHp.get(hp) ?? 0) + 1);
+    [...countByHp]
+      .filter(([, count]) => count > 0)
+      .sort(([a], [b]) => b - a) // PV max d'abord, puis les blessés sous leur groupe
+      .forEach(([hp, count]) => addRow(hp, count));
+  }
+  return rows;
+}
+
 // rules.md 1/2 : une position de déploiement doit rester dans les limites du terrain, sur la
 // moitié du camp concerné, hors obstacle, et libre de toute autre unité déjà présente.
 // Séparée de `deployUnit` (qui ne connaît pas la grille) pour ne pas casser sa signature.
@@ -48,7 +85,8 @@ export function isValidDeploymentPosition(grid, faction, species, x, y, unitsOnF
 // Prélève une copie précise dans la réserve selon `copyChoice` :
 // - 'fresh' : exige une copie fraîche (jamais déployée), refuse même si une copie revenue de
 //   fuite existe.
-// - un nombre : exige la copie revenue de fuite ayant EXACTEMENT ces PV.
+// - un nombre : exige une copie ayant EXACTEMENT ces PV — une revenue de fuite, ou une fraîche
+//   si ces PV sont les PV max (les deux sont alors strictement identiques, voir getTowerRows).
 // - omis/null : comportement historique — revenue de fuite en priorité, puis fraîche.
 // Sépararé de `deployUnit` pour rester lisible ; ne fait que muter `speciesState` ou renvoyer
 // null si la copie demandée n'est pas disponible.
@@ -61,8 +99,8 @@ function takeCopy(speciesState, species, copyChoice) {
 
   if (typeof copyChoice === 'number') {
     const index = speciesState.returning.findIndex((entry) => entry.hp === copyChoice);
-    if (index === -1) return null;
-    return speciesState.returning.splice(index, 1)[0].hp;
+    if (index !== -1) return speciesState.returning.splice(index, 1)[0].hp;
+    return copyChoice === species.maxHp ? takeCopy(speciesState, species, 'fresh') : null;
   }
 
   if (speciesState.returning.length > 0) return speciesState.returning.shift().hp;
@@ -76,7 +114,7 @@ function takeCopy(speciesState, species, copyChoice) {
 // rules.md 2 : dépose une unité pour `faction` — plafond de 150 points de présence vivant
 // (dérivé de `unitsOnField`, donc se libère automatiquement à la mort/fuite d'une unité),
 // un seul [Légendaire] simultané par camp, et des copies limitées par espèce. `copyChoice`
-// permet à l'appelant (la sidebar de déploiement) de garantir la copie exacte affichée —
+// permet à l'appelant (la tour de commandement) de garantir la copie exacte affichée —
 // fraîche ('fresh') ou une copie revenue de fuite à des PV précis — plutôt que de laisser le
 // choix par défaut (revenue de fuite en priorité, voir `takeCopy`). Ne vérifie pas la position
 // (voir `isValidDeploymentPosition`) ni le temps : signale juste l'intention à l'appelant

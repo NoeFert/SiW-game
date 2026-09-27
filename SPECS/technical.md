@@ -34,10 +34,12 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 ### 2.2 Répartition Phaser / React
 
 - **Phaser gère exclusivement le champ de bataille** : le canevas de jeu (grille, sprites d'unités, background, animations de combat, barres de vie au-dessus des unités, feedback visuel des aptitudes)
-- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la sidebar de déploiement (liste des unités disponibles, coût, copies restantes, budget de points de présence), le bouton "Commandes" et son panneau de sélection, l'écran de choix de faction, les écrans de fin de bataille (récompense, défaite), l'écran d'accueil, l'écran de gestion de civilisation, le compte à rebours de 15 secondes, l'indicateur de cooldown des commandes
-- Le canevas Phaser et l'arbre React vivent côte à côte dans la page quand la bataille est affichée (la sidebar est **à côté** du champ de bataille, jamais superposée) ; aucun des deux ne manipule directement le DOM ou les objets de l'autre — ils communiquent uniquement via l'état partagé exposé par `battle.js`
+- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la **tour de commandement** de l'écran de bataille (voir ci-dessous), l'écran de choix de faction, les écrans de fin de bataille (récompense, défaite), l'écran d'accueil, l'écran de gestion de civilisation, le compte à rebours de 15 secondes
+- **Tour de commandement** (`src/ui/CommandTower.jsx`, détail dans `SPECS/ui-battle-screen-decisions.md`) : colonne **à gauche** du canevas, collée à la zone de déploiement du joueur. De haut en bas : bouton **Pause** (interrupteur ⏸ / ▶ de la pause principale, coin haut-droit, raccourci Espace), bouton **Abandonner** (emplacement provisoire à côté de Pause, avec boîte de confirmation), jauge de présence, liste « Vos unités » (seule zone qui défile, lignes regroupées par unités strictement identiques, drag & drop vers le terrain), **barre de commandes** fixée en bas (bouton « Commandes » avec cooldown, qui se déroule en [X] + icônes Aller / Attaquer / Fuir)
+- Le canevas Phaser et l'arbre React vivent côte à côte dans la page quand la bataille est affichée (la tour est **à côté** du champ de bataille, jamais superposée — seuls les tooltips, la confirmation d'abandon et le futur overlay tutoriel peuvent passer par-dessus) ; aucun des deux ne manipule directement le DOM ou les objets de l'autre — ils communiquent uniquement via l'état partagé exposé par `battle.js`. Toutes les règles d'interaction (pauses, déroulé d'une commande, contenu de la liste d'unités) vivent dans `src/logic/` (`pause.js`, `commandSelection.js`, `deployment.js`) ; React et Phaser ne font que lire l'état et transmettre les actions du joueur
+- **Signaux de pause sur le terrain** (Phaser) : désaturation complète pendant la pause principale, partielle pendant une pause d'interaction ; ce qui est cliquable (zone de déploiement, unités du joueur, ennemis ou cases ciblables) reste en couleur
 - Les autres écrans (choix de faction, récompense, défaite, accueil, gestion de civilisation — voir section 5) sont du **React pur, sans Phaser** : le canevas de jeu n'existe que pendant l'écran de bataille
-- Largeur de la sidebar : laissée à l'appréciation de l'implémentation, à ajuster si besoin une fois affichée
+- Largeur de la tour : laissée à l'appréciation de l'implémentation, à ajuster si besoin une fois affichée
 
 ### 2.3 Structure de dossiers indicative
 
@@ -64,8 +66,9 @@ src/
       DefeatScreen.jsx
       HomeScreen.jsx
       CivilizationScreen.jsx
-    DeploymentSidebar.jsx
-    CommandButton.jsx
+    CommandTower.jsx
+    DeploymentList.jsx
+    CommandBar.jsx
     components/    # Composants shadcn/8bitcn générés (ex: button.jsx)
   App.jsx          # État de navigation entre écrans (voir section 5)
 assets/
@@ -108,7 +111,7 @@ tests/
 
 - **Le jeu s'adapte à la taille de la fenêtre du navigateur, desktop uniquement** — pas de layout mobile/tactile à prévoir pour la v1.
 - **Le canevas Phaser garde toujours son ratio d'aspect (24:14)** : il ne s'étire jamais de façon à déformer la grille ou les sprites. Utiliser le Scale Manager de Phaser en mode `Phaser.Scale.FIT` avec un parent redimensionnable (`Phaser.Scale.RESIZE` sur le conteneur, ou écoute de `resize` window + `scale.resize()`), pour que le canevas grandisse ou rétrécisse en conservant ses proportions.
-- **La sidebar React s'adapte plus librement** autour du canevas (largeur en `%` ou `rem`, pas de ratio imposé), tant qu'elle reste entièrement visible à côté du terrain, jamais superposée ni coupée.
+- **La tour de commandement React s'adapte plus librement** autour du canevas (largeur en `%` ou `rem`, pas de ratio imposé), tant qu'elle reste entièrement visible à côté du terrain, jamais superposée ni coupée.
 - **Taille de fenêtre minimale** : définir une largeur/hauteur minimale raisonnable (ex : 1280×720) en dessous de laquelle le jeu n'essaie pas de rétrécir davantage (scroll ou simple troncature du surplus plutôt que des éléments illisibles) — pas de vraie réflexion "petit écran" nécessaire pour la v1, desktop uniquement.
 - Les positions de jeu (grille, coordonnées d'unités) restent exprimées dans le référentiel fixe de 1536×896 dans `src/logic/` — seule la couche Phaser convertit vers la taille d'affichage réelle au moment du rendu ; aucune règle de `rules.md` ne dépend de la résolution d'écran.
 
@@ -135,7 +138,7 @@ Le jeu v1 est composé de **six écrans distincts**. Un seul d'entre eux (l'écr
 ### 5.1 Liste des écrans
 
 1. **FactionChoiceScreen** — écran de choix de faction (Souveraine des Wyrms ou Souverain des Morts-Vivants). Affiché **une seule fois**, au tout début d'une partie (pas avant chaque bataille, même une fois que plusieurs batailles existeront en v2+).
-2. **BattleScreen** — l'écran de bataille actuel : canevas Phaser (champ de bataille) + sidebar React (déploiement, bouton "Commandes").
+2. **BattleScreen** — l'écran de bataille actuel : tour de commandement React à gauche (pause, abandon, déploiement, commandes) + canevas Phaser (champ de bataille) à droite.
 3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3) — le contenu réel des récompenses est hors scope v1 (`roadmap.md`).
 4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé). Sert aussi après un match nul (`rules.md` 8.1), avec le titre « Match nul » au lieu de « Défaite » : même suite, aucun vainqueur.
 5. **HomeScreen** — écran d'accueil. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Pour la v1, affiche une ligne de texte indiquant la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), plus un bouton vers `CivilizationScreen`.
