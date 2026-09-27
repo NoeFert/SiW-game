@@ -2,6 +2,7 @@ import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import {
   createBattle, deployPlayerUnit, tickBattle, startDeploymentDrag, endDeploymentDrag, surrenderPlayer,
+  startSurrenderConfirm, endSurrenderConfirm,
 } from '../../src/logic/battle.js';
 import { toggleMainPause, isBattleTimeRunning, PAUSE_DEFAULTS } from '../../src/logic/pause.js';
 import { openCommandBar, cancelCommand, chooseOrder, selectUnit } from '../../src/logic/commandSelection.js';
@@ -30,6 +31,7 @@ const PAUSES = {
   'pause principale': (battle) => toggleMainPause(battle.pause),
   'pause d\'interaction (drag de déploiement)': (battle) => startDeploymentDrag(battle),
   'pause d\'interaction (barre de commandes)': (battle) => openCommandBar(battle),
+  'pause d\'interaction (confirmation d\'abandon)': (battle) => startSurrenderConfirm(battle),
 };
 
 describe.each(Object.entries(PAUSES))('gel de tous les compteurs — %s (rules.md 5.2)', (_, pause) => {
@@ -81,6 +83,7 @@ describe.each(Object.entries(PAUSES))('gel de tous les compteurs — %s (rules.m
 describe.each([
   ['pause principale', PAUSES['pause principale']],
   ['drag de déploiement', PAUSES["pause d'interaction (drag de déploiement)"]],
+  ['confirmation d\'abandon', PAUSES["pause d'interaction (confirmation d'abandon)"]],
 ])('gel du cooldown des commandes — %s (rules.md 5.1)', (_, pause) => {
   test('le cooldown ne s\'écoule pas', () => {
     const battle = newBattle();
@@ -174,5 +177,32 @@ describe('abandon (rules.md 8.2)', () => {
 
     expect(battle.outcome).toBe('enemyVictory');
     expect(battle.playerDeployment.bySpecies.get(PLAYER_ROSTER.fighter).freshRemaining).toBe(4);
+  });
+});
+
+describe('confirmation d\'abandon (rules.md 5.2 / 8.2)', () => {
+  test('renoncer à abandonner relance le temps, sauf pendant la pause principale', () => {
+    const battle = newBattle();
+    startSurrenderConfirm(battle);
+    endSurrenderConfirm(battle);
+    tickBattle(battle, 1);
+    expect(battle.elapsedSeconds).toBe(1);
+
+    toggleMainPause(battle.pause);
+    startSurrenderConfirm(battle);
+    endSurrenderConfirm(battle);
+    expect(isBattleTimeRunning(battle.pause)).toBe(false);
+  });
+
+  test('ouvrir la confirmation annule la commande en cours, sans consommer le cooldown', () => {
+    const battle = newBattle();
+    openCommandBar(battle);
+
+    startSurrenderConfirm(battle);
+    endSurrenderConfirm(battle);
+
+    expect(battle.commandSelection).toBeNull();
+    expect(isBattleTimeRunning(battle.pause)).toBe(true);
+    expect(canIssueCommand(battle.playerCommandState, battle.elapsedSeconds)).toBe(true);
   });
 });

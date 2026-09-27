@@ -1,7 +1,7 @@
 // rules.md 5.2 : deux familles de pause, indépendantes et combinables.
 // - Pause principale : interrupteur manuel du joueur (bouton ⏸ / Espace).
 // - Pause d'interaction : automatique pendant un geste (drag de déploiement, sélection d'une
-//   commande), levée à la fin ou à l'annulation du geste.
+//   commande, confirmation d'abandon), levée à la fin ou à l'annulation du geste.
 // Le temps de bataille ne s'écoule que si aucune des deux n'est active. Comme tous les
 // compteurs (timers d'attaque, mouvements, cooldown, script IA, compte à rebours de 15 s)
 // dépendent du temps de bataille, `tickBattle` n'a qu'à ne rien faire pour tous les geler.
@@ -19,7 +19,7 @@ export const PAUSE_DEFAULTS = {
 };
 
 export function createPauseState() {
-  return { main: false, interaction: null, deploymentsThisMainPause: 0 }; // interaction : null | 'deploy' | 'command'
+  return { main: false, interaction: null, deploymentsThisMainPause: 0 }; // interaction : null | 'deploy' | 'command' | 'surrender'
 }
 
 export function isBattleTimeRunning(pause) {

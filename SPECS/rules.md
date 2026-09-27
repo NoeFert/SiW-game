@@ -89,7 +89,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s'écoule que si **aucune** n'est active.
 
 - **Pause principale** : interrupteur activé et désactivé par le joueur (bouton ⏸ / ▶, raccourci barre Espace). Pendant cette pause, le joueur peut encore déployer et donner une commande.
-- **Pause d'interaction** : automatique pendant un glisser-déposer de déploiement (section 2) et pendant la sélection d'une commande (dès l'ouverture de la barre, section 5). Elle se termine d'elle-même à la fin ou à l'annulation du geste.
+- **Pause d'interaction** : automatique pendant un glisser-déposer de déploiement (section 2), pendant la sélection d'une commande (dès l'ouverture de la barre, section 5) et pendant la confirmation d'abandon (section 8.2 ; une commande en cours de sélection est alors annulée). Elle se termine d'elle-même à la fin ou à l'annulation du geste.
 - Pendant toute pause, **tous les compteurs sont gelés** : timers d'attaque, mouvements, cooldown des commandes, script de l'IA (section 7) et compte à rebours de 15 secondes (section 8.2). Les animations des unités sont gelées elles aussi.
 - Le cooldown étant gelé, **une seule commande est possible par pause principale**.
 - Le déploiement reste possible **plusieurs fois** pendant une pause principale, dans la limite du plafond de points de présence (section 2).
@@ -128,7 +128,7 @@ Le même schéma de timing s'applique quelle que soit la faction jouée par l'IA
 - t=20s : déployer 1 Ver de Lambton
 - t=35s : déployer Fafnir
 
-Budget total : 150 points de présence.
+Coût total du script : 155 points de présence (10 + 25 + 10 + 110).
 
 **Si l'IA joue les Morts-Vivants :**
 - t=0s : déployer 1 New-reborn Skeleton
@@ -136,9 +136,9 @@ Budget total : 150 points de présence.
 - t=20s : déployer 1 New-reborn Skeleton
 - t=35s : déployer Athos
 
-Budget total : 150 points de présence.
+Coût total du script : 147 points de présence (6 + 25 + 6 + 110).
 
-Les deux budgets sont identiques à celui du joueur (150 points), pour une bataille équilibrée quel que soit le sens du choix de faction.
+Le coût total d'un script n'est pas un budget : ce qui limite l'IA, c'est le même **plafond simultané de 150 points** que le joueur (voir ci-dessous). Conséquence côté Wyrms : à t=35s, Fafnir (110) n'apparaît que si les unités IA encore sur le terrain totalisent 40 points ou moins — tant que les trois premières unités (45 points) sont en vie, il attend.
 
 **Plafond de présence :** l'IA est soumise au même plafond vivant de 150 points que le joueur (section 2) : les unités IA encore sur le terrain comptent, et une unité du script qui ferait dépasser le plafond **attend** qu'assez de points se libèrent (mort ou fuite d'une unité IA) ; les unités suivantes du script attendent derrière elle pour garder l'ordre.
 

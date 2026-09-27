@@ -2,7 +2,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/8bit/alert-dialog.jsx';
-import { surrenderPlayer } from '../logic/battle.js';
+import { surrenderPlayer, startSurrenderConfirm, endSurrenderConfirm } from '../logic/battle.js';
 import { TEXT } from './strings.js';
 
 // rules.md 8.2 : abandon = défaite, réserves conservées. Disponible en permanence, tutoriel
@@ -11,7 +11,7 @@ import { TEXT } from './strings.js';
 // encore tranché (ui-battle-screen-decisions.md 4).
 export default function SurrenderButton({ battle }) {
   return (
-    <AlertDialog>
+    <AlertDialog onOpenChange={(open) => (open ? startSurrenderConfirm(battle) : endSurrenderConfirm(battle))}>
       <AlertDialogTrigger>
         <button
           type="button"

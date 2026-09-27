@@ -42,8 +42,21 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
 // verdict est posé tout de suite : pendant une pause, aucun tick ne viendrait le calculer.
 export function surrenderPlayer(battle) {
   if (battle.outcome !== 'ongoing') return;
+  endSurrenderConfirm(battle);
   surrender(battle.playerEndState);
   battle.outcome = evaluateOutcome(battle);
+}
+
+// rules.md 5.2 : la boîte de confirmation d'abandon est une pause d'interaction — le joueur ne
+// perd rien pendant qu'il hésite. Une commande en cours de sélection est annulée (sans
+// consommer de cooldown) : les deux interactions ne se cumulent pas.
+export function startSurrenderConfirm(battle) {
+  battle.commandSelection = null;
+  startInteraction(battle.pause, 'surrender');
+}
+
+export function endSurrenderConfirm(battle) {
+  if (battle.pause.interaction === 'surrender') endInteraction(battle.pause);
 }
 
 // rules.md 5.2 : un drag de déploiement déclenche la pause d'interaction. Refusé pendant la

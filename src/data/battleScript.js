@@ -5,7 +5,7 @@ import { UNDEAD_ROSTER } from './undeadRoster.js';
 // scriptée en v1, script symétrique selon la faction jouée par l'IA. Pas de case ici : elle est
 // choisie au moment du déploiement selon la situation du terrain (rules.md 7.2, aiScript.js).
 
-// IA jouant les Wyrms — budget 150 points de présence (rules.md 7.1).
+// IA jouant les Wyrms — coût total 155, limité par le plafond simultané de 150 (rules.md 7.1).
 export const WYRMS_AI_SCRIPT = [
   { time: 0, species: WYRMS_ROSTER.lambtonWorm },
   { time: 8, species: WYRMS_ROSTER.amphiptere },
@@ -13,7 +13,7 @@ export const WYRMS_AI_SCRIPT = [
   { time: 35, species: WYRMS_ROSTER.fafnir },
 ];
 
-// IA jouant les Morts-Vivants — budget 150 points de présence (rules.md 7.1).
+// IA jouant les Morts-Vivants — coût total 147, sous le plafond simultané de 150 (rules.md 7.1).
 export const UNDEAD_AI_SCRIPT = [
   { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
   { time: 8, species: UNDEAD_ROSTER.necromantInitiate },

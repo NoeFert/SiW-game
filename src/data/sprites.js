@@ -4,7 +4,7 @@
 // joueur attaque vers la droite, l'IA vers la gauche (rules.md 2).
 export const SPECIES_SPRITES = {
   'Lambton Worm': { key: 'lambton-worm', facing: 'right' },
-  Amphiptère: { key: 'ampiptere', facing: 'left' },
+  Amphiptère: { key: 'ampiptere', facing: 'right' },
   'Fafnir the Cursed One': { key: 'fafnir', facing: 'right' },
   'New-reborn Skeleton': { key: 'new-reborn-skeleton', facing: 'left' },
   'Necromant Initiate': { key: 'necromant', facing: 'left' },
