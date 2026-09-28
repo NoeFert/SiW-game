@@ -28,9 +28,11 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 ## 3. Mouvement
 
 - Le déplacement est possible en 8 directions (y compris diagonale).
-- **Distances :** toutes les distances du jeu (portée de tir, ennemi le plus proche, longueur d'un trajet) se comptent en cases, et une case en diagonale vaut une case, comme une case droite.
+- **Diagonale et obstacles :** une unité ne coupe jamais le coin d'un obstacle — un pas en diagonale est interdit dès qu'**une des deux cases** du coin traversé est un obstacle (l'unité doit d'abord faire un pas droit pour le contourner). Les **unités**, elles, ne bloquent jamais la diagonale : on peut passer en diagonale entre deux unités qui ne se touchent que par un coin. Les unités [Vol] ne sont pas concernées (elles ignorent les obstacles, voir plus bas).
+- **Distances :** toutes les distances du jeu (portée de tir, ennemi le plus proche, longueur d'un trajet) se comptent en cases, et une case en diagonale vaut une case, comme une case droite. Pour une unité occupant 4 cases (2×2), la distance se mesure entre les **cases les plus proches** des deux unités — que ce soit pour la portée de tir, l'ennemi le plus proche ou l'arrêt à 2 cases d'Athos (section 4.5).
 - **Sans ennemi sur le terrain**, une unité sans commande reste sur place jusqu'à l'arrivée d'un ennemi.
 - Une unité se déplace vers l'ennemi le plus proche par défaut, en contournant les obstacles et les autres unités qui bloquent le passage.
+- **Égalité de distance :** si plusieurs ennemis sont à la même distance, l'unité choisit celui qui a **le moins de PV actuels**. En cas de nouvelle égalité, le premier déployé.
 - Chaque unité a sa propre vitesse de déplacement (voir `units.md` pour les valeurs du roster).
 - **Unités occupant 4 cases (2×2) :** se déplacent comme un bloc rigide — un déplacement n'est valide que si les 4 cases de destination sont toutes libres. Si le passage est trop étroit (couloir d'une seule case de large), l'unité attend ou contourne, exactement comme une unité normale face à un obstacle.
 - **Unités [Vol] :** ignorent les obstacles terrestres dans leur pathfinding — un obstacle qui bloquerait une unité au sol n'a aucun effet sur leur trajectoire. Cette règle ne s'applique qu'aux obstacles de terrain : les autres unités continuent de bloquer le passage normalement (deux unités ne peuvent jamais occuper la même case, voir section 1). Une unité [Vol] peut s'arrêter au-dessus d'un obstacle. Le déploiement, lui, se fait toujours sur une case libre, même pour une unité [Vol] (section 2).
@@ -58,6 +60,8 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 
 ### 4.5 Attaque à distance
 - Une unité à distance a une **portée de tir**, une valeur fixe propre à l'unité (voir `units.md` pour les valeurs du roster).
+- **Dégâts immédiats** : les dégâts d'un tir sont appliqués à l'instant du tir, comme une attaque au corps-à-corps (et soumis à la même résolution simultanée, section 4.1). Le projectile affiché est purement visuel.
+- **Pas de ligne de vue** : dans cette version, un tir atteint toute cible dans sa portée, même s'il y a entre les deux des obstacles ou d'autres unités (alliées ou ennemies). Une ligne de vue pourra être ajoutée dans une version future (hors scope v1).
 - Une attaque à distance **ne peut jamais se déclencher sur une cible adjacente** (case collée) — en dessous de sa portée minimale de 2 cases, une unité à distance ne peut pas tirer.
 - **Unité purement à distance (jamais de corps-à-corps)** : elle reste immobile et continue de tirer tant que sa cible reste dans sa portée de tir. Elle ne recule que si la cible devient adjacente (hors de portée par défaut) ; elle ne cherche pas activement à s'éloigner tant qu'elle reste à portée. Pour reculer, elle rejoint la case hors contact la plus proche en contournant si le recul direct est bloqué (bord, obstacle, autre unité). Si elle est complètement encerclée (aucune case hors contact atteignable), elle reste sur place **sans tirer** jusqu'à ce qu'un passage se libère.
 - **Unité purement à distance qui tire en avançant (ex : Athos)** : exception à la règle précédente — comme une unité hybride, elle **continue d'avancer** vers sa cible pendant qu'elle tire, mais elle **s'arrête à 2 cases** (sa portée minimale de tir) : elle n'entre jamais au contact, puisqu'elle ne peut pas combattre au corps-à-corps. Si la cible vient malgré tout se coller à elle, elle recule comme toute unité purement à distance.
@@ -79,10 +83,16 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
   - **Voie 2 (raccourci)** : cliquer directement une unité du joueur sans choisir d'ordre ; l'ordre est déduit de la cible (ennemi = Attaquer, case = Aller). Fuir n'est jamais déduit : il passe obligatoirement par la voie 1.
   - **Annulation** possible à n'importe quel stade : aucune commande n'est émise et le cooldown n'est pas consommé.
 - Les commandes sont **optionnelles** : une unité sans commande agit de façon autonome (se déplace vers l'ennemi le plus proche, attaque à portée).
-- **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage. Si **plusieurs ennemis** sont engagés au corps-à-corps sur elle, **chacun** porte sa dernière attaque, une seule fois (au moment où la fuite commence). La fuite vise la case de bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
+- **Priorité des commandes :** une unité n'a qu'une commande à la fois. La **dernière commande donnée remplace toujours la précédente**, quelle qu'elle soit (Aller, Attaquer ou Fuir).
+- **Commande Aller :** pendant le trajet, l'unité **ne combat pas** (ni attaque ni riposte), même si elle est frappée. Arrivée sur la case, la commande prend fin et l'unité reprend son comportement autonome.
+- **Commande Attaquer :**
+  - Elle l'emporte sur l'engagement (section 4.2) : une unité engagée au corps-à-corps quitte son combat pour aller vers la cible désignée.
+  - Une unité à distance avance jusqu'à avoir la cible à portée, puis tire selon ses règles habituelles (section 4.5).
+  - La commande prend fin quand la cible meurt ou fuit le terrain, ou quand une nouvelle commande (Aller ou Fuir) est donnée à l'unité. L'unité reprend alors son comportement autonome (ou exécute la nouvelle commande).
+- **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage. Si **plusieurs ennemis** sont engagés au corps-à-corps sur elle, **chacun** porte sa dernière attaque, une seule fois (au moment où la fuite commence). Cette dernière attaque est **gratuite** : elle ne modifie pas le rythme d'attaque de l'ennemi (section 4.1) et **ne compte pas** comme une attaque portée pour les aptitudes (compteurs « toutes les N attaques », section 6.1). La fuite vise la case de bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
   - Une unité déjà sur un bord quitte le terrain dès que l'ordre de fuite est donné.
   - Après leur dernière attaque, les ennemis peuvent poursuivre l'unité en fuite et la frapper s'ils la rattrapent : fuir comporte un risque.
-  - Une nouvelle commande (Aller, Attaquer) donnée à une unité en fuite remplace la fuite.
+  - Une nouvelle commande (Aller, Attaquer) donnée à une unité en fuite remplace la fuite (priorité à la dernière commande, voir plus haut).
 
 ### 5.1 Limitation des commandes
 - Le nombre de commandes est limité par un **cooldown** entre deux commandes (pas de quota fixe par bataille en v1).
@@ -109,7 +119,7 @@ Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s
 ### 6.1 Type automatique
 - Se déclenche seule selon sa propre condition (ex : après un certain nombre d'attaques), **sans action du joueur**.
 - Exemple pour la v1 : l'attaque dévastatrice de Fafnir (voir `units.md`).
-- Une attaque annulée par un effet (ex. : Frappe paralysante d'Athos) ne compte pas dans les compteurs « toutes les N attaques ». Seules les attaques réellement portées comptent.
+- Une attaque annulée par un effet (ex. : Frappe paralysante d'Athos) ne compte pas dans les compteurs « toutes les N attaques ». Seules les attaques réellement portées comptent. La dernière attaque gratuite portée sur une unité qui fuit (section 5) ne compte pas non plus.
 
 ### 6.2 Type à usage limité
 - Le joueur **choisit lui-même le moment d'activation**, via une icône dédiée sur le côté de l'écran.
@@ -179,7 +189,7 @@ Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre scrip
   - **Phase 2 — « Le mur »** (fond retourné) : un mur de rochers qui serpente (colonnes 14-17), percé d'un passage étroit d'une case (rangée 3 — une Légendaire 2×2 n'y passe pas) et d'un passage large de deux cases (rangées 10-11). Les tireurs ennemis tirent par-dessus le mur (pas de ligne de vue, section 4.5) ; les unités [Vol] le survolent.
   - **Phase 3 — « Le fort »** (provisoire, fond normal) : une ruine en fer à cheval côté joueur, salle intérieure de 4×4 cases, ouverte vers l'ennemi par une entrée de deux cases. Elle protège du corps-à-corps mais pas des tirs. C'est un cul-de-sac assumé : exception à la règle « pas de cul-de-sac » de la section 1, qui ne vaut que pour la bataille 01.
   - En réserve (validé, pas encore utilisé) : **« Les trois couloirs »**, deux crêtes qui séparent trois couloirs, franchissables seulement en volant.
-- **Murs** : les rochers d'un mur se touchent par un côté. Deux rochers qui ne se touchent que par un coin laissent passer une unité en diagonale (section 3).
+- **Murs** : les rochers d'un mur se touchent par un côté. Une unité au sol ne coupe jamais le coin d'un rocher (section 3).
 - **Ce qui est conservé** : les morts restent perdus, les PV perdus ne reviennent pas. La réserve du joueur (copies jamais déployées, unités revenues de fuite) reste déployable dans la moitié gauche de la nouvelle zone, avec le même plafond de 150 points. Le cooldown des commandes continue.
 - **Script de la phase suivante** : ses instants sont comptés depuis le début de la phase.
 - **Victoire de la bataille-clickbait** : dès que l'IA est à la fin du script de la **dernière** phase et qu'elle n'a plus aucune unité vivante sur le terrain — sans le compte à rebours de 15 secondes de la section 8.2, même s'il lui reste des copies en réserve. Si le joueur est éliminé au même instant, c'est un match nul (section 8.1). La défaite du joueur, elle, suit les règles habituelles (section 8).
