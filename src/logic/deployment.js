@@ -165,6 +165,15 @@ export function countOwnedCopies(roster, state, faction, unitsOnField) {
   }));
 }
 
+// Bilan de fin de bataille (technical.md 5.6), dans l'ordre du roster : pour chaque espèce, les
+// copies encore en vie (sur le terrain ou en réserve) et les copies perdues (tuées, rules.md 4.4).
+export function getCasualtyReport(roster, state, faction, unitsOnField) {
+  const owned = countOwnedCopies(roster, state, faction, unitsOnField);
+  return Object.entries(roster).map(([key, species]) => ({
+    species, alive: owned[key], lost: species.copies - owned[key],
+  }));
+}
+
 // rules.md 8.1/8.2 : ce camp a-t-il encore une copie disponible (fraîche ou revenue de fuite),
 // toutes espèces confondues ?
 export function hasAnyReserves(state) {

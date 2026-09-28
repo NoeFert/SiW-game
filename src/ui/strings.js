@@ -30,6 +30,12 @@ export const TEXT = {
     continue: 'Continuer', // bouton commun à tous les tutoriels
   },
 
+  // Bilan de l'écran de victoire (version clickbait).
+  report: {
+    lost: 'Unités perdues',
+    noLosses: 'Aucune perte !',
+  },
+
   chooseFaction: 'Choisis ta faction',
   factions: { wyrms: 'Wyrms', undead: 'Morts-Vivants' },
 

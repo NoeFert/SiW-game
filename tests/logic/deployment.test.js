@@ -1,7 +1,7 @@
 import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import {
-  createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, countOwnedCopies, getTowerRows,
+  createDeploymentState, deployUnit, recordReturn, isValidDeploymentPosition, countOwnedCopies, getTowerRows, getCasualtyReport,
   PRESENCE_CAP,
 } from '../../src/logic/deployment.js';
 
@@ -315,5 +315,25 @@ describe('getTowerRows — liste des unités déployables de la tour (ui-battle-
     const champion = getTowerRows(state, 'player', [unit]).find((r) => r.species === ROSTER.champion);
 
     expect(champion.deployable).toBe(false);
+  });
+});
+
+describe('getCasualtyReport — bilan de fin de bataille (technical.md 5.6)', () => {
+  test('par espèce : copies en vie (terrain + réserve, blessés compris) et copies tuées', () => {
+    const state = createDeploymentState(ROSTER);
+    const onField = [];
+    const alive = deployUnit(state, 'player', ROSTER.grunt, 0, 0, onField).unit;
+    onField.push(alive);
+    deployUnit(state, 'player', ROSTER.grunt, 1, 0, onField); // déployée puis tuée : jamais revenue
+    const fled = new Unit(ROSTER.lonely, 'player', 0, 0);
+    state.bySpecies.get(ROSTER.lonely).freshRemaining = 0;
+    fled.hp = 3;
+    recordReturn(state, fled); // revenue de fuite, blessée
+
+    expect(getCasualtyReport(ROSTER, state, 'player', onField)).toEqual([
+      { species: ROSTER.grunt, alive: 4, lost: 1 },
+      { species: ROSTER.champion, alive: 2, lost: 0 },
+      { species: ROSTER.lonely, alive: 1, lost: 0 },
+    ]);
   });
 });

@@ -10,7 +10,7 @@ import DevMenu from './dev/DevMenu.jsx';
 import { TEST_PROFILES, loadTestProfile } from './dev/testProfiles.js';
 import { ROSTERS } from './data/rosters.js';
 import { FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from './data/battles.js';
-import { countOwnedCopies } from './logic/deployment.js';
+import { countOwnedCopies, getCasualtyReport } from './logic/deployment.js';
 import {
   getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, saveOwnedCopies,
   clearProgress,
@@ -32,6 +32,7 @@ export default function App() {
   const [screen, setScreen] = useState(initialScreen);
   const [battleAttempt, setBattleAttempt] = useState(0); // change de clé = BattleScreen tout neuf
   const [clickbaitFaction, setClickbaitFaction] = useState(null);
+  const [victoryReport, setVictoryReport] = useState(null); // bilan de victoire (clickbait)
   const isClickbait = mode === 'clickbait';
   const playerFaction = isClickbait ? clickbaitFaction : getSavedFaction();
 
@@ -47,12 +48,16 @@ export default function App() {
 
   // technical.md 5.4 : les copies possédées ne sont figées qu'à la victoire — une tentative
   // ratée ne sauvegarde rien, ses pertes sont donc oubliées au "Réessayer". Rien n'est
-  // sauvegardé en mode clickbait.
+  // sauvegardé en mode clickbait : on y affiche à la place le bilan des unités en vie/perdues.
   const handleVictory = useCallback((battle) => {
-    if (!isClickbait) {
-      const unitsOnField = battle.units.filter((u) => u.isOnField);
-      saveOwnedCopies(countOwnedCopies(ROSTERS[playerFaction], battle.playerDeployment, 'player', unitsOnField));
+    const unitsOnField = battle.units.filter((u) => u.isOnField);
+    const roster = ROSTERS[playerFaction];
+    if (isClickbait) {
+      setVictoryReport(getCasualtyReport(roster, battle.playerDeployment, 'player', unitsOnField));
+    } else {
+      saveOwnedCopies(countOwnedCopies(roster, battle.playerDeployment, 'player', unitsOnField));
       markFirstBattleWon();
+      setVictoryReport(null);
     }
     setScreen('victory');
   }, [isClickbait, playerFaction]);
@@ -112,7 +117,7 @@ export default function App() {
       />
     );
   } else if (screen === 'victory') {
-    content = <VictoryScreen onContinue={continueAfterVictory} />;
+    content = <VictoryScreen onContinue={continueAfterVictory} report={victoryReport} />;
   } else if (screen === 'defeat' || screen === 'draw') {
     content = <DefeatScreen isDraw={screen === 'draw'} onRetry={startBattle} />;
   } else if (screen === 'civilization') {
