@@ -105,7 +105,7 @@ Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s
 
 - **Pause principale** : interrupteur activé et désactivé par le joueur (bouton ⏸ / ▶, raccourci barre Espace). Pendant cette pause, le joueur peut encore déployer et donner une commande.
 - **Pause d'interaction** : automatique pendant un glisser-déposer de déploiement (section 2), pendant la sélection d'une commande (dès l'ouverture de la barre, section 5) et pendant la confirmation d'abandon (section 8.2 ; une commande en cours de sélection est alors annulée). Elle se termine d'elle-même à la fin ou à l'annulation du geste.
-- **Gel du tutoriel** (première bataille uniquement, `technical.md` 5.5) : pendant une étape qui demande ou explique quelque chose, la bataille est figée comme pendant une pause, et seule l'action demandée est possible.
+- **Gel du tutoriel** (`technical.md` 5.5) : pendant une étape qui demande ou explique quelque chose, la bataille est figée comme pendant une pause, et seule l'action demandée est possible.
 - Pendant toute pause, **tous les compteurs sont gelés** : timers d'attaque, mouvements, cooldown des commandes, script de l'IA (section 7) et compte à rebours de 15 secondes (section 8.2). Les animations des unités sont gelées elles aussi.
 - Le cooldown étant gelé, **une seule commande est possible par pause principale**.
 - Le déploiement reste possible **plusieurs fois** pendant une pause principale, dans la limite du plafond de points de présence (section 2).
@@ -180,7 +180,7 @@ Les unités d'une même vague (même instant du script) entrent ensemble. S'il y
 2. **Éradication** : sinon, le ou les ennemis qui ont le plus de PV actuels.
 
 ### 7.3 Bataille en plusieurs phases (bataille-clickbait)
-Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. En v1, seule la bataille de la version clickbait (`technical.md` 5.6) en a plusieurs (trois) ; la bataille 01 n'en a qu'une.
+Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. La bataille de la version clickbait (`technical.md` 5.6) en a trois. La bataille 01 du MVP en aura plusieurs elle aussi, en reprenant ces zones (`roadmap.md`) — nombre de phases, scripts de chaque phase et condition de victoire (section 8.1) encore à définir ; en attendant, la bataille 01 actuelle n'a qu'une phase.
 
 - **Fin d'une phase** : quand l'IA a déployé tout le script de la phase **et** qu'elle n'a plus aucune unité sur le terrain. Ce n'est pas une victoire : s'il reste une phase, la bataille continue.
 - **Transition** : tout est figé (aucune action possible, compteurs gelés) pendant que l'armée du joueur présente sur le terrain part vers la droite, puis entre par la gauche dans la zone suivante. Chaque unité arrive sur la case libre la plus à gauche de sa rangée (ou de la rangée libre la plus proche), les unités les plus avancées en premier. Les commandes en cours sont annulées. Seule exception : le bouton Abandonner reste utilisable pendant la transition (section 8.2).

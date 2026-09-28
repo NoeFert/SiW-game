@@ -1,10 +1,10 @@
 # ROADMAP.md
 
-Deux parties : le MVP (scope v1), puis la suite (scope v2+). Anciennement `scope-jeu-strategie.md`, déplacé et mis à jour dans `SPECS/`.
+Trois parties : le POC (version clickbait, rendu 1), le MVP (scope v1, rendu final), puis la suite (scope v2+, pistes jamais développées).
 
 ---
 
-## Rendu 1 — POC (version clickbait)
+## POC — version clickbait (rendu 1)
 
 **Objectif :** prouver que la mécanique « pub » est jouable (voir `CONCEPT.md`).
 
@@ -19,7 +19,7 @@ Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise
 
 ---
 
-## Scope v1 — MVP (moteur de bataille)
+## MVP — scope v1 (rendu final)
 
 **Objectif :** valider que le cœur du gameplay (unités autonomes + contrôle limité du joueur) est jouable et amusant, avant d'investir dans la couche méta.
 
@@ -34,6 +34,7 @@ Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise
 - Combat autonome (dégâts, PV, mort définitive)
 - Aptitudes automatiques propres à certaines unités (voir `rules.md` section 6 et `units.md`)
 - Commandes du joueur (attaquer, aller à, fuir), déclenchées via un bouton "Commandes" dédié qui met le jeu en pause, avec cooldown de 5 secondes en temps de bataille, gelé pendant les pauses (voir `rules.md` section 5)
+- **Bataille 01 en plusieurs phases**, reprenant les zones de la bataille-clickbait (le champ, « Le mur », « Le fort » — `rules.md` 7.3) : le POC en est un sous-ensemble. Nombre de phases, scripts de chaque phase et condition de victoire encore à définir
 - IA adverse scriptée, une seule bataille pour la v1, script symétrique selon la faction jouée par l'IA ; les unités IA entrent par le bord droit du terrain, sur une rangée choisie au moment du déploiement selon la situation du terrain (voir `rules.md` section 7)
 - Conditions de fin de bataille : victoire immédiate, cas d'égalité, ou compte à rebours de 15s si le terrain adverse est vide mais qu'il reste des réserves (voir `rules.md` section 8)
 - **Enchaînement d'écrans complet** (voir `technical.md` section 5) : écran d'introduction puis écran de choix de faction (une seule fois, au tout début) → écran de bataille (tour de commandement React à gauche + canevas Phaser) → à l'issue de la bataille, écran de récompense (victoire) ou écran de défaite avec bouton "réessayer" → après la victoire de cette première bataille (traitée comme un tutoriel), écran d'accueil affichant la faction choisie par le joueur, avec accès à l'écran de gestion de civilisation
@@ -54,7 +55,7 @@ Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise
 
 ---
 
-## Scope v2+ — Couche méta
+## Suite — scope v2+ (couche méta)
 
 À traiter une fois le moteur de bataille validé en pratique.
 
@@ -86,7 +87,7 @@ Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise
 | Conflit [Vol] + retraite sans bord accessible | Face aux obstacles, un bord est toujours géométriquement atteignable ; une unité encerclée par d'autres unités reste en fuite sur place et riposte au corps-à-corps (`rules.md` section 5) |
 | Déclenchement du script IA | Timing en temps absolu depuis le début de la bataille |
 | Case d'apparition des unités IA | Entrée par le bord droit du terrain (jamais d'apparition au milieu du champ de bataille), sur la rangée la plus proche d'une cible stratégique (renfort, puis éradication), au hasard en cas d'égalité (`rules.md` 7.2) |
-| Nombre de batailles scriptées | Jeu normal : une seule bataille, un script par faction adverse (2 scripts, symétriques), traitée comme la bataille tutoriel. Version clickbait : une bataille en 3 phases, un script par phase et par faction adverse (`rules.md` 7.3) |
+| Nombre de batailles scriptées | Jeu normal : une seule bataille, traitée comme la bataille tutoriel, en plusieurs phases comme la version clickbait (scripts par phase à définir). Version clickbait : une bataille en 3 phases, un script par phase et par faction adverse (`rules.md` 7.3) |
 | Choix de faction | Réintégré en v1 (contrairement à la décision initiale) : le joueur choisit entre Wyrms et Morts-Vivants, l'IA joue l'autre — pour préserver la cohérence narrative. Écran séparé, une seule fois au début, choix persistant (localStorage) |
 | Points de présence | Plafond vivant de 150 points, se libère à la mort/fuite d'une unité |
 | Quantité de copies par unité | Nombre fixe par bataille (voir `units.md`) ; une copie tuée est perdue définitivement, une copie en fuite reste réutilisable |

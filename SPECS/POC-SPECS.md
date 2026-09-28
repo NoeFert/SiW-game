@@ -71,7 +71,7 @@ Tutoriel : **tutoriel clickbait** (`CLICKBAIT_TUTORIAL`, `technical.md` 5.5) —
 | 5.1 Diminution du cooldown avec le niveau du joueur | Suite (déjà hors v1) |
 | 5.2 Pause d'interaction pendant la confirmation d'abandon | MVP (suit le bouton Abandonner) |
 | 6.2 Aptitudes à usage limité | Suite (aucune unité v1 n'en a) |
-| 7.1 Bataille 01 en tant que bataille à part entière (une seule phase) | MVP |
+| 7.1 Bataille 01 en tant que bataille à part entière (en plusieurs phases, `roadmap.md`) | MVP |
 | 7.3 Zone de réserve « Les trois couloirs » | Suite |
 | 8.1 Réserves de l'IA dans la bataille 01 (victoire après 15 s) | MVP |
 | 8.2 **Bouton Abandonner** (avec confirmation) | MVP |
