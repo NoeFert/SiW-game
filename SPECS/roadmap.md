@@ -11,11 +11,11 @@ Deux parties : le MVP (scope v1), puis la suite (scope v2+). Anciennement `scope
 - Écran d'introduction : bouton **Clickbait** actif, bouton **MVP** grisé ; le jeu démarre toujours sur l'introduction (`technical.md` 5.2)
 - Choix de faction, puis la bataille-clickbait : trois zones enchaînées (le champ, « Le mur », « Le fort »), chacune avec sa vague ennemie (`rules.md` 7.3)
 - Tutoriel court : déployer, combat autonome, points de présence (`technical.md` 5.5)
-- Tout le moteur de bataille du MVP ci-dessous (déploiement, pauses, commandes, combat, aptitudes, fin de bataille)
-- Écran de victoire avec bilan des pertes ; « Réessayer » après une défaite
+- Le moteur de bataille du MVP ci-dessous (déploiement, pauses, combat, aptitudes, fin de bataille), avec des **commandes réduites à l'ordre Fuir** (ni Aller, ni Attaquer) et **sans bouton Abandonner**
+- Écran de victoire avec bilan des pertes ; « Réessayer » après une défaite, qui relance la bataille depuis la zone 1
 - Rien n'est sauvegardé
 
-Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise ni le parcours d'écrans complet, ni la sauvegarde.
+Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise ni le parcours d'écrans complet, ni la sauvegarde. Le détail des règles incluses et exclues, section par section, est dans `POC-SPECS.md`.
 
 ---
 

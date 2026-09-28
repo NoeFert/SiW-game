@@ -22,7 +22,7 @@ export default function CommandTower({ playerFaction }) {
       <div className="h-full flex flex-col bg-neutral-950 text-foreground border-r-4 border-foreground/40">
         <div className="relative flex-none px-4 pt-4 pb-2">
           <div className="absolute top-3 right-3 flex items-center gap-3">
-            <SurrenderButton battle={battle} />
+            {battle.surrenderAllowed && <SurrenderButton battle={battle} />}
             <PauseButton battle={battle} />
           </div>
           <div className="pt-8">

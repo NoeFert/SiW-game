@@ -6,7 +6,7 @@ import {
 import { cn } from '@/lib/utils';
 import { COMMAND_COOLDOWN_SECONDS, getCooldownRemaining } from '../logic/commands.js';
 import {
-  ORDERS, canOpenCommandBar, openCommandBar, cancelCommand, chooseOrder,
+  availableOrders, canOpenCommandBar, openCommandBar, cancelCommand, chooseOrder,
 } from '../logic/commandSelection.js';
 import { TEXT } from './strings.js';
 
@@ -45,7 +45,7 @@ export default function CommandBar({ battle }) {
       <Button size="icon" onClick={() => cancelCommand(battle)} aria-label={TEXT.cancel}>
         <X />
       </Button>
-      {ORDERS.map((order) => {
+      {availableOrders(battle).map((order) => {
         const Icon = ORDER_ICONS[order];
         return (
           <Tooltip key={order}>

@@ -147,7 +147,9 @@ export default class BattleScene extends Phaser.Scene {
     this.battle = createBattle(this.grid, playerRoster, enemyRoster, this.phases[0].enemyScript);
     setUpcomingPhases(this.battle, this.phases.slice(1));
     this.battle.victoryWhenScriptCleared = !!this.battleDefinition.victoryWhenScriptCleared;
-    const { tutorial } = this.battleDefinition;
+    const { tutorial, orders = null, surrenderAllowed = true } = this.battleDefinition;
+    this.battle.orders = orders;
+    this.battle.surrenderAllowed = surrenderAllowed;
     if (tutorial) startTutorial(this.battle, tutorial); // technical.md 5.5
 
     // Publie l'état pour la tour de commandement React (technical.md 2.2) : c'est le seul canal de

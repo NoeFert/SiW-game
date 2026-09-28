@@ -15,6 +15,16 @@ import { tutorialAllows } from './tutorial.js';
 // Annuler à n'importe quel stade n'émet rien et ne consomme pas le cooldown.
 export const ORDERS = ['move', 'attack', 'flee'];
 
+// Ordres proposés dans cette bataille (`battle.orders`, tous par défaut). La voie 2 ne déduit
+// que des ordres disponibles : sans Aller ni Attaquer, elle disparaît.
+export function availableOrders(battle) {
+  return battle.orders ?? ORDERS;
+}
+
+function isAvailable(battle, order) {
+  return availableOrders(battle).includes(order);
+}
+
 function isOpen(battle) {
   return battle.commandSelection !== null;
 }
@@ -56,7 +66,7 @@ function complete(battle, issued) {
 // Choisir un ordre (re)démarre la voie 1 : l'unité éventuellement déjà sélectionnée est
 // oubliée, pour que `flee` passe toujours par ordre -> unité.
 export function chooseOrder(battle, order) {
-  if (!isOpen(battle) || !ORDERS.includes(order) || !tutorialAllows(battle, `order:${order}`)) return false;
+  if (!isOpen(battle) || !isAvailable(battle, order) || !tutorialAllows(battle, `order:${order}`)) return false;
   startInteraction(battle.pause, 'command');
   battle.commandSelection = { order, unit: null };
   return true;
@@ -64,11 +74,17 @@ export function chooseOrder(battle, order) {
 
 export function selectUnit(battle, unit) {
   if (!isOpen(battle) || unit.faction !== 'player' || !unit.isOnField) return false;
+  if (battle.commandSelection.order === null && !canShortcut(battle)) return false;
   if (!tutorialAllows(battle, `selectUnit:${battle.commandSelection.order ?? 'none'}`)) return false;
   startInteraction(battle.pause, 'command');
   battle.commandSelection.unit = unit;
   if (battle.commandSelection.order === 'flee') return complete(battle, issuePlayerFlee(battle, unit));
   return true;
+}
+
+// Voie 2 possible seulement si elle peut déduire au moins un ordre disponible.
+function canShortcut(battle) {
+  return isAvailable(battle, 'attack') || isAvailable(battle, 'move');
 }
 
 function selectedActor(battle) {
@@ -79,7 +95,7 @@ function selectedActor(battle) {
 export function selectEnemy(battle, enemy) {
   const unit = selectedActor(battle);
   const { order } = battle.commandSelection ?? {};
-  if (!unit || !(order === 'attack' || order === null) || enemy.faction !== 'enemy' || !enemy.isOnField) return false;
+  if (!unit || !(order === 'attack' || order === null) || !isAvailable(battle, 'attack') || enemy.faction !== 'enemy' || !enemy.isOnField) return false;
   if (!tutorialAllows(battle, 'selectTarget')) return false;
   return complete(battle, issuePlayerAttack(battle, unit, enemy));
 }
@@ -87,7 +103,7 @@ export function selectEnemy(battle, enemy) {
 export function selectCell(battle, x, y) {
   const unit = selectedActor(battle);
   const { order } = battle.commandSelection ?? {};
-  if (!unit || !(order === 'move' || order === null) || !isInsideGrid(battle.grid, x, y)) return false;
+  if (!unit || !(order === 'move' || order === null) || !isAvailable(battle, 'move') || !isInsideGrid(battle.grid, x, y)) return false;
   if (!tutorialAllows(battle, 'selectTarget')) return false;
   return complete(battle, issuePlayerMoveTo(battle, unit, x, y));
 }
@@ -126,6 +142,7 @@ export function getClickableHighlights(battle) {
   if (!isOpen(battle)) return { zone: null, unitIds: new Set() };
 
   const { order } = battle.commandSelection;
+  if (order === null && !canShortcut(battle)) return { zone: null, unitIds: new Set() };
   if (!selectedActor(battle)) return { zone: null, unitIds: idsOf('player') };
   return {
     zone: order === 'attack' ? null : wholeField,

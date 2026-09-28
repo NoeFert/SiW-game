@@ -6,7 +6,7 @@ import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import { getReserve } from '../../src/logic/deployment.js';
 import {
-  createBattle, deployPlayerUnit, issuePlayerFlee, tickBattle, surrenderPlayer,
+  createBattle, deployPlayerUnit, issuePlayerFlee, tickBattle, surrenderPlayer, startSurrenderConfirm,
 } from '../../src/logic/battle.js';
 
 const PLAYER_ROSTER = {
@@ -74,6 +74,19 @@ describe('battle.js — câblage déploiement/combat/fin de bataille', () => {
     const outcome = tickBattle(battle, 1);
 
     expect(outcome).toBe('enemyVictory');
+  });
+
+  test('sans abandon permis (version clickbait, POC-SPECS.md), surrenderPlayer ne fait rien', () => {
+    const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
+    battle.surrenderAllowed = false;
+    deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 0, 0);
+
+    startSurrenderConfirm(battle);
+    expect(battle.pause.interaction).toBeNull();
+    surrenderPlayer(battle);
+    const outcome = tickBattle(battle, 1);
+
+    expect(outcome).toBe('ongoing');
   });
 
   test('une unité tuée au tick où elle fuit ne revient pas en réserve (rules.md 2/4.4)', () => {

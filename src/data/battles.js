@@ -14,6 +14,8 @@ import { STARTER_TUTORIAL, CLICKBAIT_TUTORIAL } from './tutorials.js';
 // - tutorial : étapes du tutoriel de cette bataille (technical.md 5.5), ou null.
 // - victoryWhenScriptCleared : victoire dès que l'IA a fini le script de la dernière phase et
 //   n'a plus d'unité vivante (rules.md 7.3), au lieu de la fin de bataille habituelle (8).
+// - orders : ordres proposés dans la barre de commandes (rules.md 5), tous par défaut.
+// - surrenderAllowed : bouton Abandonner disponible (rules.md 8.2), vrai par défaut.
 export const BATTLES = {
   // Bataille 01 du jeu normal, avec le tutoriel de départ.
   firstBattle: {
@@ -48,6 +50,9 @@ export const BATTLES = {
     ],
     tutorial: CLICKBAIT_TUTORIAL,
     victoryWhenScriptCleared: true,
+    // POC-SPECS.md : seul l'ordre Fuir, pas d'abandon.
+    orders: ['flee'],
+    surrenderAllowed: false,
   },
 };
 

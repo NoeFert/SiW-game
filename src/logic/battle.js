@@ -40,6 +40,10 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
     // rules.md 7.3 : si vrai, victoire dès que l'IA a fini le script de la dernière phase et
     // n'a plus d'unité vivante (sans le compte à rebours de 15 s de rules.md 8.2).
     victoryWhenScriptCleared: false,
+    // Ordres proposés dans la barre de commandes (null = tous, voir commandSelection.js) et
+    // bouton Abandonner disponible ou non (rules.md 8.2) — la version clickbait restreint les deux.
+    orders: null,
+    surrenderAllowed: true,
     playerCommandState: createCommandState(),
     aiScriptState: createAiScriptState(),
     enemyScript,
@@ -55,7 +59,7 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
 // rules.md 8.2, dernière clause : abandon explicite du joueur, possible à tout moment. Le
 // verdict est posé tout de suite : pendant une pause, aucun tick ne viendrait le calculer.
 export function surrenderPlayer(battle) {
-  if (battle.outcome !== 'ongoing') return;
+  if (battle.outcome !== 'ongoing' || !battle.surrenderAllowed) return;
   endSurrenderConfirm(battle);
   surrender(battle.playerEndState);
   battle.outcome = evaluateOutcome(battle);
@@ -65,6 +69,7 @@ export function surrenderPlayer(battle) {
 // perd rien pendant qu'il hésite. Une commande en cours de sélection est annulée (sans
 // consommer de cooldown) : les deux interactions ne se cumulent pas.
 export function startSurrenderConfirm(battle) {
+  if (!battle.surrenderAllowed) return;
   battle.commandSelection = null;
   startInteraction(battle.pause, 'surrender');
 }
