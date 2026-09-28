@@ -194,14 +194,18 @@ Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre scrip
 - **Script de la phase suivante** : ses instants sont comptés depuis le début de la phase.
 - **Victoire de la bataille-clickbait** : dès que l'IA est à la fin du script de la **dernière** phase et qu'elle n'a plus aucune unité vivante sur le terrain — sans le compte à rebours de 15 secondes de la section 8.2, même s'il lui reste des copies en réserve. Si le joueur est éliminé au même instant, c'est un match nul (section 8.1). La défaite du joueur, elle, suit les règles habituelles (section 8).
 
-**Scripts provisoires des phases 2 et 3** (à ajuster), instants comptés depuis le début de chaque phase.
+**Scripts provisoires des phases 1 à 3** (à ajuster), instants comptés depuis le début de chaque phase.
+
+Phase 1 :
+- Si l'IA joue les Wyrms : script de la bataille 01 (section 7.1) sans Fafnir.
+- Si l'IA joue les Morts-Vivants : script de la bataille 01 (section 7.1).
 
 Phase 2 :
-- Si l'IA joue les Wyrms : t=0s 2 Vers de Lambton, t=5s 1 Amphiptère, t=12s 2 Vers de Lambton.
+- Si l'IA joue les Wyrms : t=0s 2 Vers de Lambton, t=12s 1 Ver de Lambton.
 - Si l'IA joue les Morts-Vivants : t=0s 2 New-reborn Skeletons, t=5s 1 Necromant Initiate, t=12s 2 New-reborn Skeletons.
 
 Phase 3 (une nuée d'abord — le fort la retient —, puis des tireurs — le fort devient un piège) :
-- Si l'IA joue les Wyrms : t=0s 4 Vers de Lambton, t=10s 2 Amphiptères.
+- Si l'IA joue les Wyrms : t=0s 3 Vers de Lambton, t=10s Fafnir.
 - Si l'IA joue les Morts-Vivants : t=0s 4 New-reborn Skeletons, t=10s 2 Necromant Initiates.
 
 ## 8. Fin de bataille

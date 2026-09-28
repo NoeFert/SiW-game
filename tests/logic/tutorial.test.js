@@ -13,7 +13,7 @@ import {
 import { STARTER_TUTORIAL, CLICKBAIT_TUTORIAL } from '../../src/data/tutorials.js';
 import { BATTLES, FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from '../../src/data/battles.js';
 import {
-  WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_2_SCRIPT, UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
+  WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_1_SCRIPT, WYRMS_CLICKBAIT_PHASE_2_SCRIPT, UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
   WYRMS_CLICKBAIT_PHASE_3_SCRIPT, UNDEAD_CLICKBAIT_PHASE_3_SCRIPT,
 } from '../../src/data/battleScript.js';
 import { BATTLEFIELD_OBSTACLES, WALL_ZONE_OBSTACLES, FORT_ZONE_OBSTACLES } from '../../src/data/battlefield.js';
@@ -225,7 +225,13 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
     expect(tutorial).toBe(CLICKBAIT_TUTORIAL);
     expect(victoryWhenScriptCleared).toBe(true);
     expect(BATTLES[FIRST_BATTLE_ID].victoryWhenScriptCleared).toBeUndefined(); // bataille 01 : fin habituelle
-    expect(phases[0]).toEqual(BATTLES[FIRST_BATTLE_ID].phases[0]);
+    expect(phases[0]).toEqual({
+      enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_1_SCRIPT, undead: UNDEAD_AI_SCRIPT },
+      obstacles: BATTLEFIELD_OBSTACLES,
+      flippedBackground: false,
+    });
+    expect(WYRMS_CLICKBAIT_PHASE_1_SCRIPT.map((e) => e.species.name)).not.toContain('Fafnir the Cursed One');
+    expect(WYRMS_CLICKBAIT_PHASE_1_SCRIPT).toHaveLength(WYRMS_AI_SCRIPT.length - 1);
     expect(phases[1]).toEqual({
       enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_2_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_2_SCRIPT },
       obstacles: WALL_ZONE_OBSTACLES,

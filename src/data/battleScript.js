@@ -16,13 +16,18 @@ export const WYRMS_AI_SCRIPT = [
   { time: 35, species: WYRMS_ROSTER.fafnir },
 ];
 
+// rules.md 7.3 — bataille-clickbait, phase 1 quand l'IA joue les Wyrms : le script de la
+// bataille 01 sans Fafnir.
+export const WYRMS_CLICKBAIT_PHASE_1_SCRIPT = WYRMS_AI_SCRIPT.filter(
+  (entry) => entry.species !== WYRMS_ROSTER.fafnir,
+);
+
 // rules.md 7.3 — bataille-clickbait, phase 2 : "extension de vague" provisoire, temps comptés
-// depuis le début de la phase 2. 2 basiques, 1 [Vol], puis 2 basiques.
+// depuis le début de la phase 2. 2 basiques, 1 [Vol], puis 2 basiques (Wyrms : sans le [Vol],
+// et 1 seul basique à t=12s).
 export const WYRMS_CLICKBAIT_PHASE_2_SCRIPT = [
   { time: 0, species: WYRMS_ROSTER.lambtonWorm },
   { time: 0, species: WYRMS_ROSTER.lambtonWorm },
-  { time: 5, species: WYRMS_ROSTER.amphiptere },
-  { time: 12, species: WYRMS_ROSTER.lambtonWorm },
   { time: 12, species: WYRMS_ROSTER.lambtonWorm },
 ];
 
@@ -40,9 +45,7 @@ export const WYRMS_CLICKBAIT_PHASE_3_SCRIPT = [
   { time: 0, species: WYRMS_ROSTER.lambtonWorm },
   { time: 0, species: WYRMS_ROSTER.lambtonWorm },
   { time: 0, species: WYRMS_ROSTER.lambtonWorm },
-  { time: 0, species: WYRMS_ROSTER.lambtonWorm },
-  { time: 10, species: WYRMS_ROSTER.amphiptere },
-  { time: 10, species: WYRMS_ROSTER.amphiptere },
+  { time: 10, species: WYRMS_ROSTER.fafnir },
 ];
 
 export const UNDEAD_CLICKBAIT_PHASE_3_SCRIPT = [
