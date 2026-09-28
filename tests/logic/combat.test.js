@@ -247,6 +247,26 @@ describe('résolution simultanée indépendante de l\'ordre (rules.md 4.1)', () 
     expect(victim.isAlive).toBe(false);
     expect(athos.hp).toBe(140);
   });
+
+  test('une unité qui atteint le bord en fuyant subit le même sort quel que soit l\'ordre des unités', () => {
+    const outcome = (enemyFirst) => {
+      const grid = new Grid(10, 10);
+      const fleeing = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 1, 5); // à un pas du bord
+      fleeing.hp = 5;
+      fleeing.command = { type: 'flee' };
+      fleeing.status = 'fleeing'; // dernière attaque au désengagement déjà portée
+      fleeing.moveProgress = 0.99;
+      const enemy = new Unit(UNDEAD_ROSTER.newRebornSkeleton, 'enemy', 2, 5);
+      enemy.status = 'engaged';
+      enemy.target = fleeing;
+      enemy.attackTimer = enemy.species.attackSpeed - 0.01; // frappe (5 dégâts) à ce tick
+
+      resolveCombatTick(enemyFirst ? [enemy, fleeing] : [fleeing, enemy], grid, 0.02);
+      return { alive: fleeing.isAlive, hp: fleeing.hp };
+    };
+
+    expect(outcome(false)).toEqual(outcome(true));
+  });
 });
 
 describe('timer d\'attaque', () => {

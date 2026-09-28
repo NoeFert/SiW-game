@@ -254,7 +254,12 @@ export function resolveCombatTick(units, grid, deltaSeconds) {
   const aliveUnits = units.filter((u) => u.isOnField);
   const pendingAttacks = [];
 
-  for (const unit of aliveUnits) {
+  // rules.md 4.1 : les unités en fuite bougent en dernier — toutes les autres décident de leurs
+  // attaques en les voyant encore à leur place, quel que soit l'ordre des unités.
+  const isFleeing = (u) => u.command?.type === 'flee';
+  const processingOrder = [...aliveUnits.filter((u) => !isFleeing(u)), ...aliveUnits.filter(isFleeing)];
+
+  for (const unit of processingOrder) {
     // Le timer d'attaque ne court que pendant un échange de coups : une unité qui arrive au
     // contact ou à portée repart de zéro, sans frappe instantanée héritée d'un combat précédent.
     if (unit.status !== 'engaged' && unit.status !== 'attacking') unit.attackTimer = 0;
