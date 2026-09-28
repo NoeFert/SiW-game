@@ -4,6 +4,21 @@ Deux parties : le MVP (scope v1), puis la suite (scope v2+). Anciennement `scope
 
 ---
 
+## Rendu 1 — POC (version clickbait)
+
+**Objectif :** prouver que la mécanique « pub » est jouable (voir `CONCEPT.md`).
+
+- Écran d'introduction : bouton **Clickbait** actif, bouton **MVP** grisé ; le jeu démarre toujours sur l'introduction (`technical.md` 5.2)
+- Choix de faction, puis la bataille-clickbait : trois zones enchaînées (le champ, « Le mur », « Le fort »), chacune avec sa vague ennemie (`rules.md` 7.3)
+- Tutoriel court : déployer, combat autonome, points de présence (`technical.md` 5.5)
+- Tout le moteur de bataille du MVP ci-dessous (déploiement, pauses, commandes, combat, aptitudes, fin de bataille)
+- Écran de victoire avec bilan des pertes ; « Réessayer » après une défaite
+- Rien n'est sauvegardé
+
+Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise ni le parcours d'écrans complet, ni la sauvegarde.
+
+---
+
 ## Scope v1 — MVP (moteur de bataille)
 
 **Objectif :** valider que le cœur du gameplay (unités autonomes + contrôle limité du joueur) est jouable et amusant, avant d'investir dans la couche méta.
@@ -71,7 +86,7 @@ Deux parties : le MVP (scope v1), puis la suite (scope v2+). Anciennement `scope
 | Conflit [Vol] + retraite sans bord accessible | Hors scope v1 : un bord est toujours géométriquement atteignable |
 | Déclenchement du script IA | Timing en temps absolu depuis le début de la bataille |
 | Case d'apparition des unités IA | Entrée par le bord droit du terrain (jamais d'apparition au milieu du champ de bataille), sur la rangée la plus proche d'une cible stratégique (renfort, puis éradication), au hasard en cas d'égalité (`rules.md` 7.2) |
-| Nombre de batailles scriptées | Une seule par faction adverse possible (2 scripts au total, symétriques) — traitée comme la bataille tutoriel |
+| Nombre de batailles scriptées | Jeu normal : une seule bataille, un script par faction adverse (2 scripts, symétriques), traitée comme la bataille tutoriel. Version clickbait : une bataille en 3 phases, un script par phase et par faction adverse (`rules.md` 7.3) |
 | Choix de faction | Réintégré en v1 (contrairement à la décision initiale) : le joueur choisit entre Wyrms et Morts-Vivants, l'IA joue l'autre — pour préserver la cohérence narrative. Écran séparé, une seule fois au début, choix persistant (localStorage) |
 | Points de présence | Plafond vivant de 150 points, se libère à la mort/fuite d'une unité |
 | Quantité de copies par unité | Nombre fixe par bataille (voir `units.md`) ; une copie tuée est perdue définitivement, une copie en fuite reste réutilisable |

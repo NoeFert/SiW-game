@@ -90,7 +90,7 @@ tests/
 *Structure indicative, à ajuster librement en cours de développement — ce qui compte est la séparation `logic/` (sans Phaser ni React) vs `scenes/` (Phaser) vs `ui/` (React).*
 
 ### 2.4 Convention de nommage
-- Le jeu sera d'abord en anglais : **le code, les noms de fichiers, les dossiers et les assets utilisent des noms anglais**, même si les documents `SPECS/` restent rédigés en français (ce sont des outils de travail, pas une source de texte à afficher tel quel)
+- **Le code, les noms de fichiers, les dossiers et les assets utilisent des noms anglais**, même si les documents `SPECS/` restent rédigés en français (ce sont des outils de travail, pas une source de texte à afficher tel quel). Les textes affichés au joueur sont en français pour le Rendu 1, regroupés dans `src/ui/strings.js` pour une traduction future
 - Ex : la classe `Unit`, le fichier `combat.js`, le sprite `lambton-worm.png` — pas de noms français dans le code
 
 ### 2.5 Principe pour la v1 : DRY et simplicité maximale
