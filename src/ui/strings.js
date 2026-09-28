@@ -10,7 +10,7 @@ export const TEXT = {
     'Mais en ce monde, plusieurs souverains existent.',
     'Pour atteindre ton but, il y aura la guerre.',
   ],
-  start: 'Commencer',
+  start: 'MVP',
   clickbaitVersion: 'Clickbait',
 
   // Messages des tutoriels (clés = champ `message` des étapes, src/data/tutorials.js).

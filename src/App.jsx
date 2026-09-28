@@ -16,9 +16,13 @@ import {
   clearProgress,
 } from './persistence.js';
 
+// technical.md 5.1 : pour le Rendu 1, seule la version clickbait (le POC) est jouable. Le bouton
+// MVP (jeu normal) est grisé et le jeu démarre toujours sur l'intro. Passer à false pour rouvrir.
+const MVP_LOCKED = true;
+
 // technical.md 5.2 : l'écran de départ se déduit de l'état persistant, pas d'un routeur.
 function initialScreen() {
-  if (!getSavedFaction()) return 'intro';
+  if (MVP_LOCKED || !getSavedFaction()) return 'intro';
   if (!hasWonFirstBattle()) return 'battle';
   return 'home';
 }
@@ -103,7 +107,13 @@ export default function App() {
 
   let content;
   if (screen === 'intro') {
-    content = <IntroScreen onContinue={() => setScreen('factionChoice')} onClickbait={startClickbait} />;
+    content = (
+      <IntroScreen
+        onContinue={() => setScreen('factionChoice')}
+        onClickbait={startClickbait}
+        mvpLocked={MVP_LOCKED}
+      />
+    );
   } else if (screen === 'factionChoice') {
     content = <FactionChoiceScreen onChoose={chooseFaction} />;
   } else if (screen === 'battle') {

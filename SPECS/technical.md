@@ -164,6 +164,7 @@ IntroScreen → FactionChoiceScreen (une fois)
    BattleScreen ◄──────────────────────────────────────┘
 ```
 
+- **Rendu 1 (POC) :** seule la version clickbait (5.6) est jouable. Sur `IntroScreen`, le bouton du jeu normal s'appelle « MVP » et il est grisé ; l'application démarre toujours sur `IntroScreen`, quelle que soit la sauvegarde (`MVP_LOCKED` dans `App.jsx`, à passer à `false` pour rouvrir le MVP). La règle ci-dessous s'applique une fois le MVP rouvert.
 - Au chargement de l'application, l'état persistant (localStorage, voir 5.4) est lu : s'il n'y a pas encore de faction choisie, `IntroScreen` s'affiche, puis `FactionChoiceScreen` ; si une faction est déjà choisie mais la première bataille pas encore gagnée, l'app va directement à `BattleScreen` ; si la première bataille est déjà gagnée, l'app va directement à `HomeScreen`.
 - Une défaite ne fait perdre ni la faction choisie ni aucune autre donnée persistée — seul un nouvel essai de la même bataille est proposé, et aucune perte d'unité d'une tentative ratée n'est comptabilisée (voir 5.4).
 
@@ -202,11 +203,11 @@ IntroScreen → FactionChoiceScreen (une fois)
 
 ### 5.6 Version clickbait
 - Version du jeu **indépendante** du jeu normal : écran de choix de faction → bataille-clickbait (`clickbaitBattle`, avec le tutoriel clickbait, section 5.5).
-- La bataille-clickbait a **trois phases** (`rules.md` 7.3) : la phase 1 reprend le terrain et le script de la bataille 01, puis l'armée du joueur passe dans « Le mur » (phase 2, fond retourné) puis « Le fort » (phase 3, provisoire), chacune avec sa vague ennemie. Les zones sont des plans ASCII dans `src/data/battlefield.js` (convertis par `parseObstacleMap`, `src/logic/grid.js`). Logique : `src/logic/phases.js` ; données : `phases` dans `src/data/battles.js` ; animation de sortie/entrée des unités : `BattleScene.applyPhaseTransition`. « Réessayer » après une défaite en phase 2 relance toute la bataille depuis la phase 1. La bataille est **gagnée dès que l'IA a fini le script de la phase 2 et n'a plus d'unité vivante** (`victoryWhenScriptCleared` dans `battles.js`, `rules.md` 7.3).
+- La bataille-clickbait a **trois phases** (`rules.md` 7.3) : la phase 1 reprend le terrain et le script de la bataille 01, puis l'armée du joueur passe dans « Le mur » (phase 2, fond retourné) puis « Le fort » (phase 3, provisoire), chacune avec sa vague ennemie. Les zones sont des plans ASCII dans `src/data/battlefield.js` (convertis par `parseObstacleMap`, `src/logic/grid.js`). Logique : `src/logic/phases.js` ; données : `phases` dans `src/data/battles.js` ; animation de sortie/entrée des unités : `BattleScene.applyPhaseTransition`. « Réessayer » après une défaite en phase 2 relance toute la bataille depuis la phase 1. La bataille est **gagnée dès que l'IA a fini le script de la dernière phase (phase 3) et n'a plus d'unité vivante** (`victoryWhenScriptCleared` dans `battles.js`, `rules.md` 7.3).
 - **Rien n'est sauvegardé** : la faction choisie reste en mémoire le temps de la session, sans toucher à la sauvegarde du jeu normal (section 5.4) ; une victoire ne marque pas la bataille 01 comme gagnée et ne fige aucune copie.
 - **Écran de victoire avec bilan des pertes** : la liste des unités perdues (tuées), par espèce avec le nombre de copies — pour faire sentir le poids des pertes. « Aucune perte ! » s'il n'y en a pas. Calcul : `getCasualtyReport` (`src/logic/deployment.js`). Le jeu normal garde l'écran de victoire minimal (section 5.3).
 - Fin de bataille : mêmes écrans que le jeu normal. « Réessayer » relance la bataille-clickbait ; « Continuer » après une victoire ramène au choix de faction du clickbait.
-- Accès : bouton « Clickbait version » sur l'écran d'introduction, à côté de « Commencer » (disponible aussi dans le build publié), et raccourci « restart clickbait » du menu devs (section 5.7).
+- Accès : bouton « Clickbait » sur l'écran d'introduction, à côté du bouton « MVP » du jeu normal, grisé pour le Rendu 1 (voir 5.2) ; disponible aussi dans le build publié, et raccourci « restart clickbait » du menu devs (section 5.7).
 
 ### 5.7 Menu devs (outil de développement)
 - Menu burger « devs » fixe en haut à gauche de l'écran, par-dessus tous les écrans (`src/dev/DevMenu.jsx`). **Affiché seulement en développement** (`npm run dev`), absent du build publié.
