@@ -147,19 +147,17 @@ Le coût total d'un script n'est pas un budget : ce qui limite l'IA, c'est le m�
 
 > Horaires et unités de ce script provisoires : à revoir (nouvelle règle à venir, avec une mécanique d'équilibrage des forces sur le terrain).
 
-### 7.2 Choix de la case d'apparition
-Au moment de déployer une unité, l'IA tire sa case **au hasard** parmi les positions retenues par les filtres suivants, appliqués dans l'ordre (un filtre qui ne laisse aucune position est ignoré) :
+### 7.2 Choix de la case d'apparition : entrée par le bord droit
+Les unités de l'IA **entrent par le bord droit du terrain** : elles n'apparaissent jamais directement au milieu du champ de bataille. Le joueur les voit arriver et traverser le terrain, ce qui lui laisse le temps de réagir (décision de design : une apparition soudaine au contact paraissait injuste).
 
-1. **Valide** : dans la moitié IA du terrain, bloc entier (2×2 compris) sur des cases libres (ni obstacle, ni unité). Si aucune case valide n'est libre, le déploiement attend qu'une case se libère (les entrées suivantes du script aussi, pour garder l'ordre).
-2. **Stratégique**, si possible : position avantageuse (définition ci-dessous) par rapport à une **cible stratégique**.
-3. Sinon **avantageuse**, si possible, par rapport à n'importe quel ennemi.
-4. Sinon, la position valide la plus proche d'un ennemi.
+Au moment de déployer une unité, l'IA choisit sa case **au hasard** parmi les positions retenues par les filtres suivants, appliqués dans l'ordre :
 
-S'il n'y a aucun ennemi sur le terrain, la case est tirée parmi toutes les positions valides.
+1. **Valide** : bloc entier (2×2 compris) **collé au bord droit** (dernière colonne, ou les deux dernières pour un 2×2), sur des cases libres (ni obstacle, ni unité). Si le bord est plein, le déploiement attend qu'une case se libère (les entrées suivantes du script aussi, pour garder l'ordre).
+2. **Stratégique** : parmi celles-ci, les positions dont la **rangée est la plus proche** d'une **cible stratégique** (définition ci-dessous).
 
-**Position avantageuse** par rapport à une cible :
-- unité à distance ou hybride : la cible est dans sa portée de tir (entre 2 cases et sa portée, voir 4.5) ;
-- unité au corps-à-corps : collée à la cible (adjacente, voir 4.3).
+S'il n'y a aucun ennemi sur le terrain, la case est tirée parmi toutes les positions valides du bord.
+
+Les unités d'une même vague (même instant du script) entrent ensemble, sur des rangées voisines. À l'écran, chaque unité arrive depuis l'extérieur du terrain jusqu'à sa case d'entrée (animation purement visuelle), puis se comporte comme n'importe quelle unité (sections 3 et 4).
 
 **Cible stratégique**, par ordre de priorité :
 1. **Renfort** : un ennemi engagé au corps-à-corps avec un allié qui a 50 % de ses PV max ou moins (dans un sens ou dans l'autre de l'engagement). Si au moins une cible de renfort existe, seules celles-ci comptent.

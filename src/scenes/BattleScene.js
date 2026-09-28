@@ -24,6 +24,9 @@ const DEBUG_SHOW_GRID = false;
 const FULL_DESATURATION = -1;
 const PARTIAL_DESATURATION = -0.7;
 
+// Durée de l'arrivée d'une unité IA depuis l'extérieur de l'écran jusqu'au bord droit.
+const ENEMY_ENTRY_MS = 600;
+
 // Couleur du missile d'attaque à distance, par faction (voir fireProjectile).
 const PROJECTILE_COLORS = {
   wyrms: 0xff8c1a, // orange
@@ -439,6 +442,14 @@ export default class BattleScene extends Phaser.Scene {
     };
     const center = cellCenter(unit.x, unit.y, unit.size);
     container.setPosition(center.x, center.y);
+    // rules.md 7.2 : une unité IA entre par le bord droit — elle arrive depuis l'extérieur de
+    // l'écran plutôt que d'apparaître d'un coup sur sa case (purement visuel).
+    if (unit.faction === 'enemy') {
+      container.x = this.width + unit.size * CELL_SIZE / 2;
+      view.moveTween = this.tweens.add({
+        targets: container, x: center.x, duration: ENEMY_ENTRY_MS, ease: 'Linear',
+      });
+    }
     this.updateUnitView(view, unit);
     return view;
   }

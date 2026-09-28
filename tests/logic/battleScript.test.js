@@ -1,7 +1,6 @@
 import Grid from '../../src/logic/grid.js';
 import Unit from '../../src/logic/unit.js';
 import { createAiScriptState, deployScheduledUnits } from '../../src/logic/aiScript.js';
-import { isAdjacent, isInRange } from '../../src/logic/combat.js';
 import { isValidDeploymentPosition, PRESENCE_CAP } from '../../src/logic/deployment.js';
 import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../../src/data/battleScript.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
@@ -95,26 +94,35 @@ describe('deployScheduledUnits — horaires et plafond (rules.md 7.1, 2)', () =>
   });
 });
 
-describe('deployScheduledUnits — choix de la case (rules.md 7.2)', () => {
-  test('I. sans ennemi sur le terrain : case valide de la moitié IA, jamais sur une unité', () => {
-    const blocker = new Unit(UNDEAD_ROSTER.newRebornSkeleton, 'enemy', 12, 0);
+describe('deployScheduledUnits — entrée par le bord droit (rules.md 7.2)', () => {
+  const RIGHT_EDGE = 23; // grille par défaut : 24 colonnes
+
+  test('sans ennemi sur le terrain : une case libre du bord droit, jamais sur une unité', () => {
+    const blocker = new Unit(UNDEAD_ROSTER.newRebornSkeleton, 'enemy', RIGHT_EDGE, 0);
     for (const rng of [() => 0, () => 0.5, () => 0.999]) {
-      const unit = deployOne(UNDEAD_ROSTER.athos, [blocker], rng);
+      const unit = deployOne(UNDEAD_ROSTER.newRebornSkeleton, [blocker], rng);
+      expect(unit.x).toBe(RIGHT_EDGE);
       expect(isValidDeploymentPosition(new Grid(), 'enemy', unit.species, unit.x, unit.y, [blocker])).toBe(true);
     }
   });
 
-  test('III. éradication : un corps-à-corps apparaît collé à l\'ennemi qui a le plus de PV', () => {
-    const weak = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 11, 2);
+  test('un bloc 2x2 entre collé au bord droit', () => {
+    const unit = deployOne(UNDEAD_ROSTER.athos, []);
+
+    expect(unit.x).toBe(RIGHT_EDGE - 1);
+  });
+
+  test('éradication : entre sur la rangée la plus proche de l\'ennemi qui a le plus de PV', () => {
+    const weak = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 2);
     weak.hp = 10;
-    const strong = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 11, 10);
+    const strong = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 10);
 
     const unit = deployOne(UNDEAD_ROSTER.newRebornSkeleton, [weak, strong]);
 
-    expect(isAdjacent(unit, strong)).toBe(true);
+    expect([unit.x, unit.y]).toEqual([RIGHT_EDGE, 10]);
   });
 
-  test('III. renfort prioritaire : vise l\'ennemi engagé avec un allié à 50 % de PV ou moins', () => {
+  test('renfort prioritaire : vise l\'ennemi engagé avec un allié à 50 % de PV ou moins', () => {
     const woundedAlly = new Unit(UNDEAD_ROSTER.newRebornSkeleton, 'enemy', 12, 2);
     woundedAlly.hp = 11; // 50 % de 22
     const attacker = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 11, 2);
@@ -125,41 +133,21 @@ describe('deployScheduledUnits — choix de la case (rules.md 7.2)', () => {
 
     const unit = deployOne(UNDEAD_ROSTER.newRebornSkeleton, [woundedAlly, attacker, strong]);
 
-    expect(isAdjacent(unit, attacker)).toBe(true);
+    expect([unit.x, unit.y]).toEqual([RIGHT_EDGE, 2]);
   });
 
-  test('III. une unité de tir apparaît à portée de la cible stratégique', () => {
-    const strong = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 8, 3); // à 4 cases de la colonne 12
-    const weak = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 11, 10);
-    weak.hp = 10;
+  test('une vague de plusieurs unités entre groupée, sur des rangées voisines', () => {
+    const target = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 7);
+    const script = [0, 0, 0].map((time) => ({ time, species: UNDEAD_ROSTER.newRebornSkeleton }));
 
-    const unit = deployOne(UNDEAD_ROSTER.necromantInitiate, [strong, weak]);
+    const wave = deployScheduledUnits(script, createAiScriptState(), 0, 'enemy', new Grid(), [target], () => 0);
 
-    expect(isInRange(unit, strong)).toBe(true);
+    expect(wave.map((u) => u.x)).toEqual([RIGHT_EDGE, RIGHT_EDGE, RIGHT_EDGE]);
+    expect(wave.map((u) => u.y).sort((a, b) => a - b)).toEqual([6, 7, 8]);
   });
 
-  test('II. cible stratégique hors d\'atteinte : se replie sur un autre ennemi (avantageuse)', () => {
-    const strong = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 2, 5); // trop loin pour s'y coller
-    const weak = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 11, 10);
-    weak.hp = 10;
-
-    const unit = deployOne(UNDEAD_ROSTER.newRebornSkeleton, [strong, weak]);
-
-    expect(isAdjacent(unit, weak)).toBe(true);
-  });
-
-  test('II. aucun ennemi atteignable : case la plus proche d\'un ennemi', () => {
-    const farEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 5);
-
-    const melee = deployOne(UNDEAD_ROSTER.newRebornSkeleton, [farEnemy]);
-    const ranged = deployOne(UNDEAD_ROSTER.necromantInitiate, [farEnemy]);
-
-    expect(melee.x).toBe(12); // première colonne de la moitié IA
-    expect(ranged.x).toBe(12);
-  });
-
-  test('aucune case valide libre : l\'entrée attend le tick suivant au lieu d\'être perdue', () => {
-    const grid = new Grid(2, 1); // moitié IA = une seule case, (1,0)
+  test('bord d\'entrée plein : l\'entrée attend le tick suivant au lieu d\'être perdue', () => {
+    const grid = new Grid(2, 1); // bord droit = une seule case, (1,0)
     const state = createAiScriptState();
     const script = [{ time: 0, species: UNDEAD_ROSTER.newRebornSkeleton }];
     const occupant = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 1, 0);
