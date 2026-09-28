@@ -20,6 +20,8 @@ export const TEXT = {
     clickbaitDeploy: 'Déploie tes unités pour anéantir tes ennemis.',
     clickbaitAutonomous: 'Ton unité va combattre d\'elle-même les ennemis. Certaines espèces de créatures tirent à distance, d\'autres au corps-à-corps.',
     clickbaitPresence: 'Chaque unité possède des points de présence (PP). Tu ne peux pas dépasser une présence de 150 sur le terrain. Choisis bien tes unités déployées !',
+    clickbaitOpenCommands: 'Si tu veux récupérer une unité blessée ou libérer de la place sur le terrain, tu peux ordonner à l\'une de tes unités de battre en retraite.',
+    clickbaitFlee: 'Choisis une unité et ordonne-lui de battre en retraite.',
 
     // Tutoriel de départ (bataille 01 du jeu normal).
     deploy: 'Déploie ta 1ère unité.',

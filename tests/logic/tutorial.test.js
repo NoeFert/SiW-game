@@ -7,6 +7,7 @@ import {
   openCommandBar, cancelCommand, chooseOrder, selectUnit,
 } from '../../src/logic/commandSelection.js';
 import { isBattleTimeRunning } from '../../src/logic/pause.js';
+import { setUpcomingPhases, PHASE_TRANSITION_SECONDS } from '../../src/logic/phases.js';
 import {
   startTutorial, continueTutorial, visibleTutorialStep, tutorialAllows, TUTORIAL_CONDITION_TYPES,
 } from '../../src/logic/tutorial.js';
@@ -279,6 +280,22 @@ describe('moteur de tutoriel — réutilisable pour une autre bataille', () => {
     expect(isBattleTimeRunning(battle.pause)).toBe(true);
   });
 
+  test('condition phaseElapsed : aussi vraie dans une phase ultérieure, sans recompter', () => {
+    const battle = twoPhaseBattle();
+    deployPlayerUnit(battle, ROSTER.fighter, 0, 0);
+    startTutorial(battle, [
+      { id: 'wait', frozen: false, allows: null, next: [{ type: 'phaseElapsed', phaseIndex: 0, seconds: 100 }] },
+      { id: 'read', frozen: true, allows: [], message: 'presence', continueButton: true, next: [{ type: 'continueClicked' }] },
+    ]);
+    tickBattle(battle, 0.5);
+    expect(battle.tutorial.step).toBe('wait');
+
+    startNextPhase(battle);
+    tickBattle(battle, 0.5);
+
+    expect(battle.tutorial.step).toBe('read');
+  });
+
   test('sans tutoriel, aucune action n\'est bloquée', () => {
     const battle = createBattle(new Grid(10, 10), ROSTER, ROSTER, SCRIPT, () => 0);
 
@@ -288,23 +305,55 @@ describe('moteur de tutoriel — réutilisable pour une autre bataille', () => {
   });
 });
 
+// Bataille en deux phases : un seul ennemi en phase 1 (déployé à t=0), un en phase 2 (t=2).
+function twoPhaseBattle() {
+  const battle = createBattle(new Grid(10, 10), ROSTER, ROSTER, [{ time: 0, species: ROSTER.fighter }], () => 0);
+  setUpcomingPhases(battle, [{ enemyScript: [{ time: 2, species: ROSTER.fighter }], obstacles: [] }]);
+  return battle;
+}
+
+// Élimine les ennemis de la phase en cours et joue toute la transition : la phase suivante
+// commence réellement à la fin de cette fonction.
+function startNextPhase(battle) {
+  for (const u of battle.units) if (u.faction === 'enemy') u.hp = 0;
+  tickBattle(battle, 0.5);
+  tickBattle(battle, PHASE_TRANSITION_SECONDS.exit);
+  tickBattle(battle, PHASE_TRANSITION_SECONDS.enter);
+}
+
 describe('tutoriel clickbait (bataille-clickbait)', () => {
   function reachClickbaitPresence() {
-    const battle = createBattle(new Grid(10, 10), ROSTER, ROSTER, SCRIPT, () => 0);
+    const battle = twoPhaseBattle();
     startTutorial(battle, CLICKBAIT_TUTORIAL);
     startDeploymentDrag(battle);
-    deployPlayerUnit(battle, ROSTER.fighter, 0, 0);
+    const { unit } = deployPlayerUnit(battle, ROSTER.fighter, 0, 0);
     endDeploymentDrag(battle);
     for (let i = 0; i < 100 && battle.tutorial.step !== 'presence'; i++) tickBattle(battle, 0.5);
-    return battle;
+    return { battle, unit };
   }
 
-  test('étapes : déployer, combat autonome, points de présence', () => {
-    expect(CLICKBAIT_TUTORIAL.map((step) => step.id)).toEqual(['deploy', 'autonomous', 'presence']);
+  // Passe les PP (6 s), puis entre en phase 2.
+  function reachClickbaitPhase2() {
+    const { battle, unit } = reachClickbaitPresence();
+    tickBattle(battle, 6);
+    startNextPhase(battle);
+    return { battle, unit };
+  }
+
+  function reachClickbaitFlee() {
+    const { battle, unit } = reachClickbaitPhase2();
+    tickBattle(battle, 6);
+    return { battle, unit };
+  }
+
+  test('étapes : déployer, combat autonome, points de présence, battre en retraite', () => {
+    expect(CLICKBAIT_TUTORIAL.map((step) => step.id)).toEqual(
+      ['deploy', 'autonomous', 'presence', 'waitingForWall', 'openCommands', 'flee'],
+    );
   });
 
   test('l\'étape des PP ne fige pas la bataille et ne bloque aucune action', () => {
-    const battle = reachClickbaitPresence();
+    const { battle } = reachClickbaitPresence();
     const elapsed = battle.elapsedSeconds;
 
     tickBattle(battle, 1);
@@ -314,14 +363,72 @@ describe('tutoriel clickbait (bataille-clickbait)', () => {
     expect(startDeploymentDrag(battle)).toBe(true);
   });
 
-  test('l\'étape des PP disparaît seule après 6 s : fin du tutoriel', () => {
-    const battle = reachClickbaitPresence();
+  test('l\'étape des PP disparaît seule après 6 s ; la bataille continue sans tutoriel visible', () => {
+    const { battle } = reachClickbaitPresence();
 
     tickBattle(battle, 5.5);
     expect(battle.tutorial.step).toBe('presence');
     tickBattle(battle, 0.5);
 
-    expect(battle.tutorial).toBeNull();
+    expect(battle.tutorial.step).toBe('waitingForWall');
+    expect(visibleTutorialStep(battle)).toBeNull();
+    expect(isBattleTimeRunning(battle.pause)).toBe(true);
     expect(openCommandBar(battle)).toBe(true);
+  });
+
+  test('pendant la phase 1, la retraite ne se déclenche jamais', () => {
+    const { battle } = reachClickbaitPresence();
+
+    for (let i = 0; i < 60; i++) tickBattle(battle, 0.5);
+
+    expect(battle.phaseIndex).toBe(0);
+    expect(battle.tutorial.step).toBe('waitingForWall');
+  });
+
+  test('la retraite arrive 6 s (temps de bataille) après le début réel de la phase 2', () => {
+    const { battle } = reachClickbaitPhase2();
+    expect(battle.phaseIndex).toBe(1);
+    expect(battle.elapsedSeconds).toBe(battle.phaseStartSeconds); // transition non comptée
+
+    tickBattle(battle, 5.5);
+    expect(battle.tutorial.step).toBe('waitingForWall');
+    tickBattle(battle, 0.5);
+
+    expect(battle.tutorial.step).toBe('openCommands');
+    expect(visibleTutorialStep(battle).message).toBe('clickbaitOpenCommands');
+    expect(isBattleTimeRunning(battle.pause)).toBe(false);
+    expect(startDeploymentDrag(battle)).toBe(false);
+  });
+
+  test('attend qu\'une unité du joueur soit sur le terrain', () => {
+    const { battle, unit } = reachClickbaitPhase2();
+    unit.hasFled = true; // plus aucune unité du joueur sur le terrain
+
+    for (let i = 0; i < 20; i++) tickBattle(battle, 0.5);
+
+    expect(battle.tutorial.step).toBe('waitingForWall');
+  });
+
+  test('seule la fuite est permise ; [X] ramène à l\'ouverture de la barre ; l\'ordre donné, fin du tutoriel', () => {
+    const { battle, unit } = reachClickbaitFlee();
+    expect(openCommandBar(battle)).toBe(true);
+    tickBattle(battle, 0.1);
+    expect(battle.tutorial.step).toBe('flee');
+    expect(visibleTutorialStep(battle).message).toBe('clickbaitFlee');
+
+    cancelCommand(battle);
+    tickBattle(battle, 0.1);
+    expect(battle.tutorial.step).toBe('openCommands');
+
+    openCommandBar(battle);
+    tickBattle(battle, 0.1);
+    expect(chooseOrder(battle, 'attack')).toBe(false);
+    expect(chooseOrder(battle, 'flee')).toBe(true);
+    expect(selectUnit(battle, unit)).toBe(true);
+    expect(unit.command).toEqual({ type: 'flee' });
+    tickBattle(battle, 0.1);
+
+    expect(battle.tutorial).toBeNull();
+    expect(isBattleTimeRunning(battle.pause)).toBe(true);
   });
 });

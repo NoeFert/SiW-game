@@ -72,7 +72,8 @@ export const STARTER_TUTORIAL = [
 ];
 
 // Tutoriel "clickbait", sur la bataille de la version clickbait : déployer, combat autonome,
-// points de présence. Indépendant du tutoriel de départ (ses propres étapes et ses propres textes).
+// points de présence, puis battre en retraite en phase 2. Indépendant du tutoriel de départ
+// (ses propres étapes et ses propres textes).
 export const CLICKBAIT_TUTORIAL = [
   {
     id: 'deploy',
@@ -101,5 +102,32 @@ export const CLICKBAIT_TUTORIAL = [
     continueButton: true,
     hand: ['presenceGauge', 'basicUnitPresenceTag'],
     next: [{ type: 'elapsed', seconds: 6 }],
+  },
+  {
+    // Pas de message : la bataille suit son cours jusqu'à 6 s après le début de la phase 2
+    // ("Le mur", rules.md 7.3).
+    id: 'waitingForWall',
+    frozen: false,
+    allows: null,
+    next: [{ type: 'phaseElapsed', phaseIndex: 1, seconds: 6 }],
+  },
+  {
+    id: 'openCommands',
+    frozen: true,
+    allows: ['openCommandBar'],
+    message: 'clickbaitOpenCommands',
+    hand: ['commandsButton'],
+    // Il faut une unité à faire fuir, une barre qui peut s'ouvrir, et aucun geste en cours.
+    requires: [{ type: 'playerUnitOnField' }, { type: 'commandAvailable' }, { type: 'noGestureInProgress' }],
+    next: [{ type: 'commandBarOpen' }],
+  },
+  {
+    id: 'flee',
+    frozen: true,
+    allows: ['order:flee', 'selectUnit:flee'],
+    message: 'clickbaitFlee',
+    hand: ['fleeOrder', 'playerUnit'],
+    next: [{ type: 'commandIssued' }],
+    back: { when: { type: 'commandBarClosed' }, to: 'openCommands' },
   },
 ];

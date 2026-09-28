@@ -59,7 +59,7 @@ La première zone apprend à jouer ; passer à la zone suivante est une petite r
 | 8.2 Terrain vide avec réserves | **Simplifiée** | Compte à rebours de 15 s et défaite à son expiration. |
 | 9. Roster | Incluse en entier | Deux factions au choix, l'IA joue l'autre ; 3 unités par faction avec les stats et copies de `units.md`. |
 
-Tutoriel : **tutoriel clickbait actuel, conservé tel quel** (`CLICKBAIT_TUTORIAL`, `technical.md` 5.5) — déployer (bataille figée), combat autonome, points de présence (autonome, 6 s).
+Tutoriel : **tutoriel clickbait** (`CLICKBAIT_TUTORIAL`, `technical.md` 5.5) — déployer (bataille figée), combat autonome, points de présence (autonome, 6 s), puis battre en retraite 6 s après le début de la phase 2 (ouvrir la barre de commandes, puis ordonner Fuir à une unité ; bataille figée).
 
 ## Règles exclues du POC
 
@@ -95,10 +95,6 @@ Hors `RULES.md`, également absents du POC (voir `roadmap.md`) : tutoriel de dé
 - **bouton Abandonner masqué** (présent dans le code du jeu normal) ;
 - UI autour du terrain en **8bitcn, à titre provisoire** : choix de rapidité, susceptible d'être remplacé par un autre style ;
 - aucun texte décoratif en dehors des messages du tutoriel clickbait et des écrans de fin.
-
-## Risque connu
-
-Le tutoriel clickbait n'enseigne **ni la pause ni la fuite**, alors que ce sont deux des trois actions démontrées et le cœur de la boucle de succès. Le joueur doit découvrir seul le bouton Commandes et l'ordre Fuir. Choix assumé pour l'instant, à challenger dans `/pre-rendu-check`.
 
 ## Checklist de vérification
 

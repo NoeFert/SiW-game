@@ -20,7 +20,11 @@ const CONDITIONS = {
   continueClicked: (battle) => battle.tutorial.continued,
   // `fromEnd` : 1 = dernière vague du script IA, 2 = avant-dernière, etc.
   enemyWaveDeployed: (battle, { fromEnd }) => battle.aiScriptState.nextIndex >= battle.enemyScript.length - fromEnd + 1,
-  commandAvailable: (battle) => canIssueCommand(battle.playerCommandState, battle.elapsedSeconds),
+  // `phaseIndex` : 0 = phase 1, 1 = phase 2, etc. (rules.md 7.3). Temps de bataille depuis le
+  // début réel de la phase (transition non comptée) ; toujours vraie dans une phase ultérieure.
+  phaseElapsed: (battle, { phaseIndex, seconds }) => battle.phaseIndex > phaseIndex
+    || (battle.phaseIndex === phaseIndex && battle.elapsedSeconds - battle.phaseStartSeconds >= seconds),
+  commandAvailable:(battle) => canIssueCommand(battle.playerCommandState, battle.elapsedSeconds),
   commandIssued: (battle) => !canIssueCommand(battle.playerCommandState, battle.elapsedSeconds),
   noGestureInProgress: (battle) => battle.pause.interaction === null && battle.commandSelection === null,
   commandBarOpen: (battle) => battle.commandSelection !== null,
