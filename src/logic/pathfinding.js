@@ -8,16 +8,19 @@ export function chebyshevDistance(x1, y1, x2, y2) {
   return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
 }
 
+// rules.md 3 : ennemi le plus proche ; à égalité, le moins de PV actuels, puis le premier
+// déployé (`id` croissant — une unité redéployée après une fuite est une nouvelle `Unit`).
+export function compareTargets(unit, a, b) {
+  return minDistanceBetweenFootprints(unit, a) - minDistanceBetweenFootprints(unit, b)
+    || a.hp - b.hp
+    || a.id - b.id;
+}
+
 export function findNearestEnemy(unit, units) {
   let nearest = null;
-  let nearestDist = Infinity;
   for (const other of units) {
     if (other === unit || !other.isAlive || other.faction === unit.faction) continue;
-    const dist = minDistanceBetweenFootprints(unit, other);
-    if (dist < nearestDist) {
-      nearestDist = dist;
-      nearest = other;
-    }
+    if (!nearest || compareTargets(unit, other, nearest) < 0) nearest = other;
   }
   return nearest;
 }
@@ -65,6 +68,15 @@ export function isPositionFree(x, y, size, grid, occupied, ignoreTerrainObstacle
   return true;
 }
 
+// rules.md 3 : pas de (x, y) vers (x + dx, y + dy) — destination libre et, pour une unité au sol,
+// aucun coin d'obstacle coupé en diagonale. Les unités, elles, ne bloquent jamais la diagonale.
+export function canStep(x, y, dx, dy, size, grid, occupied, ignoreTerrainObstacles) {
+  if (!isPositionFree(x + dx, y + dy, size, grid, occupied, ignoreTerrainObstacles)) return false;
+  if (ignoreTerrainObstacles || dx === 0 || dy === 0) return true;
+  return ![...footprint(x + dx, y, size), ...footprint(x, y + dy, size)]
+    .some((cell) => grid.isObstacle(cell.x, cell.y));
+}
+
 // Chemin le plus court (parcours en largeur, 8 directions à coût uniforme) de la position de
 // `unit` vers la case libre la plus proche qui satisfait `isGoal(x, y)` (coin haut-gauche pour
 // un bloc 2x2). Tableau vide si `unit` y est déjà, ou si aucune case de ce type n'est
@@ -84,7 +96,7 @@ export function findPathToNearest(unit, grid, units, isGoal) {
       const ny = current.y + dy;
       const key = `${nx},${ny}`;
       if (cameFrom.has(key)) continue;
-      if (!isPositionFree(nx, ny, unit.size, grid, occupied, unit.isFlying)) continue;
+      if (!canStep(current.x, current.y, dx, dy, unit.size, grid, occupied, unit.isFlying)) continue;
       cameFrom.set(key, `${current.x},${current.y}`);
       if (isGoal(nx, ny)) {
         const path = [];
@@ -105,9 +117,9 @@ function parseKey(key) {
 // Chemin le plus court (A*, coin haut-gauche pour un bloc 2x2) de la position de `unit` vers
 // la case libre atteignable la plus proche de (targetX, targetY), en contournant les
 // obstacles (ignorés si [Vol]) et les autres unités. Tableau vide si `unit` est déjà au plus
-// près possible (bloquée ou déjà arrivée). La distance de Chebyshev est un coût exact (pas
-// juste admissible) pour un déplacement 8 directions à coût uniforme : A* n'explore donc que
-// les cases utiles à un chemin optimal, jamais toute la carte comme le ferait un simple BFS.
+// près possible (bloquée ou déjà arrivée). La distance de Chebyshev est un coût admissible pour
+// un déplacement 8 directions à coût uniforme (exact en terrain dégagé, un coin d'obstacle ne
+// pouvant que rallonger le trajet) : A* explore donc peu de cases, jamais toute la carte.
 export function findPath(unit, targetX, targetY, grid, units) {
   const occupied = occupiedCells(units, unit);
   const ignoreTerrainObstacles = unit.isFlying;
@@ -161,7 +173,7 @@ export function findPath(unit, targetX, targetY, grid, units) {
       const ny = cy + dy;
       const key = `${nx},${ny}`;
       if (closed.has(key)) continue;
-      if (!isPositionFree(nx, ny, size, grid, occupied, ignoreTerrainObstacles)) continue;
+      if (!canStep(cx, cy, dx, dy, size, grid, occupied, ignoreTerrainObstacles)) continue;
 
       const tentativeG = g + 1;
       if (gScore.has(key) && tentativeG >= gScore.get(key)) continue;

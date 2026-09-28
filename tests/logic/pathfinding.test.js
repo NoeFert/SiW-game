@@ -26,6 +26,15 @@ describe('findNearestEnemy', () => {
     expect(findNearestEnemy(self, [self, smallEnemy, bigEnemy])).toBe(bigEnemy);
   });
 
+  test('breaks a distance tie by fewest current HP (rules.md 3)', () => {
+    const self = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 5);
+    const healthy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 8, 5);
+    const wounded = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 2, 5);
+    wounded.takeDamage(1);
+
+    expect(findNearestEnemy(self, [self, healthy, wounded])).toBe(wounded);
+  });
+
   test('ignores allies and dead units', () => {
     const ally = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 1, 1);
     const self = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
@@ -93,6 +102,30 @@ describe('findPath — contournement d\'obstacle', () => {
       expect(grid.isObstacle(step.x, step.y)).toBe(false);
     }
     expect(lastStep(path)).toEqual({ x: 4, y: 2 });
+  });
+});
+
+describe('findPath — diagonale et coin d\'obstacle (rules.md 3)', () => {
+  test('a ground unit never cuts the corner of an obstacle', () => {
+    const grid = new Grid(5, 5, [{ x: 1, y: 0 }]);
+    const unit = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
+
+    expect(findPath(unit, 1, 1, grid, [unit])).toEqual([{ x: 0, y: 1 }, { x: 1, y: 1 }]);
+  });
+
+  test('units never block a diagonal', () => {
+    const grid = new Grid(5, 5);
+    const unit = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);
+    const blockers = [[1, 0], [0, 1]].map(([x, y]) => new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', x, y));
+
+    expect(findPath(unit, 1, 1, grid, [unit, ...blockers])).toEqual([{ x: 1, y: 1 }]);
+  });
+
+  test('[Vol] units are not concerned', () => {
+    const grid = new Grid(5, 5, [{ x: 1, y: 0 }]);
+    const flyer = new Unit(WYRMS_ROSTER.amphiptere, 'player', 0, 0);
+
+    expect(findPath(flyer, 1, 1, grid, [flyer])).toEqual([{ x: 1, y: 1 }]);
   });
 });
 

@@ -1,13 +1,13 @@
 import Grid, { parseObstacleMap } from '../../src/logic/grid.js';
-import { DIRECTIONS, isPositionFree } from '../../src/logic/pathfinding.js';
+import { DIRECTIONS, canStep } from '../../src/logic/pathfinding.js';
 import {
   WALL_ZONE_MAP, LANES_ZONE_MAP, FORT_ZONE_MAP,
   WALL_ZONE_OBSTACLES, LANES_ZONE_OBSTACLES, FORT_ZONE_OBSTACLES,
 } from '../../src/data/battlefield.js';
 
 // Zones de la bataille-clickbait (rules.md 7.3) : chaque plan doit jouer son rôle (mur, couloirs,
-// fort) sans fuite. Même règle de déplacement que le jeu : 8 directions, et rien n'empêche de
-// passer en diagonale entre deux rochers qui ne se touchent que par un coin.
+// fort) sans fuite. Même règle de déplacement que le jeu (`canStep`) : 8 directions, sans jamais
+// couper le coin d'un rocher (rules.md 3).
 const W = 24;
 const H = 14;
 const NO_UNITS = new Set();
@@ -16,15 +16,15 @@ const NO_UNITS = new Set();
 // cases rendues infranchissables en plus ; `allowed(x, y)` : cases où le bloc a le droit d'aller.
 function reachable(obstacles, start, size, { closed = [], allowed = () => true } = {}) {
   const grid = new Grid(W, H, [...obstacles, ...closed]);
-  const fits = (x, y) => isPositionFree(x, y, size, grid, NO_UNITS, false)
-    && [...Array(size * size)].every((_, i) => allowed(x + (i % size), y + Math.floor(i / size)));
+  const fits = (from, dx, dy) => canStep(from.x, from.y, dx, dy, size, grid, NO_UNITS, false)
+    && [...Array(size * size)].every((_, i) => allowed(from.x + dx + (i % size), from.y + dy + Math.floor(i / size)));
   const seen = new Set([`${start.x},${start.y}`]);
   const queue = [start];
   for (let i = 0; i < queue.length; i++) {
     for (const { dx, dy } of DIRECTIONS) {
       const next = { x: queue[i].x + dx, y: queue[i].y + dy };
       const key = `${next.x},${next.y}`;
-      if (!seen.has(key) && fits(next.x, next.y)) {
+      if (!seen.has(key) && fits(queue[i], dx, dy)) {
         seen.add(key);
         queue.push(next);
       }

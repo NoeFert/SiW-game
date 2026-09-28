@@ -4,9 +4,10 @@ export const TEXT = {
   // Titre du jeu, découpé pour la mise en forme ("in" plus petit, voir IntroScreen).
   title: { first: 'Sovereign', middle: 'in', last: 'War' },
   introLines: [
-    'Tu es un souverain,',
+    'Tu es un souverain.',
     'Un être au sommet de ton espèce.',
-    'Ton but ultime est de mener tes fidèles vers la grandeur.',
+    'Ton but ultime : mener tes fidèles',
+    'vers la grandeur.',
     'Mais en ce monde, plusieurs souverains existent.',
     'Pour atteindre ton but, il y aura la guerre.',
   ],

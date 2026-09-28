@@ -6,7 +6,7 @@ import { hasAnyReserves } from './deployment.js';
 export const RESERVE_DEPLOY_COUNTDOWN_SECONDS = 15;
 
 export function createFactionState() {
-  return { countdownRemaining: null, defeated: false };
+  return { countdownRemaining: null, defeated: false, countdownExpired: false };
 }
 
 // rules.md 8.2, dernière clause : abandon explicite du joueur ou de l'IA.
@@ -40,19 +40,22 @@ export function updateFactionEndState(factionState, unitsOnField, deploymentStat
   if (factionState.countdownRemaining <= 0) {
     factionState.countdownRemaining = 0;
     factionState.defeated = true;
+    factionState.countdownExpired = true;
   }
 
   return factionState;
 }
 
 // rules.md 8 : verdict global. `side` = { factionState, unitsOnField, deploymentState }.
-// 'draw' est un cas limite non détaillé par les specs (les deux camps éliminés au même tick,
-// possible du fait des dégâts simultanés de la section 4.1) — à signaler, pas dans rules.md.
+// Les deux camps perdent au même tick : match nul (8.1, 7.3), sauf si ce sont leurs deux comptes
+// à rebours qui expirent ensemble — défaite du joueur (8.2).
 export function evaluateBattleOutcome(player, enemy) {
   const playerLost = player.factionState.defeated || isEliminated(player.unitsOnField, player.deploymentState);
   const enemyLost = enemy.factionState.defeated || isEliminated(enemy.unitsOnField, enemy.deploymentState);
 
-  if (playerLost && enemyLost) return 'draw';
+  if (playerLost && enemyLost) {
+    return player.factionState.countdownExpired && enemy.factionState.countdownExpired ? 'enemyVictory' : 'draw';
+  }
   if (enemyLost) return 'playerVictory';
   if (playerLost) return 'enemyVictory';
   return 'ongoing';

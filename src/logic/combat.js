@@ -1,5 +1,5 @@
 import {
-  findPath, findPathToNearest, footprint, minDistanceBetweenFootprints, occupiedCells, isPositionFree, DIRECTIONS,
+  compareTargets, findPath, findPathToNearest, footprint, minDistanceBetweenFootprints, occupiedCells, isPositionFree, DIRECTIONS,
 } from './pathfinding.js';
 
 export function isAdjacent(a, b) {
@@ -42,9 +42,7 @@ export function chooseTarget(unit, aliveUnits, grid) {
   const enemies = aliveUnits.filter((u) => u.isOnField && u.faction !== unit.faction);
   if (enemies.length === 0) return null;
 
-  const sorted = [...enemies].sort(
-    (a, b) => minDistanceBetweenFootprints(unit, a) - minDistanceBetweenFootprints(unit, b),
-  );
+  const sorted = [...enemies].sort((a, b) => compareTargets(unit, a, b));
 
   if (unit.species.attackType !== 'melee') return sorted[0];
 
@@ -156,19 +154,32 @@ function isOnEdge(x, y, size, grid) {
 
 // rules.md 5 : la fuite est toujours possible immédiatement, même engagée au corps-à-corps —
 // chaque ennemi alors engagé sur elle porte une dernière attaque au désengagement (une seule
-// fois, au premier tick de fuite), hors de son propre timer d'attaque. La fuite vise la case de
-// bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
+// fois, au premier tick de fuite), hors de son propre timer d'attaque et sans compter pour les
+// aptitudes (`free`, rules.md 6.1). La fuite vise la case de bord atteignable la plus proche,
+// n'importe laquelle : un bord bloqué est contourné. Aucun bord atteignable : l'unité reste en
+// fuite sur place et riposte au corps-à-corps (sauf unité purement à distance) jusqu'à ce qu'un
+// chemin se libère ; `target` n'est posée que pendant cette riposte.
 function processFlee(unit, grid, aliveUnits, deltaSeconds, pendingAttacks) {
   if (unit.status !== 'fleeing') {
     for (const enemy of aliveUnits) {
       if (enemy.faction !== unit.faction && enemy.status === 'engaged' && enemy.target === unit) {
-        pendingAttacks.push({ attacker: enemy, target: unit, mode: 'melee' });
+        pendingAttacks.push({ attacker: enemy, target: unit, mode: 'melee', free: true });
       }
     }
   }
 
   unit.status = 'fleeing';
   const onEdge = (x, y) => isOnEdge(x, y, unit.size, grid);
+  if (!onEdge(unit.x, unit.y) && findPathToNearest(unit, grid, aliveUnits, onEdge).length === 0) {
+    const adjacentEnemies = aliveUnits.filter((e) => e.faction !== unit.faction && isAdjacent(unit, e));
+    unit.target = unit.species.attackType === 'ranged'
+      ? null
+      : adjacentEnemies.sort((a, b) => compareTargets(unit, a, b))[0] ?? null;
+    if (unit.target) queueAttack(unit, unit.target, 'melee', deltaSeconds, pendingAttacks);
+    return;
+  }
+
+  unit.target = null;
   advance(unit, deltaSeconds, () => findPathToNearest(unit, grid, aliveUnits, onEdge));
 
   if (onEdge(unit.x, unit.y)) {
@@ -206,16 +217,19 @@ function applyAttacks(pendingAttacks) {
   const landed = [];
   const toParalyze = [];
 
-  for (const { attacker, target, mode } of pendingAttacks) {
+  for (const { attacker, target, mode, free } of pendingAttacks) {
     if (attacker.paralyzedNextAttack) {
       attacker.paralyzedNextAttack = false;
       events.push({ type: 'missed', unit: attacker });
       continue;
     }
 
-    attacker.attacksLanded += 1;
     if (mode === 'ranged') events.push({ type: 'rangedAttack', unit: attacker, target });
-    const { damage, paralyzes, triggered } = applyPeriodicAbilities(attacker, target, damageFor(attacker, mode));
+    const baseDamage = damageFor(attacker, mode);
+    if (!free) attacker.attacksLanded += 1;
+    const { damage, paralyzes, triggered } = free
+      ? { damage: baseDamage, paralyzes: false, triggered: [] }
+      : applyPeriodicAbilities(attacker, target, baseDamage);
     events.push(...triggered);
     if (paralyzes) toParalyze.push(target);
     landed.push({ attacker, target, damage, targetWasAlive: target.isAlive });
@@ -251,7 +265,10 @@ export function resolveCombatTick(units, grid, deltaSeconds) {
   for (const unit of processingOrder) {
     // Le timer d'attaque ne court que pendant un échange de coups : une unité qui arrive au
     // contact ou à portée repart de zéro, sans frappe instantanée héritée d'un combat précédent.
-    if (unit.status !== 'engaged' && unit.status !== 'attacking') unit.attackTimer = 0;
+    // Une unité en fuite qui riposte (rules.md 5) garde elle aussi son rythme d'un tick à l'autre.
+    const isTrading = unit.status === 'engaged' || unit.status === 'attacking'
+      || (unit.status === 'fleeing' && unit.target);
+    if (!isTrading) unit.attackTimer = 0;
 
     if (unit.command?.type === 'flee') {
       processFlee(unit, grid, aliveUnits, deltaSeconds, pendingAttacks);

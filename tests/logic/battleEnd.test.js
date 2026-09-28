@@ -101,6 +101,18 @@ describe('compte à rebours (rules.md 8.2)', () => {
 
     expect(evaluateBattleOutcome(player, enemy)).toBe('playerVictory');
   });
+
+  test('expiration simultanée des deux comptes à rebours : défaite du joueur, pas un match nul', () => {
+    const [player, enemy] = [0, 1].map(() => ({
+      factionState: createFactionState(), unitsOnField: [], deploymentState: emptyDeployment(),
+    }));
+    for (const side of [player, enemy]) {
+      updateFactionEndState(side.factionState, [], side.deploymentState, 0);
+      updateFactionEndState(side.factionState, [], side.deploymentState, RESERVE_DEPLOY_COUNTDOWN_SECONDS);
+    }
+
+    expect(evaluateBattleOutcome(player, enemy)).toBe('enemyVictory');
+  });
 });
 
 describe('mort vs fuite au niveau des réserves (rules.md 2/4.4)', () => {

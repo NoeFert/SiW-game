@@ -102,6 +102,44 @@ describe('chooseTarget — distance entre cases les plus proches (rules.md 3)', 
   });
 });
 
+describe('dernière attaque au désengagement (rules.md 5 et 6.1)', () => {
+  test('is free: it neither counts for nor triggers periodic abilities', () => {
+    const grid = new Grid(12, 12);
+    const fleeing = new Unit(DUMMY, 'player', 5, 5);
+    fleeing.command = { type: 'flee' };
+    const fafnir = new Unit(WYRMS_ROSTER.fafnir, 'enemy', 6, 5); // occupies (6,5)-(7,6)
+    fafnir.status = 'engaged';
+    fafnir.target = fleeing;
+    fafnir.attacksLanded = 4; // la 5e attaque portée déclencherait l'Attaque dévastatrice
+
+    resolveCombatTick([fleeing, fafnir], grid, 0.1);
+
+    expect(fleeing.hp).toBe(DUMMY.maxHp - WYRMS_ROSTER.fafnir.damage.melee);
+    expect(fafnir.attacksLanded).toBe(4);
+  });
+});
+
+describe('chooseTarget — égalité de distance (rules.md 3)', () => {
+  test('picks the enemy with the fewest current HP', () => {
+    const grid = new Grid(12, 12);
+    const shooter = new Unit(WYRMS_ROSTER.amphiptere, 'player', 5, 5);
+    const healthy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 8, 5);
+    const wounded = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 2, 5);
+    wounded.takeDamage(1);
+
+    expect(chooseTarget(shooter, [shooter, healthy, wounded], grid)).toBe(wounded);
+  });
+
+  test('then picks the first deployed enemy', () => {
+    const grid = new Grid(12, 12);
+    const shooter = new Unit(WYRMS_ROSTER.amphiptere, 'player', 5, 5);
+    const firstDeployed = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 2, 5);
+    const secondDeployed = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 8, 5);
+
+    expect(chooseTarget(shooter, [shooter, secondDeployed, firstDeployed], grid)).toBe(firstDeployed);
+  });
+});
+
 describe('resolveCombatTick — attaque à distance (rules.md 4.5)', () => {
   test('a ranged unit never fires on an adjacent target and steps back instead', () => {
     const grid = new Grid(10, 10);
