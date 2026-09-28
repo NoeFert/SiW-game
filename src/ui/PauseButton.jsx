@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/8bit/button.jsx';
 import { cn } from '@/lib/utils';
-import { toggleMainPause } from '../logic/pause.js';
+import { togglePlayerPause } from '../logic/battle.js';
+import { tutorialAllows } from '../logic/tutorial.js';
 import { TEXT } from './strings.js';
 
 // Espace ne doit pas basculer la pause quand le joueur tape du texte, ni pendant une boîte de
@@ -23,7 +24,7 @@ export default function PauseButton({ battle }) {
       if (event.code !== 'Space' || isTypingOrInDialog(event.target)) return;
       // Empêche aussi un bouton qui aurait le focus d'être "cliqué" par la même touche.
       event.preventDefault();
-      if (event.type === 'keydown' && !event.repeat && battle.outcome === 'ongoing') toggleMainPause(battle.pause);
+      if (event.type === 'keydown' && !event.repeat) togglePlayerPause(battle);
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKey);
@@ -36,8 +37,8 @@ export default function PauseButton({ battle }) {
   return (
     <Button
       size="icon"
-      onClick={() => toggleMainPause(battle.pause)}
-      disabled={battle.outcome !== 'ongoing'}
+      onClick={() => togglePlayerPause(battle)}
+      disabled={battle.outcome !== 'ongoing' || !tutorialAllows(battle, 'mainPause')}
       aria-label={paused ? TEXT.resume : TEXT.pause}
       title={paused ? TEXT.resume : TEXT.pause}
       className={cn(paused && 'animate-pulse')}

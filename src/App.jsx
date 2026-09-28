@@ -7,6 +7,7 @@ import DefeatScreen from './screens/DefeatScreen.jsx';
 import HomeScreen from './screens/HomeScreen.jsx';
 import CivilizationScreen from './screens/CivilizationScreen.jsx';
 import { ROSTERS } from './data/rosters.js';
+import { FIRST_BATTLE_ID } from './data/battles.js';
 import { countOwnedCopies } from './logic/deployment.js';
 import {
   getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, saveOwnedCopies,
@@ -71,6 +72,7 @@ export default function App() {
       <BattleScreen
         key={battleAttempt}
         playerFaction={playerFaction}
+        battleId={FIRST_BATTLE_ID}
         onVictory={handleVictory}
         onDefeat={handleDefeat}
       />

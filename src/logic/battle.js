@@ -9,8 +9,9 @@ import {
 } from './battleEnd.js';
 import {
   createPauseState, isBattleTimeRunning, startInteraction, endInteraction, canStartDeploymentDuringPause,
-  recordPlayerAction,
+  recordPlayerAction, toggleMainPause,
 } from './pause.js';
+import { tutorialAllows, updateTutorial } from './tutorial.js';
 
 // Assemble déploiement (rules.md 2, 7), commandes (5, consommées par resolveCombatTick),
 // pauses (5.2), résolution de combat (4, 6) et fin de bataille (8) en une seule boucle par
@@ -26,6 +27,7 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
     outcome: 'ongoing',
     pause: createPauseState(), // rules.md 5.2, voir pause.js
     commandSelection: null, // barre de commandes ouverte, voir commandSelection.js
+    tutorial: null, // étape du tutoriel en cours (première bataille seulement), voir tutorial.js
     playerCommandState: createCommandState(),
     aiScriptState: createAiScriptState(),
     enemyScript,
@@ -59,10 +61,20 @@ export function endSurrenderConfirm(battle) {
   if (battle.pause.interaction === 'surrender') endInteraction(battle.pause);
 }
 
+// rules.md 5.2 : bouton ⏸ / ▶ du joueur (bloqué pendant une étape figée du tutoriel).
+export function togglePlayerPause(battle) {
+  if (battle.outcome !== 'ongoing' || !tutorialAllows(battle, 'mainPause')) return false;
+  toggleMainPause(battle.pause);
+  return true;
+}
+
 // rules.md 5.2 : un drag de déploiement déclenche la pause d'interaction. Refusé pendant la
 // sélection d'une commande (les deux gestes sont exclusifs).
 export function startDeploymentDrag(battle) {
-  if (battle.outcome !== 'ongoing' || battle.commandSelection || !canStartDeploymentDuringPause(battle.pause)) {
+  if (
+    battle.outcome !== 'ongoing' || battle.commandSelection || !canStartDeploymentDuringPause(battle.pause)
+    || !tutorialAllows(battle, 'deploy')
+  ) {
     return false;
   }
   startInteraction(battle.pause, 'deploy');
@@ -146,10 +158,15 @@ function evaluateOutcome(battle) {
 }
 
 // Fait avancer la bataille de `deltaSeconds` et renvoie le verdict à jour
-// ('ongoing' | 'playerVictory' | 'enemyVictory' | 'draw'). Pendant une pause (rules.md 5.2),
-// rien n'avance : tous les compteurs restent gelés.
+// ('ongoing' | 'playerVictory' | 'enemyVictory' | 'draw'). À appeler à chaque frame, même en
+// pause : le tutoriel doit pouvoir avancer d'étape pendant un gel. Pendant une pause
+// (rules.md 5.2), rien d'autre n'avance : tous les compteurs restent gelés.
 export function tickBattle(battle, deltaSeconds) {
-  if (battle.outcome !== 'ongoing' || !isBattleTimeRunning(battle.pause)) return battle.outcome;
+  if (battle.outcome !== 'ongoing') return battle.outcome;
+  battle.abilityEvents = [];
+  // Une étape figée du tutoriel peut se terminer (action faite) : la bataille repart dès ce tick.
+  if (!isBattleTimeRunning(battle.pause)) updateTutorial(battle, 0);
+  if (!isBattleTimeRunning(battle.pause)) return battle.outcome;
 
   battle.elapsedSeconds += deltaSeconds;
   deployScriptedEnemies(battle);
@@ -159,6 +176,8 @@ export function tickBattle(battle, deltaSeconds) {
   updateFactionEndState(battle.playerEndState, unitsOnFieldOf(battle, 'player'), battle.playerDeployment, deltaSeconds);
   updateFactionEndState(battle.enemyEndState, unitsOnFieldOf(battle, 'enemy'), battle.enemyDeployment, deltaSeconds);
 
+  // Les délais du tutoriel se comptent une fois le temps de ce tick écoulé.
+  updateTutorial(battle, deltaSeconds);
   battle.outcome = evaluateOutcome(battle);
   return battle.outcome;
 }

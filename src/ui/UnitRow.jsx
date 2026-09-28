@@ -21,6 +21,8 @@ const UnitRow = forwardRef(({ row, className, ...props }, ref) => {
   return (
     <div
       ref={ref}
+      // Repère de la main du tutoriel : l'unité basique de la faction (Lambton / Skeleton).
+      data-tutorial={row.keywords.length === 0 ? 'basic-unit' : undefined}
       {...props}
       className={cn(
         'flex gap-3 items-center p-2 border-2 border-foreground/40 bg-neutral-900 select-none touch-none',
@@ -48,7 +50,7 @@ const UnitRow = forwardRef(({ row, className, ...props }, ref) => {
       <div className="flex flex-col gap-2 min-w-0 text-xs">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="font-bold">{unitName(row.species)}</span>
-          <Badge className="text-[10px] mx-1.5">{TEXT.presenceTag(row.cost)}</Badge>
+          <Badge data-tutorial="presence-tag" className="text-[10px] mx-1.5">{TEXT.presenceTag(row.cost)}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span>

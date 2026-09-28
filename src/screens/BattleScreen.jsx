@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import BattleSceneClass from '../scenes/BattleScene.js';
 import CommandTower from '../ui/CommandTower.jsx';
+import TutorialOverlay from '../ui/TutorialOverlay.jsx';
 import { GAME_WIDTH, GAME_HEIGHT } from '../renderConstants.js';
 import { interactionState } from '../state/interactionState.js';
 
@@ -10,7 +11,10 @@ import { interactionState } from '../state/interactionState.js';
 // juste le conteneur DOM qu'il lui fournit via `containerRef`, technical.md 2.2). L'ID
 // "phaser-root" est conservé sur ce conteneur car DeploymentList.jsx repère le <canvas> par
 // ce sélecteur pour convertir les coordonnées de glisser-déposer (voir renderConstants.js).
-export default function BattleScreen({ playerFaction, onVictory, onDefeat }) {
+// `battleId` : bataille à jouer (src/data/battles.js), avec son tutoriel s'il en a un.
+export default function BattleScreen({
+  playerFaction, battleId, onVictory, onDefeat,
+}) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -27,13 +31,13 @@ export default function BattleScreen({ playerFaction, onVictory, onDefeat }) {
         autoCenter: Phaser.Scale.CENTER_VERTICALLY,
       },
     });
-    game.scene.start('BattleScene', { playerFaction });
+    game.scene.start('BattleScene', { playerFaction, battleId });
 
     return () => {
       game.destroy(true);
       interactionState.battle = null;
     };
-  }, [playerFaction]);
+  }, [playerFaction, battleId]);
 
   useEffect(() => {
     let frameId;
@@ -61,6 +65,7 @@ export default function BattleScreen({ playerFaction, onVictory, onDefeat }) {
         <CommandTower playerFaction={playerFaction} />
       </div>
       <div id="phaser-root" ref={containerRef} className="flex-1 min-w-0 h-full" />
+      <TutorialOverlay />
     </div>
   );
 }

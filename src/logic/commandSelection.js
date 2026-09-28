@@ -4,6 +4,7 @@ import { issuePlayerAttack, issuePlayerMoveTo, issuePlayerFlee } from './battle.
 import {
   PAUSE_DEFAULTS, startInteraction, endInteraction, recordPlayerAction,
 } from './pause.js';
+import { tutorialAllows } from './tutorial.js';
 
 // rules.md 5 : déroulé d'une commande depuis la barre de commandes. L'état vit dans
 // `battle.commandSelection` : `null` quand la barre est fermée, sinon `{ order, unit }`.
@@ -18,11 +19,13 @@ function isOpen(battle) {
   return battle.commandSelection !== null;
 }
 
-// Pendant le cooldown, un drag ou une fois la bataille finie, la barre ne s'ouvre pas.
+// Pendant le cooldown, un drag, une étape du tutoriel qui ne le demande pas, ou une fois la
+// bataille finie, la barre ne s'ouvre pas.
 export function canOpenCommandBar(battle) {
   return battle.outcome === 'ongoing'
     && !isOpen(battle)
     && battle.pause.interaction !== 'deploy'
+    && tutorialAllows(battle, 'openCommandBar')
     && canIssueCommand(battle.playerCommandState, battle.elapsedSeconds);
 }
 
@@ -52,7 +55,7 @@ function complete(battle, issued) {
 // Choisir un ordre (re)démarre la voie 1 : l'unité éventuellement déjà sélectionnée est
 // oubliée, pour que `flee` passe toujours par ordre -> unité.
 export function chooseOrder(battle, order) {
-  if (!isOpen(battle) || !ORDERS.includes(order)) return false;
+  if (!isOpen(battle) || !ORDERS.includes(order) || !tutorialAllows(battle, `order:${order}`)) return false;
   startInteraction(battle.pause, 'command');
   battle.commandSelection = { order, unit: null };
   return true;
@@ -60,6 +63,7 @@ export function chooseOrder(battle, order) {
 
 export function selectUnit(battle, unit) {
   if (!isOpen(battle) || unit.faction !== 'player' || !unit.isOnField) return false;
+  if (!tutorialAllows(battle, `selectUnit:${battle.commandSelection.order ?? 'none'}`)) return false;
   startInteraction(battle.pause, 'command');
   battle.commandSelection.unit = unit;
   if (battle.commandSelection.order === 'flee') return complete(battle, issuePlayerFlee(battle, unit));
@@ -75,6 +79,7 @@ export function selectEnemy(battle, enemy) {
   const unit = selectedActor(battle);
   const { order } = battle.commandSelection ?? {};
   if (!unit || !(order === 'attack' || order === null) || enemy.faction !== 'enemy' || !enemy.isOnField) return false;
+  if (!tutorialAllows(battle, 'selectTarget')) return false;
   return complete(battle, issuePlayerAttack(battle, unit, enemy));
 }
 
@@ -82,6 +87,7 @@ export function selectCell(battle, x, y) {
   const unit = selectedActor(battle);
   const { order } = battle.commandSelection ?? {};
   if (!unit || !(order === 'move' || order === null) || !isInsideGrid(battle.grid, x, y)) return false;
+  if (!tutorialAllows(battle, 'selectTarget')) return false;
   return complete(battle, issuePlayerMoveTo(battle, unit, x, y));
 }
 

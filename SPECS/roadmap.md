@@ -13,6 +13,7 @@ Deux parties : le MVP (scope v1), puis la suite (scope v2+). Anciennement `scope
 - **Deux factions jouables** (Souveraine des Wyrms et Souverain des Morts-Vivants), roster réduit de 3 unités chacune (basique, [Vol], [Légendaire]). Le joueur choisit sa faction en début de partie ; l'IA contrôle automatiquement l'autre — pour éviter que le joueur affronte sa propre armée en miroir (voir `rules.md` section 9 et `units.md`)
 - Déploiement avec pause tactique, plafond vivant de points de présence, quantité de copies limitée par unité (voir `rules.md` section 2)
 - **Pause principale** : interrupteur ⏸ / ▶ (et barre Espace) qui gèle tous les compteurs de la bataille, pendant laquelle le joueur peut encore déployer et donner une commande (voir `rules.md` section 5.2)
+- **Tutoriel guidé pendant la première bataille** : messages et main animée, bataille figée tant que le joueur n'a pas fait l'action demandée (déployer, points de présence, battre en retraite — voir `technical.md` section 5.5)
 - **Bouton Abandonner**, disponible à tout moment de la bataille (tutoriel compris), avec confirmation : défaite, réserves conservées (voir `rules.md` section 8.2)
 - Mouvement autonome + pathfinding + règles d'engagement corps-à-corps et à distance (voir `rules.md` sections 3 et 4)
 - Combat autonome (dégâts, PV, mort définitive)

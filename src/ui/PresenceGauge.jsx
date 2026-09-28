@@ -13,7 +13,7 @@ export default function PresenceGauge({ used, playerFaction }) {
   const ratio = Math.min(1, used / PRESENCE_CAP);
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="relative size-24 rounded-full overflow-hidden border-4 border-foreground bg-neutral-800">
+      <div data-tutorial="presence-gauge" className="relative size-24 rounded-full overflow-hidden border-4 border-foreground bg-neutral-800">
         <div
           className={`absolute inset-x-0 bottom-0 transition-[height] duration-300 ${FILL_CLASS[playerFaction]}`}
           style={{ height: `${ratio * 100}%` }}

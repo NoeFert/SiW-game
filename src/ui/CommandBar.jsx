@@ -25,6 +25,7 @@ export default function CommandBar({ battle }) {
     const progress = 1 - remaining / COMMAND_COOLDOWN_SECONDS;
     return (
       <Button
+        data-tutorial="commands-button"
         onClick={() => openCommandBar(battle)}
         disabled={!canOpenCommandBar(battle)}
         className="relative w-full overflow-hidden text-xs"
@@ -50,6 +51,7 @@ export default function CommandBar({ battle }) {
           <Tooltip key={order}>
             <TooltipTrigger>
               <Button
+                data-tutorial={`order-${order}`}
                 size="icon"
                 onClick={() => chooseOrder(battle, order)}
                 aria-label={TEXT.orders[order]}

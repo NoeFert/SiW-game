@@ -90,6 +90,7 @@ Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s
 
 - **Pause principale** : interrupteur activé et désactivé par le joueur (bouton ⏸ / ▶, raccourci barre Espace). Pendant cette pause, le joueur peut encore déployer et donner une commande.
 - **Pause d'interaction** : automatique pendant un glisser-déposer de déploiement (section 2), pendant la sélection d'une commande (dès l'ouverture de la barre, section 5) et pendant la confirmation d'abandon (section 8.2 ; une commande en cours de sélection est alors annulée). Elle se termine d'elle-même à la fin ou à l'annulation du geste.
+- **Gel du tutoriel** (première bataille uniquement, `technical.md` 5.5) : pendant une étape qui demande ou explique quelque chose, la bataille est figée comme pendant une pause, et seule l'action demandée est possible.
 - Pendant toute pause, **tous les compteurs sont gelés** : timers d'attaque, mouvements, cooldown des commandes, script de l'IA (section 7) et compte à rebours de 15 secondes (section 8.2). Les animations des unités sont gelées elles aussi.
 - Le cooldown étant gelé, **une seule commande est possible par pause principale**.
 - Le déploiement reste possible **plusieurs fois** pendant une pause principale, dans la limite du plafond de points de présence (section 2).

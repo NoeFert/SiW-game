@@ -2,9 +2,10 @@ import Phaser from 'phaser';
 import Grid from '../logic/grid.js';
 import { createBattle, tickBattle } from '../logic/battle.js';
 import { isBattleTimeRunning } from '../logic/pause.js';
+import { startTutorial } from '../logic/tutorial.js';
 import { clickField, cancelCommand, getClickableHighlights } from '../logic/commandSelection.js';
 import { ROSTERS } from '../data/rosters.js';
-import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../data/battleScript.js';
+import { BATTLES } from '../data/battles.js';
 import { BATTLEFIELD_OBSTACLES } from '../data/battlefield.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import { CELL_SIZE, cellCenter, healthBarColor } from '../renderConstants.js';
@@ -41,6 +42,7 @@ export default class BattleScene extends Phaser.Scene {
 
   init(data) {
     this.playerFaction = data.playerFaction;
+    this.battleDefinition = BATTLES[data.battleId]; // src/data/battles.js
   }
 
   preload() {
@@ -94,9 +96,12 @@ export default class BattleScene extends Phaser.Scene {
   startBattle(playerFaction) {
     const playerRoster = ROSTERS[playerFaction];
     const enemyRoster = ROSTERS[playerFaction === 'wyrms' ? 'undead' : 'wyrms'];
-    const enemyScript = playerFaction === 'wyrms' ? UNDEAD_AI_SCRIPT : WYRMS_AI_SCRIPT;
+    const enemyFaction = playerFaction === 'wyrms' ? 'undead' : 'wyrms';
+    const enemyScript = this.battleDefinition.enemyScripts[enemyFaction];
 
     this.battle = createBattle(this.grid, playerRoster, enemyRoster, enemyScript);
+    const { tutorial } = this.battleDefinition;
+    if (tutorial) startTutorial(this.battle, tutorial); // technical.md 5.5
 
     // Publie l'état pour la tour de commandement React (technical.md 2.2) : c'est le seul canal de
     // communication entre les deux couches, aucune ne référence les objets de l'autre.
@@ -287,7 +292,7 @@ export default class BattleScene extends Phaser.Scene {
     const { main, interaction } = this.battle.pause;
     let level = 0;
     if (main) level = FULL_DESATURATION;
-    else if (interaction) level = PARTIAL_DESATURATION;
+    else if (interaction || this.battle.pause.tutorial) level = PARTIAL_DESATURATION;
 
     const { zone, unitIds } = getClickableHighlights(this.battle);
     const inZone = (x, y) => zone !== null
@@ -313,12 +318,10 @@ export default class BattleScene extends Phaser.Scene {
   update(time, deltaMs) {
     // Pendant toute pause (rules.md 5.2), la logique ne tick plus et les animations (tweens
     // de déplacement, missiles, textes flottants) sont gelées avec elle.
-    const running = isBattleTimeRunning(this.battle.pause) && this.battle.outcome === 'ongoing';
-    this.tweens.paused = !running;
-    if (running) {
-      tickBattle(this.battle, deltaMs / 1000);
-      this.processAbilityEvents();
-    }
+    // tickBattle est appelé même en pause : le tutoriel peut y changer d'étape.
+    tickBattle(this.battle, deltaMs / 1000);
+    this.processAbilityEvents(); // vide si la bataille n'a pas avancé
+    this.tweens.paused = !isBattleTimeRunning(this.battle.pause) || this.battle.outcome !== 'ongoing';
 
     this.syncViews();
     this.updateSelectionIndicator();

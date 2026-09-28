@@ -180,3 +180,20 @@ IntroScreen → FactionChoiceScreen (une fois)
 - C'est une exception ciblée à l'absence de persistance en v1 (voir `roadmap.md`), pas un système de sauvegarde généralisé. Ces trois valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `CivilizationScreen`.
 - Le bouton temporaire "Reset Demo" sur `HomeScreen` efface les trois valeurs et ramène à `IntroScreen`.
 - Aucune autre donnée n'est persistée en v1 (l'état d'une bataille en cours, par exemple, repart de zéro à chaque chargement de `BattleScreen`).
+
+### 5.5 Tutoriel (première bataille)
+- **Un tutoriel est rattaché à une bataille**, pas au joueur : chaque bataille est décrite dans `src/data/battles.js` (identifiant, scripts IA, tutoriel éventuel), et `BattleScreen` reçoit l'identifiant de la bataille à jouer. En v1, seule la première bataille (`firstBattle`) a un tutoriel ; il se rejoue à chaque « Réessayer » après une défaite ou un match nul.
+- **Le contenu d'un tutoriel est une donnée** (`src/data/tutorials.js`) : une liste d'étapes (message, cibles de la main, gel, actions permises, conditions d'entrée et de passage). Le moteur (`src/logic/tutorial.js`) et l'affichage (`src/ui/TutorialOverlay.jsx`) sont communs à toutes les batailles : un nouveau tutoriel s'écrit sans toucher au code, tant qu'il réutilise les conditions et les cibles de main existantes.
+- **Chaque étape qui demande ou explique quelque chose fige la bataille** (tous les compteurs gelés, comme une pause, `rules.md` 5.2) et **n'autorise que l'action demandée**. Le bouton Pause est alors désactivé ; le bouton Abandonner reste toujours disponible (`rules.md` 8.2).
+- Chaque étape affiche un **message** (composant `Item` 8bitcn, en haut du terrain) et une **main** qui montre l'action à faire. C'est le seul overlay autorisé par-dessus le terrain avec les tooltips (section 2.2).
+- Déroulé du tutoriel de la première bataille (`FIRST_BATTLE_TUTORIAL`) :
+
+| Étape | Message | Main | Bataille | Suite |
+|---|---|---|---|---|
+| 1 | « Déploie ta 1ère unité. » | Allers-retours entre l'unité basique (Lambton / Skeleton) et la zone de déploiement | Figée (seul le déploiement est permis) | Le joueur déploie sa première unité |
+| 1 (suite) | « Ton unité va combattre d'elle-même les ennemis. Certaines espèces de créatures tirent à distance, d'autres au corps-à-corps. » + [Continuer] | — | **En cours** : le joueur voit son unité se battre | Le message disparaît après 3 s au plus (ou au clic sur [Continuer]) ; l'étape 2 arrive 8 s (temps de bataille) après le début de l'étape |
+| 2 | « Chaque unité possède des points de présence (PP). Tu ne peux pas dépasser une présence de 150 sur le terrain. Choisis bien tes unités déployées ! » + [Continuer] | Allers-retours entre la jauge de présence et le tag PP de l'unité basique | Figée | Clic sur [Continuer] ; la bataille reprend normalement |
+| 3 | « Si tu veux récupérer une unité blessée ou libérer de la place sur le terrain, tu peux ordonner à l'une de tes unités de battre en retraite. » | Tapote le bouton Commandes | Figée (seule l'ouverture de la barre est permise) | Le joueur ouvre la barre de commandes |
+| 3 (suite) | « Choisis une unité et ordonne-lui de battre en retraite. » | Allers-retours entre l'icône Fuir et une unité du joueur | Figée (seuls Fuir et le choix d'une unité sont permis) | L'ordre de fuite est donné : fin du tutoriel. Refermer la barre avec [X] ramène à l'étape 3 |
+
+- **Déclenchement de l'étape 3** : quand l'IA a déployé son **avant-dernière vague** (avant-dernière entrée de son script, `rules.md` 7.1 — t=20 s) **ou au plus tard 8 s** (temps de bataille) après la fin de l'étape 2, au premier des deux ; dans les deux cas, dès que le joueur a au moins une unité sur le terrain, que la barre de commandes peut s'ouvrir (pas de cooldown en cours) et qu'aucun geste n'est en cours.
