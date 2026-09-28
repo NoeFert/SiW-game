@@ -12,7 +12,9 @@ import {
 } from '../../src/logic/tutorial.js';
 import { STARTER_TUTORIAL, CLICKBAIT_TUTORIAL } from '../../src/data/tutorials.js';
 import { BATTLES, FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from '../../src/data/battles.js';
-import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../../src/data/battleScript.js';
+import {
+  WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_2_SCRIPT, UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
+} from '../../src/data/battleScript.js';
 import { TEXT } from '../../src/ui/strings.js';
 
 const ROSTER = {
@@ -203,18 +205,22 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
   const allTutorials = [STARTER_TUTORIAL, CLICKBAIT_TUTORIAL];
   const allSteps = allTutorials.flat();
 
-  test('la bataille 01 a un script IA par faction et le tutoriel de départ', () => {
+  test('la bataille 01 : une seule phase, script IA par faction, tutoriel de départ', () => {
     expect(BATTLES[FIRST_BATTLE_ID]).toEqual({
-      enemyScripts: { wyrms: WYRMS_AI_SCRIPT, undead: UNDEAD_AI_SCRIPT },
+      phases: [{ enemyScripts: { wyrms: WYRMS_AI_SCRIPT, undead: UNDEAD_AI_SCRIPT }, mirrored: false }],
       tutorial: STARTER_TUTORIAL,
     });
   });
 
-  test('la bataille-clickbait est une bataille à part, avec le tutoriel clickbait', () => {
+  test('la bataille-clickbait : bataille à part, 2 phases (la 2e en zone retournée), tutoriel clickbait', () => {
+    const { phases, tutorial } = BATTLES[CLICKBAIT_BATTLE_ID];
+
     expect(CLICKBAIT_BATTLE_ID).not.toBe(FIRST_BATTLE_ID);
-    expect(BATTLES[CLICKBAIT_BATTLE_ID]).toEqual({
-      enemyScripts: { wyrms: WYRMS_AI_SCRIPT, undead: UNDEAD_AI_SCRIPT },
-      tutorial: CLICKBAIT_TUTORIAL,
+    expect(tutorial).toBe(CLICKBAIT_TUTORIAL);
+    expect(phases[0]).toEqual(BATTLES[FIRST_BATTLE_ID].phases[0]);
+    expect(phases[1].mirrored).toBe(true);
+    expect(phases[1].enemyScripts).toEqual({
+      wyrms: WYRMS_CLICKBAIT_PHASE_2_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
     });
   });
 

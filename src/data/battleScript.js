@@ -16,6 +16,24 @@ export const WYRMS_AI_SCRIPT = [
   { time: 35, species: WYRMS_ROSTER.fafnir },
 ];
 
+// rules.md 7.3 — bataille-clickbait, phase 2 : "extension de vague" provisoire, temps comptés
+// depuis le début de la phase 2. 2 basiques, 1 [Vol], puis 2 basiques.
+export const WYRMS_CLICKBAIT_PHASE_2_SCRIPT = [
+  { time: 0, species: WYRMS_ROSTER.lambtonWorm },
+  { time: 0, species: WYRMS_ROSTER.lambtonWorm },
+  { time: 5, species: WYRMS_ROSTER.amphiptere },
+  { time: 12, species: WYRMS_ROSTER.lambtonWorm },
+  { time: 12, species: WYRMS_ROSTER.lambtonWorm },
+];
+
+export const UNDEAD_CLICKBAIT_PHASE_2_SCRIPT = [
+  { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
+  { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
+  { time: 5, species: UNDEAD_ROSTER.necromantInitiate },
+  { time: 12, species: UNDEAD_ROSTER.newRebornSkeleton },
+  { time: 12, species: UNDEAD_ROSTER.newRebornSkeleton },
+];
+
 // IA jouant les Morts-Vivants — coût total 159, limité par le plafond simultané de 150 (rules.md 7.1).
 export const UNDEAD_AI_SCRIPT = [
   { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },

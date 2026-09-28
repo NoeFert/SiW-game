@@ -165,6 +165,20 @@ S'il n'y a aucun ennemi sur le terrain, la case est tirée parmi toutes les posi
 1. **Renfort** : un ennemi engagé au corps-à-corps avec un allié qui a 50 % de ses PV max ou moins (dans un sens ou dans l'autre de l'engagement). Si au moins une cible de renfort existe, seules celles-ci comptent.
 2. **Éradication** : sinon, le ou les ennemis qui ont le plus de PV actuels.
 
+### 7.3 Bataille en plusieurs phases (bataille-clickbait)
+Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. En v1, seule la bataille de la version clickbait (`technical.md` 5.6) en a deux ; la bataille 01 n'en a qu'une.
+
+- **Fin d'une phase** : quand l'IA a déployé tout le script de la phase **et** qu'elle n'a plus aucune unité sur le terrain. Ce n'est pas une victoire : s'il reste une phase, la bataille continue.
+- **Transition** : tout est figé (aucune action possible, compteurs gelés) pendant que l'armée du joueur présente sur le terrain part vers la droite, puis entre par la gauche dans la zone suivante. Chaque unité arrive sur la case libre la plus à gauche de sa rangée (ou de la rangée libre la plus proche), les unités les plus avancées en premier. Les commandes en cours sont annulées.
+- **Zone 2** : même image de fond, affichée dans l'autre sens, avec les obstacles en miroir.
+- **Ce qui est conservé** : les morts restent perdus, les PV perdus ne reviennent pas. La réserve du joueur (copies jamais déployées, unités revenues de fuite) reste déployable dans la moitié gauche de la nouvelle zone, avec le même plafond de 150 points. Le cooldown des commandes continue.
+- **Script de la phase suivante** : ses instants sont comptés depuis le début de la phase.
+- **Fin de la dernière phase** : fin de bataille habituelle (section 8).
+
+**Script provisoire de la phase 2** (à ajuster), instants comptés depuis le début de la phase 2 :
+- Si l'IA joue les Wyrms : t=0s 2 Vers de Lambton, t=5s 1 Amphiptère, t=12s 2 Vers de Lambton.
+- Si l'IA joue les Morts-Vivants : t=0s 2 New-reborn Skeletons, t=5s 1 Necromant Initiate, t=12s 2 New-reborn Skeletons.
+
 ## 8. Fin de bataille
 
 ### 8.1 Victoire immédiate

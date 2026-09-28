@@ -20,15 +20,15 @@ export const PAUSE_DEFAULTS = {
 };
 
 // `tutorial` : gel posé par une étape du tutoriel (tutorial.js), levé quand le joueur a fait
-// ce qui est demandé.
+// ce qui est demandé. `transition` : passage d'une phase de bataille à la suivante (phases.js).
 export function createPauseState() {
   return {
-    main: false, interaction: null, tutorial: false, deploymentsThisMainPause: 0,
+    main: false, interaction: null, tutorial: false, transition: false, deploymentsThisMainPause: 0,
   }; // interaction : null | 'deploy' | 'command' | 'surrender'
 }
 
 export function isBattleTimeRunning(pause) {
-  return !pause.main && pause.interaction === null && !pause.tutorial;
+  return !pause.main && pause.interaction === null && !pause.tutorial && !pause.transition;
 }
 
 export function toggleMainPause(pause) {

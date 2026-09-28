@@ -12,6 +12,7 @@ import {
   recordPlayerAction, toggleMainPause,
 } from './pause.js';
 import { tutorialAllows, updateTutorial } from './tutorial.js';
+import { isPhaseOver, startPhaseTransition, updatePhaseTransition } from './phases.js';
 
 // Assemble déploiement (rules.md 2, 7), commandes (5, consommées par resolveCombatTick),
 // pauses (5.2), résolution de combat (4, 6) et fin de bataille (8) en une seule boucle par
@@ -28,6 +29,12 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
     pause: createPauseState(), // rules.md 5.2, voir pause.js
     commandSelection: null, // barre de commandes ouverte, voir commandSelection.js
     tutorial: null, // étape du tutoriel en cours (première bataille seulement), voir tutorial.js
+    // Phases (rules.md 7.3, phases.js) : une seule par défaut. `enemyScript` est celui de la
+    // phase en cours, compté depuis `phaseStartSeconds`.
+    phaseIndex: 0,
+    phaseStartSeconds: 0,
+    upcomingPhases: [],
+    phaseTransition: null,
     playerCommandState: createCommandState(),
     aiScriptState: createAiScriptState(),
     enemyScript,
@@ -61,9 +68,10 @@ export function endSurrenderConfirm(battle) {
   if (battle.pause.interaction === 'surrender') endInteraction(battle.pause);
 }
 
-// rules.md 5.2 : bouton ⏸ / ▶ du joueur (bloqué pendant une étape figée du tutoriel).
+// rules.md 5.2 : bouton ⏸ / ▶ du joueur (bloqué pendant une étape figée du tutoriel et
+// pendant un changement de phase).
 export function togglePlayerPause(battle) {
-  if (battle.outcome !== 'ongoing' || !tutorialAllows(battle, 'mainPause')) return false;
+  if (battle.outcome !== 'ongoing' || battle.phaseTransition || !tutorialAllows(battle, 'mainPause')) return false;
   toggleMainPause(battle.pause);
   return true;
 }
@@ -73,7 +81,7 @@ export function togglePlayerPause(battle) {
 export function startDeploymentDrag(battle) {
   if (
     battle.outcome !== 'ongoing' || battle.commandSelection || !canStartDeploymentDuringPause(battle.pause)
-    || !tutorialAllows(battle, 'deploy')
+    || battle.phaseTransition || !tutorialAllows(battle, 'deploy')
   ) {
     return false;
   }
@@ -122,7 +130,8 @@ export function issuePlayerFlee(battle, unit) {
 // d'apparition est choisie par aiScript.js (rules.md 7.2).
 function deployScriptedEnemies(battle) {
   const due = deployScheduledUnits(
-    battle.enemyScript, battle.aiScriptState, battle.elapsedSeconds, 'enemy', battle.grid, battle.units, battle.rng,
+    battle.enemyScript, battle.aiScriptState, battle.elapsedSeconds - battle.phaseStartSeconds, 'enemy',
+    battle.grid, battle.units, battle.rng,
   );
   for (const unit of due) {
     consumeFreshCopy(battle.enemyDeployment, unit.species);
@@ -164,6 +173,11 @@ function evaluateOutcome(battle) {
 export function tickBattle(battle, deltaSeconds) {
   if (battle.outcome !== 'ongoing') return battle.outcome;
   battle.abilityEvents = [];
+  // Changement de phase en cours (rules.md 7.3) : seul lui avance, en temps réel.
+  if (battle.phaseTransition) {
+    updatePhaseTransition(battle, deltaSeconds);
+    return battle.outcome;
+  }
   // Une étape figée du tutoriel peut se terminer (action faite) : la bataille repart dès ce tick.
   if (!isBattleTimeRunning(battle.pause)) updateTutorial(battle, 0);
   if (!isBattleTimeRunning(battle.pause)) return battle.outcome;
@@ -172,6 +186,12 @@ export function tickBattle(battle, deltaSeconds) {
   deployScriptedEnemies(battle);
   battle.abilityEvents = resolveCombatTick(battle.units, battle.grid, deltaSeconds);
   processDepartures(battle);
+
+  // rules.md 7.3 : fin d'une phase (pas de la bataille) -> l'armée passe dans la zone suivante.
+  if (isPhaseOver(battle)) {
+    startPhaseTransition(battle);
+    return battle.outcome;
+  }
 
   updateFactionEndState(battle.playerEndState, unitsOnFieldOf(battle, 'player'), battle.playerDeployment, deltaSeconds);
   updateFactionEndState(battle.enemyEndState, unitsOnFieldOf(battle, 'enemy'), battle.enemyDeployment, deltaSeconds);

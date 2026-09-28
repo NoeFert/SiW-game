@@ -25,6 +25,7 @@ export function canOpenCommandBar(battle) {
   return battle.outcome === 'ongoing'
     && !isOpen(battle)
     && battle.pause.interaction !== 'deploy'
+    && !battle.phaseTransition
     && tutorialAllows(battle, 'openCommandBar')
     && canIssueCommand(battle.playerCommandState, battle.elapsedSeconds);
 }
