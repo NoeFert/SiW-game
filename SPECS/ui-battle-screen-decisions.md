@@ -187,7 +187,7 @@ Clic sur [COMMANDES] → la barre s'ouvre
 
 #### Moment de la pause d'interaction
 
-> **Recommandation, à valider :** la pause d'interaction démarre **dès l'ouverture de la barre**, pas au choix de l'ordre.
+> **✅ Validé (`rules.md` 5) :** la pause d'interaction démarre **dès l'ouverture de la barre**, pas au choix de l'ordre.
 > - Ouvrir la barre signifie « je réfléchis à un ordre » : laisser le temps courir pendant la lecture des icônes recrée du stress.
 > - C'est cohérent avec le déploiement, où la pause démarre dès le début du geste.
 > - Fermer avec [X] ou terminer la commande relance le temps, **sauf** si la pause principale est active.
@@ -214,9 +214,8 @@ Clic sur [COMMANDES] → la barre s'ouvre
 - Le cooldown étant gelé, le joueur ne peut donner **qu'une seule commande** par pause.
 - **Intention :** laisser aux joueurs plus lents le temps de réfléchir et d'élaborer leur stratégie si le combat va trop vite, pour éviter un stress constant et l'abandon du jeu par frustration.
 
-> **Hypothèses à confirmer :**
-> - Le joueur peut déployer **plusieurs** unités pendant la pause principale (le déploiement n'a pas de cooldown, seulement le budget de présence).
-> - Après un déploiement ou une commande, le jeu **reste en pause** jusqu'à ce que le joueur reclique sur ▶.
+- **✅ Confirmé (`rules.md` 5.2) :** le joueur peut déployer **plusieurs** unités pendant la pause principale (le déploiement n'a pas de cooldown, seulement le budget de présence).
+- **✅ Confirmé (`rules.md` 5.2) :** après un déploiement ou une commande, le jeu **reste en pause** jusqu'à ce que le joueur reclique sur ▶.
 
 ### Signal visuel de la pause principale : propositions
 
@@ -252,33 +251,23 @@ Contrainte : pendant la pause, le terrain doit rester entièrement visible et cl
 
 - **Disponible en permanence**, **y compris pendant la bataille tutoriel**. La v1 est une bêta, et toutes les fonctionnalités doivent pouvoir être testées.
 - L'abandon entraîne une défaite. Les unités en réserve ne sont pas exterminées (`rules.md` 8.2).
-- Une **confirmation** avant d'abandonner a été proposée, par exemple : « Abandonner la bataille ? Vos unités en réserve seront conservées. »
-- **Emplacement : non tranché.** La première idée (dans un menu de pause modal) a été retirée, car la pause principale n'ouvre pas de menu.
+- **✅ Confirmation** avant d'abandonner (`rules.md` 8.2), par exemple : « Abandonner la bataille ? Vos unités en réserve seront conservées. » Pendant la confirmation, la bataille est en pause d'interaction (`rules.md` 5.2).
+- **Emplacement : provisoire, à côté du bouton Pause** en haut de la tour (`technical.md` 2.2). La première idée (dans un menu de pause modal) a été retirée, car la pause principale n'ouvre pas de menu.
 
 ---
 
 ## 5. Incohérences à corriger dans les specs
 
-- **`rules.md` section 5** dit que donner une commande **ne met pas** le jeu en pause. À corriger : la commande **met le jeu en pause** (déjà cohérent avec `roadmap.md` et `technical.md`).
-- **`rules.md` section 5.1**, cooldown : à préciser que le cooldown ne s'écoule pas pendant les pauses.
-- **Pause principale :** nouvelle mécanique, absente de `rules.md`, `roadmap.md` et `technical.md`. À ajouter, avec le gel de tous les compteurs.
-- **Bouton Abandonner :** absent de `technical.md` section 2.2 (liste des éléments React). À ajouter.
-- **Tutoriel (`technical.md` 6.2, étapes 3 et 4) :** à réaligner sur le nouveau déroulé de commande (barre qui se déroule, [X], Fuir via la barre uniquement).
-- **Mineur, relevé en passant :** `rules.md` 7.1 donne 155 / 147 points pour les scripts IA, alors que `rules.md` 9 et `units.md` annoncent un budget de 150 par camp.
+Aucune incohérence ouverte : les points relevés pendant cette session (commande qui met en pause, cooldown gelé, pause principale, bouton Abandonner, tutoriel, coût des scripts IA) ont tous été reportés dans `rules.md`, `roadmap.md` et `technical.md`.
 
 ---
 
 ## 6. Reste à décrire (étape 1)
 
-- **Emplacement du bouton Abandonner.**
+Déjà décrit ailleurs : barres de vie et feedback des aptitudes (`GRAPHICS.md`), sens des sprites selon le camp (`GRAPHICS.md`), zone de déploiement et sélection pendant une commande (section 3 ci-dessus : ce qui est cliquable reste en couleur), overlay tutoriel « la main » (`technical.md` 5.5), autres écrans (`technical.md` 5.1, 5.3, 5.6).
+
+Reste ouvert (rendu uniquement, sans effet sur les règles) :
 - **Champ de bataille** :
-  - barres de vie ;
-  - distinction visuelle entre les deux camps ;
-  - zone de déploiement (moitié joueur) pendant un drag ;
-  - retour visuel de la sélection d'unité et de cible pendant une commande ;
-  - feedback des aptitudes (Attaque dévastatrice de Fafnir, Frappe paralysante et Soif de sang d'Athos) ;
   - unité en fuite ;
   - unité engagée au corps-à-corps.
 - **Compte à rebours de 15 s** (terrain vide avec réserves) : où et comment il s'affiche.
-- **Overlay tutoriel « la main »** : intégration avec la tour et la barre de commandes.
-- **Les autres écrans** : choix de faction, victoire, défaite, accueil, gestion de civilisation.

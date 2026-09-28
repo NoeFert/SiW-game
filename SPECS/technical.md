@@ -59,7 +59,8 @@ src/
   scenes/          # Couche Phaser (rendu du champ de bataille, input sur le terrain)
     BattleScene.js
   ui/              # Couche React (sidebar, boutons, HUD, écrans)
-    screens/       # Les 6 écrans du jeu (voir section 5)
+    screens/       # Les 7 écrans du jeu (voir section 5)
+      IntroScreen.jsx
       FactionChoiceScreen.jsx
       BattleScreen.jsx
       VictoryScreen.jsx

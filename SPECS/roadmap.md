@@ -83,7 +83,7 @@ Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise
 | Retraite d'une unité engagée | Toujours possible immédiatement ; l'ennemi engagé peut placer une dernière attaque au désengagement |
 | Adjacence d'une unité 4-cases | Adjacente dès qu'une de ses 4 cases touche une case adjacente à la cible |
 | Pathfinding d'une unité 4-cases | Bloc 2×2 rigide, chemin le plus court |
-| Conflit [Vol] + retraite sans bord accessible | Hors scope v1 : un bord est toujours géométriquement atteignable |
+| Conflit [Vol] + retraite sans bord accessible | Face aux obstacles, un bord est toujours géométriquement atteignable ; une unité encerclée par d'autres unités reste en fuite sur place et riposte au corps-à-corps (`rules.md` section 5) |
 | Déclenchement du script IA | Timing en temps absolu depuis le début de la bataille |
 | Case d'apparition des unités IA | Entrée par le bord droit du terrain (jamais d'apparition au milieu du champ de bataille), sur la rangée la plus proche d'une cible stratégique (renfort, puis éradication), au hasard en cas d'égalité (`rules.md` 7.2) |
 | Nombre de batailles scriptées | Jeu normal : une seule bataille, un script par faction adverse (2 scripts, symétriques), traitée comme la bataille tutoriel. Version clickbait : une bataille en 3 phases, un script par phase et par faction adverse (`rules.md` 7.3) |

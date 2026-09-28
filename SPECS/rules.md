@@ -91,6 +91,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
   - La commande prend fin quand la cible meurt ou fuit le terrain, ou quand une nouvelle commande (Aller ou Fuir) est donnée à l'unité. L'unité reprend alors son comportement autonome (ou exécute la nouvelle commande).
 - **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage. Si **plusieurs ennemis** sont engagés au corps-à-corps sur elle, **chacun** porte sa dernière attaque, une seule fois (au moment où la fuite commence). Cette dernière attaque est **gratuite** : elle ne modifie pas le rythme d'attaque de l'ennemi (section 4.1) et **ne compte pas** comme une attaque portée pour les aptitudes (compteurs « toutes les N attaques », section 6.1). La fuite vise la case de bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
   - Une unité déjà sur un bord quitte le terrain dès que l'ordre de fuite est donné.
+  - **Aucun bord atteignable** (unité encerclée par d'autres unités, ou entrée du « Fort » bouchée) : l'unité reste en fuite sur place, mais **riposte au corps-à-corps** contre un ennemi adjacent, à son rythme d'attaque habituel (section 4.1). Une unité purement à distance, qui ne peut pas frapper au contact (section 4.5), ne riposte pas. Dès qu'un chemin vers un bord se libère, l'unité cesse de riposter et reprend sa fuite.
   - Après leur dernière attaque, les ennemis peuvent poursuivre l'unité en fuite et la frapper s'ils la rattrapent : fuir comporte un risque.
   - Une nouvelle commande (Aller, Attaquer) donnée à une unité en fuite remplace la fuite (priorité à la dernière commande, voir plus haut).
 
@@ -158,7 +159,7 @@ Coût total du script : 159 points de présence (6 + 25 + 6 + 2 × 6 + 110).
 
 Le coût total d'un script n'est pas un budget : ce qui limite l'IA, c'est le même **plafond simultané de 150 points** que le joueur (voir ci-dessous). Conséquence : à t=35s, la [Légendaire] (110) n'apparaît que si les unités IA encore sur le terrain totalisent 40 points ou moins. Tant que toutes les unités des vagues précédentes sont en vie, elle attend — Fafnir derrière 65 points, Athos derrière 49 points.
 
-**Plafond de présence :** l'IA est soumise au même plafond vivant de 150 points que le joueur (section 2) : les unités IA encore sur le terrain comptent, et une unité du script qui ferait dépasser le plafond **attend** qu'assez de points se libèrent (mort ou fuite d'une unité IA) ; les unités suivantes du script attendent derrière elle pour garder l'ordre.
+**Plafond de présence :** l'IA est soumise au même plafond vivant de 150 points que le joueur (section 2) : les unités IA encore sur le terrain comptent, et une unité du script qui ferait dépasser le plafond **attend** qu'assez de points se libèrent (mort d'une unité IA ; l'IA ne fait jamais fuir ses unités) ; les unités suivantes du script attendent derrière elle pour garder l'ordre.
 
 > Horaires et unités de ce script provisoires : à revoir (nouvelle règle à venir, avec une mécanique d'équilibrage des forces sur le terrain).
 
@@ -221,6 +222,7 @@ Phase 3 (une nuée d'abord — le fort la retient —, puis des tireurs — le f
 - Pendant ce délai, le camp concerné doit redéployer au moins une unité pour continuer la bataille.
 - Si le compte à rebours expire sans redéploiement, ou si le joueur choisit explicitement d'abandonner (bouton Abandonner, disponible à tout moment de la bataille, tutoriel compris, avec confirmation), c'est une **défaite automatique** pour ce camp — mais ses unités survivantes en réserve ne sont **pas exterminées** (elles restent disponibles pour la suite, contrairement à une unité tuée au combat qui est perdue définitivement, voir section 4.4).
 - Cette règle s'applique symétriquement au joueur et à l'IA.
+- **Expiration simultanée :** si les comptes à rebours des deux camps expirent au même instant, c'est une **défaite du joueur** (pas un match nul).
 
 ## 9. Roster
 

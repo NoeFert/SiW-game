@@ -1,10 +1,12 @@
 # UNITS.md — Scope v1
 
-Stats des unités jouables et de la faction adverse. Ce fichier contient des **données**, pas des règles — pour le fonctionnement des mécaniques (comment le corps-à-corps, le tir à distance, les aptitudes se comportent), voir `rules.md`.
+Stats des unités des deux factions. Ce fichier contient des **données**, pas des règles — pour le fonctionnement des mécaniques (comment le corps-à-corps, le tir à distance, les aptitudes se comportent), voir `rules.md`.
+
+**Budget de chaque camp (joueur ou IA) : 150 points de présence simultanés** (plafond vivant, voir `rules.md` 2). Le joueur choisit l'une des deux factions, l'IA joue l'autre (`rules.md` 9).
 
 ---
 
-## Faction jouable : Souveraine des Wyrms
+## Faction : Wyrms
 
 | Unité | Keywords | Attaque | Taille | Coût | PV | Dégâts | Vitesse dépl. | Vitesse atk | Portée | Copies disponibles |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -12,23 +14,19 @@ Stats des unités jouables et de la faction adverse. Ce fichier contient des **d
 | Amphiptère | [Vol] | À distance | 1 case | 25 | 18 | 10 | 2 cases/s | 1,3 s | 4 cases | 8 |
 | Fafnir the Cursed One | [Légendaire], [Vol] | Hybride (voir `rules.md` 4.5) | 4 cases (2×2) | 110 | 220 | 30 (distance) / 45 (corps-à-corps) | 0,75 case/s | 1,8 s | 3 cases | 1 |
 
-**Budget total du joueur : 150 points de présence.**
-
 ### Aptitude — Fafnir : Attaque dévastatrice (automatique)
 - Toutes les 5 attaques normales (compteur cumulant distance et corps-à-corps), la 5e attaque inflige **+100% de dégâts** (60 à distance / 90 au corps-à-corps)
 - Le compteur se base sur le nombre d'attaques portées, pas sur le temps écoulé
 
 ---
 
-## Faction adverse : Souverain des Morts-Vivants
+## Faction : Morts-Vivants
 
 | Unité | Keywords | Attaque | Taille | Coût | PV | Dégâts | Vitesse dépl. | Vitesse atk | Portée | Copies disponibles |
 |---|---|---|---|---|---|---|---|---|---|---|
 | New-reborn Skeleton | (basique) | Corps-à-corps | 1 case | 6 | 22 | 5 | 1,25 case/s | 1,0 s | — | 18 |
 | Necromant Initiate | [Vol] | À distance | 1 case | 25 | 18 | 10 | 2 cases/s | 1,3 s | 4 cases | 8 |
 | Athos the Lord of Pain | [Légendaire], [Vol] | À distance uniquement, tire en avançant (voir `rules.md` 4.5) | 4 cases (2×2) | 110 | 145 | 50 | 0,6 case/s | 2,0 s | 5 cases | 1 |
-
-**Budget total de l'IA : 150 points de présence** simultanément sur le terrain (plafond vivant, symétrique au budget du joueur — voir `rules.md` 7.1).
 
 ### Aptitudes — Athos (deux aptitudes automatiques)
 

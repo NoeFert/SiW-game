@@ -7,7 +7,7 @@
 Tous les assets sont **dessinés à la main**.
 
 Principes :
-- **Silhouettes lisibles** sur un fond clair et peu contrasté : le terrain reste neutre pour que les unités ressortent.
+- **Silhouettes lisibles** sur un fond neutre et peu contrasté : le terrain s'efface pour que les unités ressortent.
 - **Une couleur signature par faction**, reprise partout : sprites, jauge de présence, projectiles.
 - **Ambiance plutôt qu'effets** : le décor encadre la bataille, sans détails qui gênent la lecture de la grille.
 
