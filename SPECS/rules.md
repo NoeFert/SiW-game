@@ -197,17 +197,17 @@ Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre scrip
 
 **Scripts provisoires des phases 1 à 3** (à ajuster), instants comptés depuis le début de chaque phase.
 
-Phase 1 :
-- Si l'IA joue les Wyrms : script de la bataille 01 (section 7.1) sans Fafnir.
-- Si l'IA joue les Morts-Vivants : script de la bataille 01 (section 7.1).
+Phase 1 (vagues de la bataille 01 resserrées, sans Légendaire) :
+- Si l'IA joue les Wyrms : t=0s 1 Ver de Lambton, t=4s 1 Amphiptère, t=10s 1 Ver de Lambton, t=14s 2 Vers de Lambton.
+- Si l'IA joue les Morts-Vivants : t=0s 1 New-reborn Skeleton, t=4s 1 Necromant Initiate, t=10s 1 New-reborn Skeleton, t=14s 2 New-reborn Skeletons, t=18s 2 New-reborn Skeletons.
 
 Phase 2 :
 - Si l'IA joue les Wyrms : t=0s 2 Vers de Lambton, t=12s 1 Ver de Lambton.
-- Si l'IA joue les Morts-Vivants : t=0s 2 New-reborn Skeletons, t=5s 1 Necromant Initiate, t=12s 2 New-reborn Skeletons.
+- Si l'IA joue les Morts-Vivants : t=0s 2 New-reborn Skeletons, t=5s 1 Necromant Initiate, t=12s 2 New-reborn Skeletons, t=18s 2 New-reborn Skeletons.
 
 Phase 3 (une nuée d'abord — le fort la retient —, puis des tireurs — le fort devient un piège) :
 - Si l'IA joue les Wyrms : t=0s 3 Vers de Lambton, t=10s Fafnir.
-- Si l'IA joue les Morts-Vivants : t=0s 4 New-reborn Skeletons, t=10s 2 Necromant Initiates.
+- Si l'IA joue les Morts-Vivants : t=0s 4 New-reborn Skeletons, t=10s 2 Necromant Initiates, t=15s 2 New-reborn Skeletons, t=20s Athos (il attend sous le plafond de 150 points, section 7.1).
 
 ## 8. Fin de bataille
 

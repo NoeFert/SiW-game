@@ -52,7 +52,7 @@ La première zone apprend à jouer ; passer à la zone suivante est une petite r
 | 5.2 Pauses | Incluse | Pause principale (⏸ / ▶, Espace), pause d'interaction (déploiement, commande), gel de tous les compteurs, une commande par pause principale, déploiements multiples, le jeu reste en pause après un geste. Gel du tutoriel pour les étapes figées du tutoriel clickbait. |
 | 6.1 Aptitudes automatiques | Incluse | Coup critique de Fafnir, Frappe paralysante et Soif de sang d'Athos (`units.md`), règles de comptage des attaques. |
 | 7. IA — principes généraux | Incluse | Script à l'instant absolu, aucune ressource dynamique, comportement autonome identique au joueur, plafond vivant de 150. |
-| 7.1 Script de la bataille 01 | **Simplifiée** | Utilisé seulement comme script de la phase 1 (sans Fafnir quand l'IA joue les Wyrms). |
+| 7.1 Script de la bataille 01 | **Simplifiée** | Sert de base au script de la phase 1 (vagues resserrées, sans Légendaire, voir 7.3). |
 | 7.2 Entrée par le bord droit | Incluse | Rangée choisie selon la cible stratégique (renfort, puis éradication), vagues sur des rangées voisines. |
 | 7.3 Bataille en plusieurs phases | Incluse | Trois zones (champ, « Le mur », « Le fort ») et leurs scripts, transition figée, conservation des morts, des PV et de la réserve, victoire à la fin de la phase 3 sans compte à rebours. |
 | 8.1 Victoire immédiate | **Simplifiée** | Victoire selon 7.3 ; défaite si le joueur n'a plus d'unité sur le terrain ni en réserve ; match nul en cas d'élimination mutuelle au même instant. |

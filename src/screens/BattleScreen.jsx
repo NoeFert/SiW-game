@@ -6,6 +6,9 @@ import TutorialOverlay from '../ui/TutorialOverlay.jsx';
 import { GAME_WIDTH, GAME_HEIGHT } from '../renderConstants.js';
 import { interactionState } from '../state/interactionState.js';
 
+// Délai entre la victoire et l'affichage de l'écran de victoire.
+const VICTORY_SCREEN_DELAY_MS = 3000;
+
 // technical.md 5.1/5.4 : une bataille repart de zéro à chaque entrée dans cet écran — le Game
 // Phaser est créé au montage et détruit au démontage (React ne touche jamais ses objets internes,
 // juste le conteneur DOM qu'il lui fournit via `containerRef`, technical.md 2.2). L'ID
@@ -41,10 +44,13 @@ export default function BattleScreen({
 
   useEffect(() => {
     let frameId;
+    let victoryTimeoutId;
     const checkOutcome = () => {
       const outcome = interactionState.battle?.outcome;
       if (outcome === 'playerVictory') {
-        onVictory(interactionState.battle); // App en extrait les copies possédées (5.4)
+        // Le terrain reste affiché quelques secondes avant l'écran de victoire.
+        const { battle } = interactionState;
+        victoryTimeoutId = setTimeout(() => onVictory(battle), VICTORY_SCREEN_DELAY_MS); // App en extrait les copies possédées (5.4)
         return;
       }
       if (outcome === 'enemyVictory' || outcome === 'draw') {
@@ -54,7 +60,10 @@ export default function BattleScreen({
       frameId = requestAnimationFrame(checkOutcome);
     };
     frameId = requestAnimationFrame(checkOutcome);
-    return () => cancelAnimationFrame(frameId);
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(victoryTimeoutId);
+    };
   }, [onVictory, onDefeat]);
 
   return (

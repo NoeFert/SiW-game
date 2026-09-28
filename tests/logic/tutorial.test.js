@@ -14,9 +14,11 @@ import {
 import { STARTER_TUTORIAL, CLICKBAIT_TUTORIAL } from '../../src/data/tutorials.js';
 import { BATTLES, FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from '../../src/data/battles.js';
 import {
-  WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_1_SCRIPT, WYRMS_CLICKBAIT_PHASE_2_SCRIPT, UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
+  WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_1_SCRIPT, UNDEAD_CLICKBAIT_PHASE_1_SCRIPT,
+  WYRMS_CLICKBAIT_PHASE_2_SCRIPT, UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
   WYRMS_CLICKBAIT_PHASE_3_SCRIPT, UNDEAD_CLICKBAIT_PHASE_3_SCRIPT,
 } from '../../src/data/battleScript.js';
+import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
 import { BATTLEFIELD_OBSTACLES, WALL_ZONE_OBSTACLES, FORT_ZONE_OBSTACLES } from '../../src/data/battlefield.js';
 import { TEXT } from '../../src/ui/strings.js';
 
@@ -227,12 +229,19 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
     expect(victoryWhenScriptCleared).toBe(true);
     expect(BATTLES[FIRST_BATTLE_ID].victoryWhenScriptCleared).toBeUndefined(); // bataille 01 : fin habituelle
     expect(phases[0]).toEqual({
-      enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_1_SCRIPT, undead: UNDEAD_AI_SCRIPT },
+      enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_1_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_1_SCRIPT },
       obstacles: BATTLEFIELD_OBSTACLES,
       flippedBackground: false,
     });
-    expect(WYRMS_CLICKBAIT_PHASE_1_SCRIPT.map((e) => e.species.name)).not.toContain('Fafnir the Cursed One');
-    expect(WYRMS_CLICKBAIT_PHASE_1_SCRIPT).toHaveLength(WYRMS_AI_SCRIPT.length - 1);
+    // Phase 1 sans légendaire ; Athos n'apparaît qu'en phase 3, en dernier.
+    const names = (script) => script.map((e) => e.species.name);
+    expect(names(WYRMS_CLICKBAIT_PHASE_1_SCRIPT)).not.toContain('Fafnir the Cursed One');
+    expect(names(UNDEAD_CLICKBAIT_PHASE_1_SCRIPT)).not.toContain(UNDEAD_ROSTER.athos.name);
+    expect(names(UNDEAD_CLICKBAIT_PHASE_2_SCRIPT)).not.toContain(UNDEAD_ROSTER.athos.name);
+    expect(UNDEAD_CLICKBAIT_PHASE_3_SCRIPT.at(-1).species).toBe(UNDEAD_ROSTER.athos);
+    // Vagues de phase 1 plus rapprochées que celles de la bataille 01.
+    expect(WYRMS_CLICKBAIT_PHASE_1_SCRIPT.at(-1).time).toBeLessThan(WYRMS_AI_SCRIPT.at(-2).time);
+    expect(UNDEAD_CLICKBAIT_PHASE_1_SCRIPT.at(-1).time).toBeLessThan(UNDEAD_AI_SCRIPT.at(-2).time);
     expect(phases[1]).toEqual({
       enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_2_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_2_SCRIPT },
       obstacles: WALL_ZONE_OBSTACLES,

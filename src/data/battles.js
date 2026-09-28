@@ -1,5 +1,5 @@
 import {
-  WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_1_SCRIPT,
+  WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_1_SCRIPT, UNDEAD_CLICKBAIT_PHASE_1_SCRIPT,
   WYRMS_CLICKBAIT_PHASE_2_SCRIPT, UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
   WYRMS_CLICKBAIT_PHASE_3_SCRIPT, UNDEAD_CLICKBAIT_PHASE_3_SCRIPT,
 } from './battleScript.js';
@@ -29,11 +29,11 @@ export const BATTLES = {
     tutorial: STARTER_TUTORIAL,
   },
   // Bataille de la version clickbait (technical.md 5.6), indépendante du jeu normal : phase 1
-  // sur le terrain de la bataille 01 (sans Fafnir côté Wyrms), puis "Le mur" (phase 2) et "Le fort" (phase 3, provisoire).
+  // sur le terrain de la bataille 01 (vagues resserrées, sans légendaire), puis "Le mur" (phase 2) et "Le fort" (phase 3, provisoire).
   clickbaitBattle: {
     phases: [
       {
-        enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_1_SCRIPT, undead: UNDEAD_AI_SCRIPT },
+        enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_1_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_1_SCRIPT },
         obstacles: BATTLEFIELD_OBSTACLES,
         flippedBackground: false,
       },

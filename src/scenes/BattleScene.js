@@ -72,11 +72,16 @@ export default class BattleScene extends Phaser.Scene {
     this.background = this.add.image(0, 0, 'battlefield').setOrigin(0, 0)
       .setDisplaySize(this.width, this.height).setDepth(-3);
     this.backgroundFx = this.background.preFX?.addColorMatrix();
-    // Copie non filtrée du background, rognée sur la zone cliquable pendant une interaction
+    // Copie non filtrée du background, masquée sur la zone cliquable pendant une interaction
     // (voir applyPauseColors) : c'est elle qui "reste en couleur" au-dessus du terrain désaturé.
+    // Masque en coordonnées écran plutôt qu'un crop : un crop se calcule dans la texture et se
+    // décale quand le fond est retourné (phase 2).
+    this.colorZoneMask = this.make.graphics({}, false);
     this.colorBackground = this.add.image(0, 0, 'battlefield').setOrigin(0, 0)
-      .setDisplaySize(this.width, this.height).setDepth(-2).setVisible(false);
+      .setDisplaySize(this.width, this.height).setDepth(-2).setVisible(false)
+      .setMask(this.colorZoneMask.createGeometryMask());
     this.drawGridLines(grid);
+    this.deploymentZone = this.add.graphics().setVisible(false);
     this.showPhase(0);
 
     this.startBattle(this.playerFaction);
@@ -111,6 +116,7 @@ export default class BattleScene extends Phaser.Scene {
     const { obstacles, flippedBackground } = this.phases[index];
     for (const { image } of this.obstacleViews ?? []) image.destroy();
     this.drawObstacles(obstacles);
+    this.drawDeploymentZone(obstacles);
     this.background.setFlipX(flippedBackground);
     this.colorBackground.setFlipX(flippedBackground);
     this.shownPhaseIndex = index;
@@ -159,19 +165,23 @@ export default class BattleScene extends Phaser.Scene {
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => this.handlePointerDown(pointer));
 
-    this.createDeploymentZoneFrame();
     this.createSelectionIndicator();
     this.createCountdownBanner();
   }
 
-  // rules.md 2 : cadre autour de la moitié gauche du terrain (zone de déploiement du joueur,
-  // voir isValidDeploymentPosition), visible uniquement pendant un glisser depuis la tour.
-  createDeploymentZoneFrame() {
-    const zoneWidth = Math.floor(this.grid.width / 2) * CELL_SIZE;
-    this.deploymentZoneFrame = this.add.rectangle(0, 0, zoneWidth, this.height, 0x3fa9f5, 0.12)
-      .setOrigin(0, 0)
-      .setStrokeStyle(4, 0x3fa9f5)
-      .setVisible(false);
+  // rules.md 2 : halo sur la moitié gauche du terrain (zone de déploiement du joueur, voir
+  // isValidDeploymentPosition), visible uniquement pendant un glisser depuis la tour. Les cases
+  // de rochers en sont exclues : on n'y déploie pas.
+  drawDeploymentZone(obstacles) {
+    const grid = new Grid(GRID_WIDTH, GRID_HEIGHT, obstacles);
+    const zoneColumns = Math.floor(grid.width / 2);
+    this.deploymentZone.clear().fillStyle(0x3fa9f5, 0.12);
+    for (let x = 0; x < zoneColumns; x++) {
+      for (let y = 0; y < grid.height; y++) {
+        if (grid.isFree(x, y)) this.deploymentZone.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+    }
+    this.deploymentZone.lineStyle(4, 0x3fa9f5).strokeRect(0, 0, zoneColumns * CELL_SIZE, this.height);
   }
 
   // -- Fin de bataille (rules.md 8) --------------------------------------------------------
@@ -193,7 +203,8 @@ export default class BattleScene extends Phaser.Scene {
         `⚠ Redéploie une unité avant ${playerCountdown.toFixed(1)}s, ou défaite automatique !`,
       );
       this.countdownText.setVisible(true);
-    } else if (enemyCountdown !== null) {
+    } else if (enemyCountdown !== null && !this.battle.victoryWhenScriptCleared) {
+      // Bataille-clickbait : l'IA suit un script, inutile d'annoncer son compte à rebours.
       this.countdownText.setText(`L'IA doit redéployer avant ${enemyCountdown.toFixed(1)}s...`);
       this.countdownText.setVisible(true);
     } else {
@@ -350,13 +361,8 @@ export default class BattleScene extends Phaser.Scene {
     this.backgroundFx?.saturate(level);
     this.colorBackground.setVisible(level !== 0 && zone !== null);
     if (zone) {
-      const scale = this.colorBackground.frame.width / this.width; // px de texture par px affiché
-      this.colorBackground.setCrop(
-        zone.x * CELL_SIZE * scale,
-        zone.y * CELL_SIZE * scale,
-        zone.width * CELL_SIZE * scale,
-        zone.height * CELL_SIZE * scale,
-      );
+      this.colorZoneMask.clear().fillStyle(0xffffff)
+        .fillRect(zone.x * CELL_SIZE, zone.y * CELL_SIZE, zone.width * CELL_SIZE, zone.height * CELL_SIZE);
     }
     for (const obstacle of this.obstacleViews) obstacle.fx?.saturate(inZone(obstacle.x, obstacle.y) ? 0 : level);
     for (const [id, view] of this.unitViews) view.fx?.saturate(unitIds.has(id) ? 0 : level);
@@ -377,7 +383,7 @@ export default class BattleScene extends Phaser.Scene {
     this.applyPhaseTransition();
     this.updateSelectionIndicator();
     this.applyPauseColors();
-    this.deploymentZoneFrame.setVisible(this.battle.pause.interaction === 'deploy');
+    this.deploymentZone.setVisible(this.battle.pause.interaction === 'deploy');
 
     if (this.battle.outcome === 'ongoing') {
       this.updateCountdownBanner();
