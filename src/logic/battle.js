@@ -5,7 +5,7 @@ import {
   createDeploymentState, deployUnit, recordReturn, consumeFreshCopy, isValidDeploymentPosition,
 } from './deployment.js';
 import {
-  createFactionState, updateFactionEndState, evaluateBattleOutcome, surrender,
+  createFactionState, updateFactionEndState, evaluateBattleOutcome, surrender, isEliminated,
 } from './battleEnd.js';
 import {
   createPauseState, isBattleTimeRunning, startInteraction, endInteraction, canStartDeploymentDuringPause,
@@ -164,6 +164,16 @@ function unitsOnFieldOf(battle, faction) {
   return battle.units.filter((u) => u.faction === faction && u.isOnField);
 }
 
+// rules.md 8.2 : le compte à rebours ne concerne qu'un camp qui a déjà eu au moins une unité sur
+// le terrain (les unités mortes ou enfuies restent dans battle.units).
+function updateEndState(battle, faction, deltaSeconds) {
+  if (!battle.units.some((u) => u.faction === faction)) return;
+  const [factionState, deployment] = faction === 'player'
+    ? [battle.playerEndState, battle.playerDeployment]
+    : [battle.enemyEndState, battle.enemyDeployment];
+  updateFactionEndState(factionState, unitsOnFieldOf(battle, faction), deployment, deltaSeconds);
+}
+
 function evaluateOutcome(battle) {
   return evaluateBattleOutcome(
     { factionState: battle.playerEndState, unitsOnField: unitsOnFieldOf(battle, 'player'), deploymentState: battle.playerDeployment },
@@ -193,16 +203,21 @@ export function tickBattle(battle, deltaSeconds) {
   processDepartures(battle);
 
   // rules.md 7.3 : fin d'une phase (pas de la bataille) -> l'armée passe dans la zone suivante.
+  // Joueur éliminé au même instant : défaite immédiate, sans transition.
   if (isPhaseOver(battle)) {
-    startPhaseTransition(battle);
+    if (isEliminated(unitsOnFieldOf(battle, 'player'), battle.playerDeployment)) {
+      battle.outcome = 'enemyVictory';
+    } else {
+      startPhaseTransition(battle);
+    }
     return battle.outcome;
   }
   // rules.md 7.3 : dernière phase finie -> l'IA est vaincue tout de suite, réserves ou non
   // (match nul si le joueur tombe au même instant, rules.md 8.1).
   if (battle.victoryWhenScriptCleared && isEnemyScriptCleared(battle)) surrender(battle.enemyEndState);
 
-  updateFactionEndState(battle.playerEndState, unitsOnFieldOf(battle, 'player'), battle.playerDeployment, deltaSeconds);
-  updateFactionEndState(battle.enemyEndState, unitsOnFieldOf(battle, 'enemy'), battle.enemyDeployment, deltaSeconds);
+  updateEndState(battle, 'player', deltaSeconds);
+  updateEndState(battle, 'enemy', deltaSeconds);
 
   // Les délais du tutoriel se comptent une fois le temps de ce tick écoulé.
   updateTutorial(battle, deltaSeconds);

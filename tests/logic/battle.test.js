@@ -105,6 +105,21 @@ describe('battle.js — câblage déploiement/combat/fin de bataille', () => {
     expect(grunt.x).toBeGreaterThanOrEqual(5); // toujours dans la moitié IA
   });
 
+  test('pas de compte à rebours avant le premier déploiement du joueur (rules.md 8.2)', () => {
+    const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
+
+    tickBattle(battle, 20); // plus longtemps que les 15 s du compte à rebours
+
+    expect(battle.playerEndState.countdownRemaining).toBeNull();
+    expect(battle.outcome).toBe('ongoing');
+
+    const { unit } = deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 0, 0);
+    unit.hp = 0; // une fois une unité passée sur le terrain, la règle s'applique
+    tickBattle(battle, 0.1);
+
+    expect(battle.playerEndState.countdownRemaining).not.toBeNull();
+  });
+
   test('tickBattle expose les évènements d\'aptitude du tick dans battle.abilityEvents', () => {
     const battle = createBattle(new Grid(10, 10), PLAYER_ROSTER, ENEMY_ROSTER, ENEMY_SCRIPT);
     deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 4, 5);

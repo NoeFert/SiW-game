@@ -81,6 +81,18 @@ describe('fin de phase (rules.md 7.3)', () => {
     expect(battle.enemyEndState.countdownRemaining).not.toBeNull(); // rules.md 8.2
   });
 
+  test('joueur éliminé au même instant : défaite immédiate, sans transition', () => {
+    const { battle } = twoPhaseBattle();
+    battle.playerDeployment.bySpecies.get(ROSTER.fighter).freshRemaining = 0;
+    killEnemies(battle);
+    for (const u of battle.units) if (u.faction === 'player') u.hp = 0;
+
+    tickBattle(battle, 0.1);
+
+    expect(battle.phaseTransition).toBeNull();
+    expect(battle.outcome).toBe('enemyVictory');
+  });
+
   test('pendant la transition, le joueur ne peut ni déployer, ni commander, ni mettre en pause', () => {
     const { battle } = twoPhaseBattle();
     killEnemies(battle);

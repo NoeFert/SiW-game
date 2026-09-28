@@ -66,7 +66,9 @@ describe.each(Object.entries(PAUSES))('gel de tous les compteurs — %s (rules.m
 
   test('le compte à rebours de 15 s est gelé', () => {
     const battle = newBattle([{ time: 0, species: ENEMY_ROSTER.grunt }]);
-    tickBattle(battle, 1); // terrain du joueur vide, réserves pleines : compte à rebours lancé
+    const { unit } = deployPlayerUnit(battle, PLAYER_ROSTER.fighter, 0, 0);
+    unit.hp = 0; // terrain du joueur de nouveau vide, réserves restantes : compte à rebours lancé
+    tickBattle(battle, 1);
     const countdown = battle.playerEndState.countdownRemaining;
     expect(countdown).not.toBeNull();
     pause(battle);

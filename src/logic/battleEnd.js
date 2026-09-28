@@ -16,7 +16,7 @@ export function surrender(factionState) {
 }
 
 // rules.md 8.1 : plus aucune unité sur le terrain ni en réserve — défaite permanente immédiate.
-function isEliminated(unitsOnField, deploymentState) {
+export function isEliminated(unitsOnField, deploymentState) {
   return unitsOnField.length === 0 && !hasAnyReserves(deploymentState);
 }
 

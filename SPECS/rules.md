@@ -28,16 +28,17 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 ## 3. Mouvement
 
 - Le déplacement est possible en 8 directions (y compris diagonale).
-- Par défaut, les unités du joueur avancent de gauche à droite et celles de l'IA de droite à gauche (camps définis en section 2).
+- **Distances :** toutes les distances du jeu (portée de tir, ennemi le plus proche, longueur d'un trajet) se comptent en cases, et une case en diagonale vaut une case, comme une case droite.
+- **Sans ennemi sur le terrain**, une unité sans commande reste sur place jusqu'à l'arrivée d'un ennemi.
 - Une unité se déplace vers l'ennemi le plus proche par défaut, en contournant les obstacles et les autres unités qui bloquent le passage.
 - Chaque unité a sa propre vitesse de déplacement (voir `units.md` pour les valeurs du roster).
 - **Unités occupant 4 cases (2×2) :** se déplacent comme un bloc rigide — un déplacement n'est valide que si les 4 cases de destination sont toutes libres. Si le passage est trop étroit (couloir d'une seule case de large), l'unité attend ou contourne, exactement comme une unité normale face à un obstacle.
-- **Unités [Vol] :** ignorent les obstacles terrestres dans leur pathfinding — un obstacle qui bloquerait une unité au sol n'a aucun effet sur leur trajectoire. Cette règle ne s'applique qu'aux obstacles de terrain : les autres unités continuent de bloquer le passage normalement (deux unités ne peuvent jamais occuper la même case, voir section 1).
+- **Unités [Vol] :** ignorent les obstacles terrestres dans leur pathfinding — un obstacle qui bloquerait une unité au sol n'a aucun effet sur leur trajectoire. Cette règle ne s'applique qu'aux obstacles de terrain : les autres unités continuent de bloquer le passage normalement (deux unités ne peuvent jamais occuper la même case, voir section 1). Une unité [Vol] peut s'arrêter au-dessus d'un obstacle. Le déploiement, lui, se fait toujours sur une case libre, même pour une unité [Vol] (section 2).
 
 ## 4. Combat
 
 ### 4.1 Déroulement dans le temps
-- Le temps de bataille s'écoule en continu (pas de tour par tour). Chaque unité attaque selon son propre rythme, déterminé par sa vitesse d'attaque (voir `units.md` pour les valeurs du roster). Ce rythme repart de zéro chaque fois qu'une unité arrive au contact ou à portée de tir : elle porte son premier coup après un intervalle complet, jamais instantanément.
+- Le temps de bataille s'écoule en continu (pas de tour par tour). Chaque unité attaque selon son propre rythme, déterminé par sa vitesse d'attaque (voir `units.md` pour les valeurs du roster). Ce rythme repart de zéro chaque fois qu'une unité arrive au contact ou à portée de tir : elle porte son premier coup après un intervalle complet, jamais instantanément. Une unité qui attaque déjà garde son rythme quand elle change de cible (sa cible est morte, et un autre ennemi est déjà au contact ou à portée). C'est aussi le cas d'une unité hybride qui passe du tir au corps-à-corps. Le rythme ne repart de zéro que pour une unité qui n'attaquait pas.
 - Quand plusieurs unités infligent des dégâts au même instant, **toutes les attaques de cet instant sont d'abord calculées, puis appliquées ensemble** — aucune unité n'a d'avantage d'ordre sur une autre. Concrètement : si deux unités s'entretuent au même instant, elles meurent toutes les deux.
 - **Coup fatal simultané :** si plusieurs attaques du même instant tuent une cible, chacun de ces attaquants compte comme ayant porté le coup fatal (utile pour les aptitudes déclenchées au coup fatal, ex : Soif de sang d'Athos) — sauf un attaquant qui meurt lui-même à cet instant : une unité morte ne bénéficie d'aucun effet.
 - **Effets posés à un instant donné :** un effet qui vise « la prochaine attaque » d'une cible (ex : Frappe paralysante d'Athos) ne touche jamais une attaque de cette même cible portée au même instant — seulement la suivante.
@@ -79,6 +80,9 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
   - **Annulation** possible à n'importe quel stade : aucune commande n'est émise et le cooldown n'est pas consommé.
 - Les commandes sont **optionnelles** : une unité sans commande agit de façon autonome (se déplace vers l'ennemi le plus proche, attaque à portée).
 - **Fuite d'une unité engagée** : la fuite est toujours possible immédiatement, même en plein engagement corps-à-corps. L'ennemi engagé a le droit de porter une dernière attaque au moment où l'unité se désengage. Si **plusieurs ennemis** sont engagés au corps-à-corps sur elle, **chacun** porte sa dernière attaque, une seule fois (au moment où la fuite commence). La fuite vise la case de bord atteignable la plus proche, n'importe laquelle : un bord bloqué est contourné.
+  - Une unité déjà sur un bord quitte le terrain dès que l'ordre de fuite est donné.
+  - Après leur dernière attaque, les ennemis peuvent poursuivre l'unité en fuite et la frapper s'ils la rattrapent : fuir comporte un risque.
+  - Une nouvelle commande (Aller, Attaquer) donnée à une unité en fuite remplace la fuite.
 
 ### 5.1 Limitation des commandes
 - Le nombre de commandes est limité par un **cooldown** entre deux commandes (pas de quota fixe par bataille en v1).
@@ -105,6 +109,7 @@ Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s
 ### 6.1 Type automatique
 - Se déclenche seule selon sa propre condition (ex : après un certain nombre d'attaques), **sans action du joueur**.
 - Exemple pour la v1 : l'attaque dévastatrice de Fafnir (voir `units.md`).
+- Une attaque annulée par un effet (ex. : Frappe paralysante d'Athos) ne compte pas dans les compteurs « toutes les N attaques ». Seules les attaques réellement portées comptent.
 
 ### 6.2 Type à usage limité
 - Le joueur **choisit lui-même le moment d'activation**, via une icône dédiée sur le côté de l'écran.
@@ -157,7 +162,7 @@ Au moment de déployer une unité, l'IA choisit sa case **au hasard** parmi les 
 
 S'il n'y a aucun ennemi sur le terrain, la case est tirée parmi toutes les positions valides du bord.
 
-Les unités d'une même vague (même instant du script) entrent ensemble, sur des rangées voisines. À l'écran, chaque unité arrive depuis l'extérieur du terrain jusqu'à sa case d'entrée (animation purement visuelle), puis se comporte comme n'importe quelle unité (sections 3 et 4).
+Les unités d'une même vague (même instant du script) entrent ensemble. S'il y a au moins un ennemi sur le terrain, elles se placent sur des rangées voisines ; sinon, la case de chacune est tirée au hasard sur le bord. À l'écran, chaque unité arrive depuis l'extérieur du terrain jusqu'à sa case d'entrée (animation purement visuelle), puis se comporte comme n'importe quelle unité (sections 3 et 4).
 
 **Cible stratégique**, par ordre de priorité :
 1. **Renfort** : un ennemi engagé au corps-à-corps avec un allié qui a 50 % de ses PV max ou moins (dans un sens ou dans l'autre de l'engagement). Si au moins une cible de renfort existe, seules celles-ci comptent.
@@ -167,7 +172,8 @@ Les unités d'une même vague (même instant du script) entrent ensemble, sur de
 Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. En v1, seule la bataille de la version clickbait (`technical.md` 5.6) en a plusieurs (trois) ; la bataille 01 n'en a qu'une.
 
 - **Fin d'une phase** : quand l'IA a déployé tout le script de la phase **et** qu'elle n'a plus aucune unité sur le terrain. Ce n'est pas une victoire : s'il reste une phase, la bataille continue.
-- **Transition** : tout est figé (aucune action possible, compteurs gelés) pendant que l'armée du joueur présente sur le terrain part vers la droite, puis entre par la gauche dans la zone suivante. Chaque unité arrive sur la case libre la plus à gauche de sa rangée (ou de la rangée libre la plus proche), les unités les plus avancées en premier. Les commandes en cours sont annulées.
+- **Transition** : tout est figé (aucune action possible, compteurs gelés) pendant que l'armée du joueur présente sur le terrain part vers la droite, puis entre par la gauche dans la zone suivante. Chaque unité arrive sur la case libre la plus à gauche de sa rangée (ou de la rangée libre la plus proche), les unités les plus avancées en premier. Les commandes en cours sont annulées. Seule exception : le bouton Abandonner reste utilisable pendant la transition (section 8.2).
+- **Fin d'une phase et élimination du joueur au même instant** (plus aucune unité sur le terrain ni en réserve) : défaite immédiate, sans transition vers la zone suivante.
 - **Zones** : chaque phase a ses propres obstacles, dessinés pour poser une question au joueur (plans ASCII et propriétés vérifiées : `src/data/battlefield.js`, `tests/logic/clickbaitZones.test.js`). La même image de fond sert à toutes les zones, affichée dans un sens ou dans l'autre. Dans toutes les zones, le bord d'entrée de l'IA (dernière colonne) reste libre, aucune case libre n'est isolée, et une Légendaire 2×2 peut traverser.
   - **Phase 1** : terrain de la bataille 01 (section 1).
   - **Phase 2 — « Le mur »** (fond retourné) : un mur de rochers qui serpente (colonnes 14-17), percé d'un passage étroit d'une case (rangée 3 — une Légendaire 2×2 n'y passe pas) et d'un passage large de deux cases (rangées 10-11). Les tireurs ennemis tirent par-dessus le mur (pas de ligne de vue, section 4.5) ; les unités [Vol] le survolent.
@@ -193,9 +199,11 @@ Phase 3 (une nuée d'abord — le fort la retient —, puis des tireurs — le f
 ### 8.1 Victoire immédiate
 - Si toutes les unités du camp adverse sont mortes (aucune copie restante en réserve, aucune unité vivante sur le terrain), victoire immédiate pour l'autre camp.
 - **Cas d'égalité (draw) :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — les deux camps perdent leur dernière unité au même frame, sans copie restante en réserve d'aucun côté. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire pour la v1 (pas de récompenses post-bataille à distribuer, voir `roadmap.md`). Un match nul n'est pas une victoire : la bataille tutoriel n'est pas validée, le joueur voit un écran « Match nul » et peut réessayer, comme après une défaite (voir `technical.md` 5.1).
+- **Réserves de l'IA :** dans la bataille 01, l'IA dispose des copies de `units.md` ; une fois son script terminé et son terrain vide, il lui reste donc des réserves qu'elle ne redéploie jamais, et la section 8.2 s'applique (victoire du joueur après 15 s). La bataille-clickbait fait exception : victoire immédiate dès la fin du script de la dernière phase (section 7.3).
 
 ### 8.2 Terrain vide avec réserves restantes
 - Si un camp n'a **aucune unité actuellement déployée** sur le terrain (toutes mortes ou en fuite) mais possède encore des **copies non utilisées en réserve**, ce camp reçoit un avertissement avec un **compte à rebours de 15 secondes**.
+- Le compte à rebours ne concerne qu'un camp qui a déjà eu au moins une unité sur le terrain. En début de bataille, le joueur n'a aucun délai pour son premier déploiement.
 - Pendant ce délai, le camp concerné doit redéployer au moins une unité pour continuer la bataille.
 - Si le compte à rebours expire sans redéploiement, ou si le joueur choisit explicitement d'abandonner (bouton Abandonner, disponible à tout moment de la bataille, tutoriel compris, avec confirmation), c'est une **défaite automatique** pour ce camp — mais ses unités survivantes en réserve ne sont **pas exterminées** (elles restent disponibles pour la suite, contrairement à une unité tuée au combat qui est perdue définitivement, voir section 4.4).
 - Cette règle s'applique symétriquement au joueur et à l'IA.
