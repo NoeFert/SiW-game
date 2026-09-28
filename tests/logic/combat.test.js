@@ -82,6 +82,26 @@ describe('chooseTarget — redirection d\'engagement (rules.md 4.2)', () => {
   });
 });
 
+describe('chooseTarget — distance entre cases les plus proches (rules.md 3)', () => {
+  test('a 2x2 enemy counts from its closest cell, not its top-left cell', () => {
+    const grid = new Grid(12, 12);
+    const shooter = new Unit(WYRMS_ROSTER.amphiptere, 'player', 5, 5);
+    const smallEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 8, 5); // 3 cases
+    const bigEnemy = new Unit(WYRMS_ROSTER.fafnir, 'enemy', 2, 2); // (3,3) à 2 cases, coin haut-gauche à 3
+
+    expect(chooseTarget(shooter, [shooter, smallEnemy, bigEnemy], grid)).toBe(bigEnemy);
+  });
+
+  test('a 2x2 unit measures from its own closest cell, not its top-left cell', () => {
+    const grid = new Grid(12, 12);
+    const fafnir = new Unit(WYRMS_ROSTER.fafnir, 'player', 5, 5); // occupies (5,5)-(6,6)
+    const leftEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 1, 5); // 4 cases
+    const rightEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 9, 5); // (6,5) à 3 cases, coin haut-gauche à 4
+
+    expect(chooseTarget(fafnir, [fafnir, leftEnemy, rightEnemy], grid)).toBe(rightEnemy);
+  });
+});
+
 describe('resolveCombatTick — attaque à distance (rules.md 4.5)', () => {
   test('a ranged unit never fires on an adjacent target and steps back instead', () => {
     const grid = new Grid(10, 10);

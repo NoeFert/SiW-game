@@ -18,6 +18,14 @@ describe('findNearestEnemy', () => {
     expect(findNearestEnemy(self, units)).toBe(near);
   });
 
+  test('measures a 2x2 enemy from its closest cell (rules.md 3)', () => {
+    const self = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 5, 5);
+    const smallEnemy = new Unit(WYRMS_ROSTER.lambtonWorm, 'enemy', 8, 5); // 3 cases
+    const bigEnemy = new Unit(WYRMS_ROSTER.fafnir, 'enemy', 2, 2); // (3,3) à 2 cases, coin haut-gauche à 3
+
+    expect(findNearestEnemy(self, [self, smallEnemy, bigEnemy])).toBe(bigEnemy);
+  });
+
   test('ignores allies and dead units', () => {
     const ally = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 1, 1);
     const self = new Unit(WYRMS_ROSTER.lambtonWorm, 'player', 0, 0);

@@ -13,7 +13,7 @@ export function findNearestEnemy(unit, units) {
   let nearestDist = Infinity;
   for (const other of units) {
     if (other === unit || !other.isAlive || other.faction === unit.faction) continue;
-    const dist = chebyshevDistance(unit.x, unit.y, other.x, other.y);
+    const dist = minDistanceBetweenFootprints(unit, other);
     if (dist < nearestDist) {
       nearestDist = dist;
       nearest = other;
@@ -31,6 +31,18 @@ export function footprint(x, y, size) {
     }
   }
   return cells;
+}
+
+// rules.md 3 : distance entre les cases les plus proches de deux unités (2x2 comprises).
+export function minDistanceBetweenFootprints(a, b) {
+  let min = Infinity;
+  for (const cellA of footprint(a.x, a.y, a.size)) {
+    for (const cellB of footprint(b.x, b.y, b.size)) {
+      const dist = chebyshevDistance(cellA.x, cellA.y, cellB.x, cellB.y);
+      if (dist < min) min = dist;
+    }
+  }
+  return min;
 }
 
 export function occupiedCells(units, excludeUnit) {

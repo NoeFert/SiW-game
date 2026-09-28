@@ -1,17 +1,6 @@
 import {
-  chebyshevDistance, findPath, findPathToNearest, footprint, occupiedCells, isPositionFree, DIRECTIONS,
+  findPath, findPathToNearest, footprint, minDistanceBetweenFootprints, occupiedCells, isPositionFree, DIRECTIONS,
 } from './pathfinding.js';
-
-export function minDistanceBetweenFootprints(a, b) {
-  let min = Infinity;
-  for (const cellA of footprint(a.x, a.y, a.size)) {
-    for (const cellB of footprint(b.x, b.y, b.size)) {
-      const dist = chebyshevDistance(cellA.x, cellA.y, cellB.x, cellB.y);
-      if (dist < min) min = dist;
-    }
-  }
-  return min;
-}
 
 export function isAdjacent(a, b) {
   return minDistanceBetweenFootprints(a, b) === 1;
@@ -54,7 +43,7 @@ export function chooseTarget(unit, aliveUnits, grid) {
   if (enemies.length === 0) return null;
 
   const sorted = [...enemies].sort(
-    (a, b) => chebyshevDistance(unit.x, unit.y, a.x, a.y) - chebyshevDistance(unit.x, unit.y, b.x, b.y),
+    (a, b) => minDistanceBetweenFootprints(unit, a) - minDistanceBetweenFootprints(unit, b),
   );
 
   if (unit.species.attackType !== 'melee') return sorted[0];
