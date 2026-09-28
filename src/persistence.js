@@ -31,7 +31,7 @@ export function saveOwnedCopies(ownedCopies) {
   localStorage.setItem(OWNED_COPIES_KEY, JSON.stringify(ownedCopies));
 }
 
-// Outil de test temporaire (bouton "Reset Demo" sur HomeScreen) : efface toutes les valeurs
+// Outil de dev (raccourci "restart game" du menu devs) : efface toutes les valeurs
 // persistées en v1, comme si l'application n'avait jamais été lancée.
 export function clearProgress() {
   localStorage.removeItem(FACTION_KEY);

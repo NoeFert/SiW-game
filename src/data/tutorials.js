@@ -1,4 +1,4 @@
-// Statique — tutoriels, un par bataille qui en a un (technical.md 5.5). Déroulés par
+// Statique — tutoriels, rattachés aux batailles dans battles.js (technical.md 5.5). Déroulés par
 // src/logic/tutorial.js (conditions, actions permises) et affichés par TutorialOverlay.jsx.
 //
 // Champs d'une étape :
@@ -13,8 +13,9 @@
 // - next          : conditions pour PASSER à l'étape suivante (une seule suffit).
 // - back          : { when: condition, to: id } pour revenir à une étape précédente.
 
-// Première bataille : déployer, combat autonome, points de présence, battre en retraite.
-export const FIRST_BATTLE_TUTORIAL = [
+// Tutoriel de départ, sur la bataille 01 du jeu normal : déployer, combat autonome, points de
+// présence, battre en retraite.
+export const STARTER_TUTORIAL = [
   {
     id: 'deploy',
     frozen: true,
@@ -67,5 +68,38 @@ export const FIRST_BATTLE_TUTORIAL = [
     hand: ['fleeOrder', 'playerUnit'],
     next: [{ type: 'commandIssued' }],
     back: { when: { type: 'commandBarClosed' }, to: 'openCommands' },
+  },
+];
+
+// Tutoriel "clickbait", sur la bataille de la version clickbait : déployer, combat autonome,
+// points de présence. Indépendant du tutoriel de départ (ses propres étapes et ses propres textes).
+export const CLICKBAIT_TUTORIAL = [
+  {
+    id: 'deploy',
+    frozen: true,
+    allows: ['deploy'],
+    message: 'clickbaitDeploy',
+    hand: ['basicUnitRow', 'deploymentZone'],
+    next: [{ type: 'playerUnitOnField' }],
+  },
+  {
+    id: 'autonomous',
+    frozen: false,
+    allows: null,
+    message: 'clickbaitAutonomous',
+    messageSeconds: 3,
+    continueButton: true,
+    next: [{ type: 'elapsed', seconds: 8 }],
+  },
+  {
+    // Autonome : la bataille continue, le message disparaît seul (ou plus tôt avec [Continuer]).
+    id: 'presence',
+    frozen: false,
+    allows: null,
+    message: 'clickbaitPresence',
+    messageSeconds: 6,
+    continueButton: true,
+    hand: ['presenceGauge', 'basicUnitPresenceTag'],
+    next: [{ type: 'elapsed', seconds: 6 }],
   },
 ];

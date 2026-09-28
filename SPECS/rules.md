@@ -121,25 +121,27 @@ Les aptitudes spécifiques de chaque unité (déclencheur exact, effet, valeurs)
 - Une fois déployée, une unité IA se comporte exactement comme une unité du joueur non commandée : mouvement et combat autonomes selon les mêmes règles (sections 3 et 4).
 
 ### 7.1 Script de bataille v1
-Le même schéma de timing s'applique quelle que soit la faction jouée par l'IA (déterminée par le choix du joueur — voir section 8) : 2 unités basiques, 1 unité [Vol] à distance, 1 unité [Légendaire], déployées progressivement.
+Le même schéma de timing s'applique quelle que soit la faction jouée par l'IA (déterminée par le choix du joueur — voir section 8) : 4 unités basiques, 1 unité [Vol] à distance, 1 unité [Légendaire], déployées progressivement en 5 vagues.
 
 **Si l'IA joue les Wyrms :**
 - t=0s : déployer 1 Ver de Lambton
 - t=8s : déployer 1 Amphiptère
 - t=20s : déployer 1 Ver de Lambton
+- t=28s : déployer 2 Vers de Lambton
 - t=35s : déployer Fafnir
 
-Coût total du script : 155 points de présence (10 + 25 + 10 + 110).
+Coût total du script : 175 points de présence (10 + 25 + 10 + 2 × 10 + 110).
 
 **Si l'IA joue les Morts-Vivants :**
 - t=0s : déployer 1 New-reborn Skeleton
 - t=8s : déployer 1 Necromant Initiate
 - t=20s : déployer 1 New-reborn Skeleton
+- t=28s : déployer 2 New-reborn Skeletons
 - t=35s : déployer Athos
 
-Coût total du script : 147 points de présence (6 + 25 + 6 + 110).
+Coût total du script : 159 points de présence (6 + 25 + 6 + 2 × 6 + 110).
 
-Le coût total d'un script n'est pas un budget : ce qui limite l'IA, c'est le même **plafond simultané de 150 points** que le joueur (voir ci-dessous). Conséquence côté Wyrms : à t=35s, Fafnir (110) n'apparaît que si les unités IA encore sur le terrain totalisent 40 points ou moins — tant que les trois premières unités (45 points) sont en vie, il attend.
+Le coût total d'un script n'est pas un budget : ce qui limite l'IA, c'est le même **plafond simultané de 150 points** que le joueur (voir ci-dessous). Conséquence : à t=35s, la [Légendaire] (110) n'apparaît que si les unités IA encore sur le terrain totalisent 40 points ou moins. Tant que toutes les unités des vagues précédentes sont en vie, elle attend — Fafnir derrière 65 points, Athos derrière 49 points.
 
 **Plafond de présence :** l'IA est soumise au même plafond vivant de 150 points que le joueur (section 2) : les unités IA encore sur le terrain comptent, et une unité du script qui ferait dépasser le plafond **attend** qu'assez de points se libèrent (mort ou fuite d'une unité IA) ; les unités suivantes du script attendent derrière elle pour garder l'ordre.
 

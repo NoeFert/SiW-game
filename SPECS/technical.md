@@ -178,15 +178,17 @@ IntroScreen → FactionChoiceScreen (une fois)
   2. un indicateur booléen "première bataille (tutoriel) gagnée"
   3. le nombre de copies restantes par unité de la faction du joueur (une entrée par type d'unité, ex : `{ lambtonWorm: 9, amphiptere: 8, fafnir: 1 }`), calculé et sauvegardé **au moment où la victoire de la bataille tutoriel est obtenue** — pas mis à jour lors d'une tentative ratée (voir 5.2)
 - C'est une exception ciblée à l'absence de persistance en v1 (voir `roadmap.md`), pas un système de sauvegarde généralisé. Ces trois valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `CivilizationScreen`.
-- Le bouton temporaire "Reset Demo" sur `HomeScreen` efface les trois valeurs et ramène à `IntroScreen`.
+- Le raccourci « restart game » du menu devs (section 5.7) efface les trois valeurs et ramène à `IntroScreen`. Il n'y a plus de bouton de réinitialisation côté joueur.
 - Aucune autre donnée n'est persistée en v1 (l'état d'une bataille en cours, par exemple, repart de zéro à chaque chargement de `BattleScreen`).
 
-### 5.5 Tutoriel (première bataille)
-- **Un tutoriel est rattaché à une bataille**, pas au joueur : chaque bataille est décrite dans `src/data/battles.js` (identifiant, scripts IA, tutoriel éventuel), et `BattleScreen` reçoit l'identifiant de la bataille à jouer. En v1, seule la première bataille (`firstBattle`) a un tutoriel ; il se rejoue à chaque « Réessayer » après une défaite ou un match nul.
+### 5.5 Tutoriels
+- **Un tutoriel est rattaché à une bataille**, pas au joueur : chaque bataille est décrite dans `src/data/battles.js` (identifiant, scripts IA, tutoriel éventuel), et `BattleScreen` reçoit l'identifiant de la bataille à jouer. La bataille 01 du jeu normal (`firstBattle`) a le tutoriel de départ, la bataille-clickbait (`clickbaitBattle`, section 5.6) le tutoriel clickbait ; un tutoriel se rejoue à chaque « Réessayer » après une défaite ou un match nul.
 - **Le contenu d'un tutoriel est une donnée** (`src/data/tutorials.js`) : une liste d'étapes (message, cibles de la main, gel, actions permises, conditions d'entrée et de passage). Le moteur (`src/logic/tutorial.js`) et l'affichage (`src/ui/TutorialOverlay.jsx`) sont communs à toutes les batailles : un nouveau tutoriel s'écrit sans toucher au code, tant qu'il réutilise les conditions et les cibles de main existantes.
 - **Chaque étape qui demande ou explique quelque chose fige la bataille** (tous les compteurs gelés, comme une pause, `rules.md` 5.2) et **n'autorise que l'action demandée**. Le bouton Pause est alors désactivé ; le bouton Abandonner reste toujours disponible (`rules.md` 8.2).
 - Chaque étape affiche un **message** (composant `Item` 8bitcn, en haut du terrain) et une **main** qui montre l'action à faire. C'est le seul overlay autorisé par-dessus le terrain avec les tooltips (section 2.2).
-- Déroulé du tutoriel de la première bataille (`FIRST_BATTLE_TUTORIAL`) :
+- **Tutoriels existants** (`src/data/tutorials.js`) :
+  - `CLICKBAIT_TUTORIAL` — **sur la bataille-clickbait** (section 5.6). Tutoriel indépendant (ses propres étapes et textes, clés `clickbait…` dans `strings.js`), appelé à évoluer. Pour l'instant : déployer, combat autonome, points de présence (étapes 1, 1 suite et 2 ci-dessous), puis fin du tutoriel. Différence avec le tutoriel de départ : l'étape des points de présence est **autonome** — elle ne fige pas la bataille, n'attend aucune action, et son message disparaît seul après 6 s (ou plus tôt avec [Continuer]).
+  - `STARTER_TUTORIAL` — tutoriel de départ, **sur la bataille 01 du jeu normal**. Son déroulé complet :
 
 | Étape | Message | Main | Bataille | Suite |
 |---|---|---|---|---|
@@ -196,4 +198,17 @@ IntroScreen → FactionChoiceScreen (une fois)
 | 3 | « Si tu veux récupérer une unité blessée ou libérer de la place sur le terrain, tu peux ordonner à l'une de tes unités de battre en retraite. » | Tapote le bouton Commandes | Figée (seule l'ouverture de la barre est permise) | Le joueur ouvre la barre de commandes |
 | 3 (suite) | « Choisis une unité et ordonne-lui de battre en retraite. » | Allers-retours entre l'icône Fuir et une unité du joueur | Figée (seuls Fuir et le choix d'une unité sont permis) | L'ordre de fuite est donné : fin du tutoriel. Refermer la barre avec [X] ramène à l'étape 3 |
 
-- **Déclenchement de l'étape 3** : quand l'IA a déployé son **avant-dernière vague** (avant-dernière entrée de son script, `rules.md` 7.1 — t=20 s) **ou au plus tard 8 s** (temps de bataille) après la fin de l'étape 2, au premier des deux ; dans les deux cas, dès que le joueur a au moins une unité sur le terrain, que la barre de commandes peut s'ouvrir (pas de cooldown en cours) et qu'aucun geste n'est en cours.
+- **Déclenchement de l'étape 3** : quand l'IA a déployé son **avant-dernière vague** (avant-dernière entrée de son script, `rules.md` 7.1 — t=28 s) **ou au plus tard 8 s** (temps de bataille) après la fin de l'étape 2, au premier des deux ; dans les deux cas, dès que le joueur a au moins une unité sur le terrain, que la barre de commandes peut s'ouvrir (pas de cooldown en cours) et qu'aucun geste n'est en cours.
+
+### 5.6 Version clickbait
+- Version du jeu **indépendante** du jeu normal : écran de choix de faction → bataille-clickbait (`clickbaitBattle`, avec le tutoriel clickbait, section 5.5). Pour l'instant, même terrain et mêmes scripts IA que la bataille 01.
+- **Rien n'est sauvegardé** : la faction choisie reste en mémoire le temps de la session, sans toucher à la sauvegarde du jeu normal (section 5.4) ; une victoire ne marque pas la bataille 01 comme gagnée et ne fige aucune copie.
+- Fin de bataille : mêmes écrans que le jeu normal. « Réessayer » relance la bataille-clickbait ; « Continuer » après une victoire ramène au choix de faction du clickbait.
+- Accès : bouton « Clickbait version » sur l'écran d'introduction, à côté de « Commencer » (disponible aussi dans le build publié), et raccourci « restart clickbait » du menu devs (section 5.7).
+
+### 5.7 Menu devs (outil de développement)
+- Menu burger « devs » fixe en haut à gauche de l'écran, par-dessus tous les écrans (`src/dev/DevMenu.jsx`). **Affiché seulement en développement** (`npm run dev`), absent du build publié.
+- Raccourcis :
+  - **restart game** : efface la sauvegarde et relance le jeu normal depuis l'introduction.
+  - **restart clickbait** : lance la version clickbait (section 5.6) depuis le choix de faction.
+  - **test-wyrm** : charge un joueur de test figé et ouvre l'accueil, sans jouer la bataille 01 — faction Wyrms, bataille 01 gagnée, 3 Vers de Lambton et 1 Amphiptère perdus (soit 9 / 7 / 1 copies restantes). Écrase la sauvegarde. Profils de test : `src/dev/testProfiles.js`.

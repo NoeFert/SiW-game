@@ -10,8 +10,8 @@ import { isBattleTimeRunning } from '../../src/logic/pause.js';
 import {
   startTutorial, continueTutorial, visibleTutorialStep, tutorialAllows, TUTORIAL_CONDITION_TYPES,
 } from '../../src/logic/tutorial.js';
-import { FIRST_BATTLE_TUTORIAL } from '../../src/data/tutorials.js';
-import { BATTLES, FIRST_BATTLE_ID } from '../../src/data/battles.js';
+import { STARTER_TUTORIAL, CLICKBAIT_TUTORIAL } from '../../src/data/tutorials.js';
+import { BATTLES, FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from '../../src/data/battles.js';
 import { WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT } from '../../src/data/battleScript.js';
 import { TEXT } from '../../src/ui/strings.js';
 
@@ -29,7 +29,7 @@ const EARLY_WAVE_SCRIPT = [0, 5, 10, 35].map((time) => ({ time, species: ROSTER.
 
 function newTutorialBattle(script = SCRIPT) {
   const battle = createBattle(new Grid(10, 10), ROSTER, ROSTER, script, () => 0);
-  startTutorial(battle, FIRST_BATTLE_TUTORIAL);
+  startTutorial(battle, STARTER_TUTORIAL);
   return battle;
 }
 
@@ -200,12 +200,21 @@ describe('tutoriel — abandon', () => {
 });
 
 describe('données des tutoriels et des batailles (src/data/)', () => {
-  const allSteps = Object.values(BATTLES).flatMap((battle) => battle.tutorial ?? []);
+  const allTutorials = [STARTER_TUTORIAL, CLICKBAIT_TUTORIAL];
+  const allSteps = allTutorials.flat();
 
-  test('la première bataille a un script IA par faction et un tutoriel', () => {
+  test('la bataille 01 a un script IA par faction et le tutoriel de départ', () => {
     expect(BATTLES[FIRST_BATTLE_ID]).toEqual({
       enemyScripts: { wyrms: WYRMS_AI_SCRIPT, undead: UNDEAD_AI_SCRIPT },
-      tutorial: FIRST_BATTLE_TUTORIAL,
+      tutorial: STARTER_TUTORIAL,
+    });
+  });
+
+  test('la bataille-clickbait est une bataille à part, avec le tutoriel clickbait', () => {
+    expect(CLICKBAIT_BATTLE_ID).not.toBe(FIRST_BATTLE_ID);
+    expect(BATTLES[CLICKBAIT_BATTLE_ID]).toEqual({
+      enemyScripts: { wyrms: WYRMS_AI_SCRIPT, undead: UNDEAD_AI_SCRIPT },
+      tutorial: CLICKBAIT_TUTORIAL,
     });
   });
 
@@ -218,7 +227,7 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
     for (const step of allSteps) {
       if (step.message) expect(TEXT.tutorial[step.message]).toEqual(expect.any(String));
     }
-    for (const tutorial of Object.values(BATTLES).map((battle) => battle.tutorial ?? [])) {
+    for (const tutorial of allTutorials) {
       const ids = tutorial.map((step) => step.id);
       expect(new Set(ids).size).toBe(ids.length);
       for (const step of tutorial) if (step.back) expect(ids).toContain(step.back.to);
@@ -249,6 +258,44 @@ describe('moteur de tutoriel — réutilisable pour une autre bataille', () => {
 
     expect(battle.tutorial).toBeNull();
     expect(tutorialAllows(battle, 'deploy')).toBe(true);
+    expect(openCommandBar(battle)).toBe(true);
+  });
+});
+
+describe('tutoriel clickbait (bataille-clickbait)', () => {
+  function reachClickbaitPresence() {
+    const battle = createBattle(new Grid(10, 10), ROSTER, ROSTER, SCRIPT, () => 0);
+    startTutorial(battle, CLICKBAIT_TUTORIAL);
+    startDeploymentDrag(battle);
+    deployPlayerUnit(battle, ROSTER.fighter, 0, 0);
+    endDeploymentDrag(battle);
+    for (let i = 0; i < 100 && battle.tutorial.step !== 'presence'; i++) tickBattle(battle, 0.5);
+    return battle;
+  }
+
+  test('étapes : déployer, combat autonome, points de présence', () => {
+    expect(CLICKBAIT_TUTORIAL.map((step) => step.id)).toEqual(['deploy', 'autonomous', 'presence']);
+  });
+
+  test('l\'étape des PP ne fige pas la bataille et ne bloque aucune action', () => {
+    const battle = reachClickbaitPresence();
+    const elapsed = battle.elapsedSeconds;
+
+    tickBattle(battle, 1);
+
+    expect(battle.elapsedSeconds).toBe(elapsed + 1);
+    expect(visibleTutorialStep(battle).id).toBe('presence');
+    expect(startDeploymentDrag(battle)).toBe(true);
+  });
+
+  test('l\'étape des PP disparaît seule après 6 s : fin du tutoriel', () => {
+    const battle = reachClickbaitPresence();
+
+    tickBattle(battle, 5.5);
+    expect(battle.tutorial.step).toBe('presence');
+    tickBattle(battle, 0.5);
+
+    expect(battle.tutorial).toBeNull();
     expect(openCommandBar(battle)).toBe(true);
   });
 });

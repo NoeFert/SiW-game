@@ -16,16 +16,28 @@ function deployOne(species, units, rng = Math.random) {
 const costOf = (speciesList) => speciesList.reduce((sum, species) => sum + species.cost, 0);
 
 describe('deployScheduledUnits — horaires et plafond (rules.md 7.1, 2)', () => {
-  test('les 4 unités du script, dans l\'ordre et aux instants documentés', () => {
+  test('les 6 unités du script, dans l\'ordre et aux instants documentés', () => {
     const entries = (script) => script.map(({ time, species }) => [time, species]);
     expect(entries(WYRMS_AI_SCRIPT)).toEqual([
       [0, WYRMS_ROSTER.lambtonWorm], [8, WYRMS_ROSTER.amphiptere],
-      [20, WYRMS_ROSTER.lambtonWorm], [35, WYRMS_ROSTER.fafnir],
+      [20, WYRMS_ROSTER.lambtonWorm],
+      [28, WYRMS_ROSTER.lambtonWorm], [28, WYRMS_ROSTER.lambtonWorm],
+      [35, WYRMS_ROSTER.fafnir],
     ]);
     expect(entries(UNDEAD_AI_SCRIPT)).toEqual([
       [0, UNDEAD_ROSTER.newRebornSkeleton], [8, UNDEAD_ROSTER.necromantInitiate],
-      [20, UNDEAD_ROSTER.newRebornSkeleton], [35, UNDEAD_ROSTER.athos],
+      [20, UNDEAD_ROSTER.newRebornSkeleton],
+      [28, UNDEAD_ROSTER.newRebornSkeleton], [28, UNDEAD_ROSTER.newRebornSkeleton],
+      [35, UNDEAD_ROSTER.athos],
     ]);
+  });
+
+  test('les deux unités de la vague de t=28 apparaissent au même tick', () => {
+    const state = createAiScriptState();
+    const deployed = deployScheduledUnits(UNDEAD_AI_SCRIPT, state, 28, 'enemy', new Grid(), [], () => 0);
+
+    expect(deployed.filter((u) => u.species === UNDEAD_ROSTER.newRebornSkeleton)).toHaveLength(4);
+    expect(state.nextIndex).toBe(UNDEAD_AI_SCRIPT.length - 1); // Athos pas encore
   });
 
   test('déploie la bonne unité au bon instant (script Wyrms)', () => {

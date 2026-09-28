@@ -11,15 +11,23 @@ export const TEXT = {
     'Pour atteindre ton but, il y aura la guerre.',
   ],
   start: 'Commencer',
+  clickbaitVersion: 'Clickbait',
 
-  // Messages du tutoriel, par étape (voir src/logic/tutorial.js).
+  // Messages des tutoriels (clés = champ `message` des étapes, src/data/tutorials.js).
   tutorial: {
+    // Tutoriel clickbait (bataille de la version clickbait).
+    clickbaitDeploy: 'Déploie tes unités pour anéantir tes ennemis.',
+    clickbaitAutonomous: 'Ton unité va combattre d\'elle-même les ennemis. Certaines espèces de créatures tirent à distance, d\'autres au corps-à-corps.',
+    clickbaitPresence: 'Chaque unité possède des points de présence (PP). Tu ne peux pas dépasser une présence de 150 sur le terrain. Choisis bien tes unités déployées !',
+
+    // Tutoriel de départ (bataille 01 du jeu normal).
     deploy: 'Déploie ta 1ère unité.',
     autonomous: 'Ton unité va combattre d\'elle-même les ennemis. Certaines espèces de créatures tirent à distance, d\'autres au corps-à-corps.',
     presence: 'Chaque unité possède des points de présence (PP). Tu ne peux pas dépasser une présence de 150 sur le terrain. Choisis bien tes unités déployées !',
     openCommands: 'Si tu veux récupérer une unité blessée ou libérer de la place sur le terrain, tu peux ordonner à l\'une de tes unités de battre en retraite.',
     flee: 'Choisis une unité et ordonne-lui de battre en retraite.',
-    continue: 'Continuer',
+
+    continue: 'Continuer', // bouton commun à tous les tutoriels
   },
 
   chooseFaction: 'Choisis ta faction',

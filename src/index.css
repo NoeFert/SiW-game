@@ -122,6 +122,16 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Palette « Dungeon Torch » (bouton Clickbait de l'écran d'introduction) : fond brun sombre,
+   bordure pixel brun-orangé, texte crème. Redéfinit localement les tokens utilisés par le
+   Button 8bitcn (fond = primary, texte = primary-foreground, bordure pixel = foreground). */
+.theme-dungeon-torch {
+    --primary: #211510;
+    --primary-foreground: #ebe3d6;
+    --foreground: #6e3d1f;
+    --ring: #6e3d1f;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
