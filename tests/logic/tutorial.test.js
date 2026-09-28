@@ -213,10 +213,12 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
   });
 
   test('la bataille-clickbait : bataille à part, 2 phases (la 2e en zone retournée), tutoriel clickbait', () => {
-    const { phases, tutorial } = BATTLES[CLICKBAIT_BATTLE_ID];
+    const { phases, tutorial, victoryWhenScriptCleared } = BATTLES[CLICKBAIT_BATTLE_ID];
 
     expect(CLICKBAIT_BATTLE_ID).not.toBe(FIRST_BATTLE_ID);
     expect(tutorial).toBe(CLICKBAIT_TUTORIAL);
+    expect(victoryWhenScriptCleared).toBe(true);
+    expect(BATTLES[FIRST_BATTLE_ID].victoryWhenScriptCleared).toBeUndefined(); // bataille 01 : fin habituelle
     expect(phases[0]).toEqual(BATTLES[FIRST_BATTLE_ID].phases[0]);
     expect(phases[1].mirrored).toBe(true);
     expect(phases[1].enemyScripts).toEqual({

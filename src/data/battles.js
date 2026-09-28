@@ -8,6 +8,8 @@ import { STARTER_TUTORIAL, CLICKBAIT_TUTORIAL } from './tutorials.js';
 //   le script de l'IA selon la faction qu'elle joue (`enemyScripts`, rules.md 7.1) et
 //   `mirrored` : zone retournée horizontalement (fond et obstacles dans l'autre sens).
 // - tutorial : étapes du tutoriel de cette bataille (technical.md 5.5), ou null.
+// - victoryWhenScriptCleared : victoire dès que l'IA a fini le script de la dernière phase et
+//   n'a plus d'unité vivante (rules.md 7.3), au lieu de la fin de bataille habituelle (8).
 export const BATTLES = {
   // Bataille 01 du jeu normal, avec le tutoriel de départ.
   firstBattle: {
@@ -27,6 +29,7 @@ export const BATTLES = {
       },
     ],
     tutorial: CLICKBAIT_TUTORIAL,
+    victoryWhenScriptCleared: true,
   },
 };
 

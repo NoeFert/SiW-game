@@ -159,6 +159,62 @@ describe('entrée dans la phase suivante (rules.md 7.3)', () => {
   });
 });
 
+describe('victoire à la fin du script (rules.md 7.3)', () => {
+  function lastPhaseCleared() {
+    const { battle } = twoPhaseBattle();
+    battle.victoryWhenScriptCleared = true;
+    killEnemies(battle);
+    tickBattle(battle, 0.1);
+    finishTransition(battle);
+    tickBattle(battle, 2); // la vague de la phase 2 (t=2) apparaît
+    return battle;
+  }
+
+  test('script de la dernière phase fini et plus aucun ennemi vivant : victoire immédiate', () => {
+    const battle = lastPhaseCleared();
+    expect(battle.outcome).toBe('ongoing');
+
+    killEnemies(battle);
+    tickBattle(battle, 0.1);
+
+    expect(battle.outcome).toBe('playerVictory'); // sans le compte à rebours de 15 s
+  });
+
+  test('pas de victoire pendant la phase 1, même terrain ennemi vide', () => {
+    const { battle } = twoPhaseBattle();
+    battle.victoryWhenScriptCleared = true;
+    killEnemies(battle);
+
+    tickBattle(battle, 0.1);
+
+    expect(battle.outcome).toBe('ongoing');
+    expect(battle.phaseTransition).not.toBeNull();
+  });
+
+  test('pas de victoire tant que l\'IA a encore des unités du script à déployer', () => {
+    const battle = createBattle(new Grid(10, 10), ROSTER, ROSTER, [...PHASE_1_SCRIPT, { time: 50, species: ROSTER.fighter }], () => 0);
+    battle.victoryWhenScriptCleared = true;
+    deployPlayerUnit(battle, ROSTER.fighter, 3, 4);
+    tickBattle(battle, 0.1);
+    killEnemies(battle);
+
+    tickBattle(battle, 0.1);
+
+    expect(battle.outcome).toBe('ongoing');
+  });
+
+  test('match nul si le joueur tombe au même instant (rules.md 8.1)', () => {
+    const battle = lastPhaseCleared();
+    battle.playerDeployment.bySpecies.get(ROSTER.fighter).freshRemaining = 0;
+    killEnemies(battle);
+    for (const u of battle.units) if (u.faction === 'player') u.hp = 0;
+
+    tickBattle(battle, 0.1);
+
+    expect(battle.outcome).toBe('draw');
+  });
+});
+
 describe('mirrorObstacles', () => {
   test('retourne les obstacles horizontalement, blocs 2x2 compris', () => {
     expect(mirrorObstacles([{ x: 0, y: 3 }, { x: 2, y: 5, size: 2 }], 24)).toEqual([

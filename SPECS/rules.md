@@ -173,7 +173,7 @@ Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre scrip
 - **Zone 2** : même image de fond, affichée dans l'autre sens, avec les obstacles en miroir.
 - **Ce qui est conservé** : les morts restent perdus, les PV perdus ne reviennent pas. La réserve du joueur (copies jamais déployées, unités revenues de fuite) reste déployable dans la moitié gauche de la nouvelle zone, avec le même plafond de 150 points. Le cooldown des commandes continue.
 - **Script de la phase suivante** : ses instants sont comptés depuis le début de la phase.
-- **Fin de la dernière phase** : fin de bataille habituelle (section 8).
+- **Victoire de la bataille-clickbait** : dès que l'IA est à la fin du script de la **dernière** phase et qu'elle n'a plus aucune unité vivante sur le terrain — sans le compte à rebours de 15 secondes de la section 8.2, même s'il lui reste des copies en réserve. Si le joueur est éliminé au même instant, c'est un match nul (section 8.1). La défaite du joueur, elle, suit les règles habituelles (section 8).
 
 **Script provisoire de la phase 2** (à ajuster), instants comptés depuis le début de la phase 2 :
 - Si l'IA joue les Wyrms : t=0s 2 Vers de Lambton, t=5s 1 Amphiptère, t=12s 2 Vers de Lambton.

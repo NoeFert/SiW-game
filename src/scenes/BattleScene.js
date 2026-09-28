@@ -147,6 +147,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.battle = createBattle(this.grid, playerRoster, enemyRoster, this.phases[0].enemyScript);
     setUpcomingPhases(this.battle, this.phases.slice(1));
+    this.battle.victoryWhenScriptCleared = !!this.battleDefinition.victoryWhenScriptCleared;
     const { tutorial } = this.battleDefinition;
     if (tutorial) startTutorial(this.battle, tutorial); // technical.md 5.5
 

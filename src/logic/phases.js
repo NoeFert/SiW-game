@@ -23,10 +23,15 @@ export function setUpcomingPhases(battle, phases) {
   battle.upcomingPhases = [...phases];
 }
 
-export function isPhaseOver(battle) {
-  return battle.upcomingPhases.length > 0
-    && battle.aiScriptState.nextIndex >= battle.enemyScript.length
+// L'IA a déployé tout le script de la phase en cours et n'a plus aucune unité vivante sur le
+// terrain.
+export function isEnemyScriptCleared(battle) {
+  return battle.aiScriptState.nextIndex >= battle.enemyScript.length
     && !battle.units.some((u) => u.faction === 'enemy' && u.isOnField);
+}
+
+export function isPhaseOver(battle) {
+  return battle.upcomingPhases.length > 0 && isEnemyScriptCleared(battle);
 }
 
 export function startPhaseTransition(battle) {

@@ -12,7 +12,9 @@ import {
   recordPlayerAction, toggleMainPause,
 } from './pause.js';
 import { tutorialAllows, updateTutorial } from './tutorial.js';
-import { isPhaseOver, startPhaseTransition, updatePhaseTransition } from './phases.js';
+import {
+  isPhaseOver, isEnemyScriptCleared, startPhaseTransition, updatePhaseTransition,
+} from './phases.js';
 
 // Assemble déploiement (rules.md 2, 7), commandes (5, consommées par resolveCombatTick),
 // pauses (5.2), résolution de combat (4, 6) et fin de bataille (8) en une seule boucle par
@@ -35,6 +37,9 @@ export function createBattle(grid, playerRoster, enemyRoster, enemyScript, rng =
     phaseStartSeconds: 0,
     upcomingPhases: [],
     phaseTransition: null,
+    // rules.md 7.3 : si vrai, victoire dès que l'IA a fini le script de la dernière phase et
+    // n'a plus d'unité vivante (sans le compte à rebours de 15 s de rules.md 8.2).
+    victoryWhenScriptCleared: false,
     playerCommandState: createCommandState(),
     aiScriptState: createAiScriptState(),
     enemyScript,
@@ -192,6 +197,9 @@ export function tickBattle(battle, deltaSeconds) {
     startPhaseTransition(battle);
     return battle.outcome;
   }
+  // rules.md 7.3 : dernière phase finie -> l'IA est vaincue tout de suite, réserves ou non
+  // (match nul si le joueur tombe au même instant, rules.md 8.1).
+  if (battle.victoryWhenScriptCleared && isEnemyScriptCleared(battle)) surrender(battle.enemyEndState);
 
   updateFactionEndState(battle.playerEndState, unitsOnFieldOf(battle, 'player'), battle.playerDeployment, deltaSeconds);
   updateFactionEndState(battle.enemyEndState, unitsOnFieldOf(battle, 'enemy'), battle.enemyDeployment, deltaSeconds);
