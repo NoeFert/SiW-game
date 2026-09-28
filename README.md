@@ -47,21 +47,25 @@ assets/      sprites et fond, servis tels quels par Vite
 
 ## Ce que le POC m'a appris
 
-*Brouillon à réécrire.*
-
 **Ce qui marche**
-- La séparation entre la logique (`src/logic/`) et l'affichage (Phaser, React) tient : toutes les règles se testent sans navigateur, et une nouvelle zone ou un nouveau tutoriel s'ajoute en modifiant seulement des données.
+- La séparation entre la logique (`src/logic/`) et l'affichage (Phaser, React) tient : toutes les règles se testent sans navigateur (261 tests Jest), et une nouvelle zone ou un nouveau tutoriel s'ajoute en modifiant seulement des données.
 - Le cœur du jeu est jouable : déployer sous un plafond de présence, laisser combattre, donner de rares ordres. Les données changent visiblement à l'écran (jauge de présence, compteur de copies, barres de vie, bilan des pertes).
 - L'enchaînement de trois zones avec des obstacles différents crée de vraies questions tactiques.
+- Faire fuir une unité au bon moment, puis la voir revenir avec ses PV réduits, rend lisible la boucle de succès : c'est là que le contrôle limité prend son sens.
 
 **Ce qui ne marchait pas**
-- La version clickbait devenait inaccessible une fois le jeu normal lancé. Corrigé : le jeu démarre toujours sur l'intro, et le MVP est verrouillé.
-- Les règles avaient des trous que l'IA avait comblés seule : métrique des distances, poursuite d'une unité en fuite, compte à rebours en début de bataille… Ils sont maintenant tranchés dans `RULES.md`.
+- Les règles avaient des trous que l'IA avait comblés seule, sans le dire : distance mesurée depuis quelle case d'une unité 2×2, départage entre deux ennemis à égale distance, dernière attaque d'une fuite comptée pour les aptitudes, diagonales qui coupent le coin d'un obstacle, unité en fuite encerclée, deux comptes à rebours qui expirent en même temps… La relecture des specs (`SPECS-REVIEW.md`) en a relevé neuf. Ils sont tranchés dans `RULES.md`, et le code a été réaligné avec un test pour chacun.
 - Un bug d'ordre de résolution : une unité en fuite pouvait mourir ou survivre selon l'ordre interne des unités. Corrigé et testé.
+- Le tutoriel n'enseignait que le déploiement : un joueur qui découvrait le jeu voyait surtout ses unités mourir, sans découvrir la fuite. Corrigé : une étape « battre en retraite » s'affiche en phase 2.
+- La boucle d'échec reste peu visible sur le moment : rien ne distingue une unité tuée d'une unité en fuite, la perte n'apparaît que dans le bilan final.
+- Le POC était devenu plus riche que le MVP prévu (trois zones contre une seule phase pour la bataille 01), ce qui brouillait la lecture POC / MVP.
+- La version clickbait devenait inaccessible une fois le jeu normal lancé. Corrigé : le jeu démarre toujours sur l'intro, et le MVP est verrouillé.
 
 **Ce que je change pour le MVP**
-- Écrire chaque cas limite dans `RULES.md` avant l'implémentation, pour que l'IA n'ait rien à deviner.
-- Rouvrir le jeu normal (bouton MVP) avec son parcours complet et la sauvegarde des pertes.
+
+- Spécifier la bataille 01 avant de la coder : elle reprendra les trois zones du POC en plusieurs phases (nombre de phases, scripts et condition de victoire encore à définir).
+- Rouvrir le jeu normal (bouton MVP) avec son parcours complet, les ordres Aller et Attaquer, le bouton Abandonner et la sauvegarde des pertes.
+- Rendre la mort d'une unité visible au moment où elle arrive, pas seulement dans le bilan.
 
 **Structure du code : OK**, avec une dette à solder pour le MVP (liste ci-dessous).
 
