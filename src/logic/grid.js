@@ -1,3 +1,22 @@
+// Convertit un plan ASCII (une chaîne par rangée) en liste d'obstacles : '#' = rocher d'une
+// case, '@' = rocher 2x2 (bloc de 4 '@' dont le coin haut-gauche est lu en premier), tout
+// autre caractère = case libre. Sert à écrire les zones de bataille lisiblement (src/data/).
+export function parseObstacleMap(rows) {
+  const obstacles = [];
+  const taken = new Set();
+  rows.forEach((row, y) => [...row].forEach((cell, x) => {
+    if (cell === '#') obstacles.push({ x, y });
+    if (cell === '@' && !taken.has(`${x},${y}`)) {
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+        if (rows[y + dy]?.[x + dx] !== '@') throw new Error(`Rocher 2x2 incomplet en (${x}, ${y})`);
+        taken.add(`${x + dx},${y + dy}`);
+      }
+      obstacles.push({ x, y, size: 2 });
+    }
+  }));
+  return obstacles;
+}
+
 const DEFAULT_WIDTH = 24;
 const DEFAULT_HEIGHT = 14;
 

@@ -12,11 +12,6 @@ import { isValidDeploymentPosition } from './deployment.js';
 // la droite, puis entrée par la gauche dans la nouvelle zone.
 export const PHASE_TRANSITION_SECONDS = { exit: 1.5, enter: 1.5 };
 
-// Obstacles d'une zone retournée horizontalement (fond d'écran dans l'autre sens).
-export function mirrorObstacles(obstacles, width) {
-  return obstacles.map(({ x, y, size = 1 }) => ({ x: width - x - size, y, size }));
-}
-
 // `phases` : phases suivantes, chacune { enemyScript, obstacles } (plus des infos de rendu
 // éventuelles, ignorées ici).
 export function setUpcomingPhases(battle, phases) {

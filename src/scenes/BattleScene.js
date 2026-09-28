@@ -3,11 +3,10 @@ import Grid from '../logic/grid.js';
 import { createBattle, tickBattle } from '../logic/battle.js';
 import { isBattleTimeRunning } from '../logic/pause.js';
 import { startTutorial } from '../logic/tutorial.js';
-import { mirrorObstacles, setUpcomingPhases, phaseTransitionProgress } from '../logic/phases.js';
+import { setUpcomingPhases, phaseTransitionProgress } from '../logic/phases.js';
 import { clickField, cancelCommand, getClickableHighlights } from '../logic/commandSelection.js';
 import { ROSTERS } from '../data/rosters.js';
 import { BATTLES } from '../data/battles.js';
-import { BATTLEFIELD_OBSTACLES } from '../data/battlefield.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import {
   CELL_SIZE, GRID_WIDTH, GRID_HEIGHT, cellCenter, healthBarColor,
@@ -50,12 +49,9 @@ export default class BattleScene extends Phaser.Scene {
     this.playerFaction = data.playerFaction;
     this.enemyFaction = data.playerFaction === 'wyrms' ? 'undead' : 'wyrms';
     this.battleDefinition = BATTLES[data.battleId]; // src/data/battles.js
-    // rules.md 7.3 : phases de la bataille, résolues pour la faction jouée par l'IA. Une zone
-    // retournée (`mirrored`) a ses obstacles en miroir et son fond affiché dans l'autre sens.
-    this.phases = this.battleDefinition.phases.map(({ enemyScripts, mirrored }) => ({
-      enemyScript: enemyScripts[this.enemyFaction],
-      obstacles: mirrored ? mirrorObstacles(BATTLEFIELD_OBSTACLES, GRID_WIDTH) : BATTLEFIELD_OBSTACLES,
-      mirrored,
+    // rules.md 7.3 : phases de la bataille (zones), résolues pour la faction jouée par l'IA.
+    this.phases = this.battleDefinition.phases.map(({ enemyScripts, obstacles, flippedBackground }) => ({
+      enemyScript: enemyScripts[this.enemyFaction], obstacles, flippedBackground,
     }));
   }
 
@@ -112,11 +108,11 @@ export default class BattleScene extends Phaser.Scene {
 
   // rules.md 7.3 : affiche la zone de la phase `index` (fond dans le bon sens, rochers).
   showPhase(index) {
-    const { obstacles, mirrored } = this.phases[index];
+    const { obstacles, flippedBackground } = this.phases[index];
     for (const { image } of this.obstacleViews ?? []) image.destroy();
     this.drawObstacles(obstacles);
-    this.background.setFlipX(mirrored);
-    this.colorBackground.setFlipX(mirrored);
+    this.background.setFlipX(flippedBackground);
+    this.colorBackground.setFlipX(flippedBackground);
     this.shownPhaseIndex = index;
   }
 

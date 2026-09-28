@@ -14,7 +14,9 @@ import { STARTER_TUTORIAL, CLICKBAIT_TUTORIAL } from '../../src/data/tutorials.j
 import { BATTLES, FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from '../../src/data/battles.js';
 import {
   WYRMS_AI_SCRIPT, UNDEAD_AI_SCRIPT, WYRMS_CLICKBAIT_PHASE_2_SCRIPT, UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
+  WYRMS_CLICKBAIT_PHASE_3_SCRIPT, UNDEAD_CLICKBAIT_PHASE_3_SCRIPT,
 } from '../../src/data/battleScript.js';
+import { BATTLEFIELD_OBSTACLES, WALL_ZONE_OBSTACLES, FORT_ZONE_OBSTACLES } from '../../src/data/battlefield.js';
 import { TEXT } from '../../src/ui/strings.js';
 
 const ROSTER = {
@@ -207,12 +209,16 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
 
   test('la bataille 01 : une seule phase, script IA par faction, tutoriel de départ', () => {
     expect(BATTLES[FIRST_BATTLE_ID]).toEqual({
-      phases: [{ enemyScripts: { wyrms: WYRMS_AI_SCRIPT, undead: UNDEAD_AI_SCRIPT }, mirrored: false }],
+      phases: [{
+        enemyScripts: { wyrms: WYRMS_AI_SCRIPT, undead: UNDEAD_AI_SCRIPT },
+        obstacles: BATTLEFIELD_OBSTACLES,
+        flippedBackground: false,
+      }],
       tutorial: STARTER_TUTORIAL,
     });
   });
 
-  test('la bataille-clickbait : bataille à part, 2 phases (la 2e en zone retournée), tutoriel clickbait', () => {
+  test('la bataille-clickbait : bataille à part, 3 phases (champ, mur, fort), tutoriel clickbait', () => {
     const { phases, tutorial, victoryWhenScriptCleared } = BATTLES[CLICKBAIT_BATTLE_ID];
 
     expect(CLICKBAIT_BATTLE_ID).not.toBe(FIRST_BATTLE_ID);
@@ -220,9 +226,15 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
     expect(victoryWhenScriptCleared).toBe(true);
     expect(BATTLES[FIRST_BATTLE_ID].victoryWhenScriptCleared).toBeUndefined(); // bataille 01 : fin habituelle
     expect(phases[0]).toEqual(BATTLES[FIRST_BATTLE_ID].phases[0]);
-    expect(phases[1].mirrored).toBe(true);
-    expect(phases[1].enemyScripts).toEqual({
-      wyrms: WYRMS_CLICKBAIT_PHASE_2_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_2_SCRIPT,
+    expect(phases[1]).toEqual({
+      enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_2_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_2_SCRIPT },
+      obstacles: WALL_ZONE_OBSTACLES,
+      flippedBackground: true,
+    });
+    expect(phases[2]).toEqual({
+      enemyScripts: { wyrms: WYRMS_CLICKBAIT_PHASE_3_SCRIPT, undead: UNDEAD_CLICKBAIT_PHASE_3_SCRIPT },
+      obstacles: FORT_ZONE_OBSTACLES,
+      flippedBackground: false,
     });
   });
 

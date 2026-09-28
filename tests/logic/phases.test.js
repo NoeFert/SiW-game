@@ -6,7 +6,7 @@ import {
 import { openCommandBar } from '../../src/logic/commandSelection.js';
 import { isBattleTimeRunning } from '../../src/logic/pause.js';
 import {
-  setUpcomingPhases, mirrorObstacles, PHASE_TRANSITION_SECONDS,
+  setUpcomingPhases, PHASE_TRANSITION_SECONDS,
 } from '../../src/logic/phases.js';
 import { getReserve } from '../../src/logic/deployment.js';
 
@@ -159,6 +159,29 @@ describe('entrée dans la phase suivante (rules.md 7.3)', () => {
   });
 });
 
+describe('trois phases (rules.md 7.3)', () => {
+  test('les phases s\'enchaînent dans l\'ordre, chacune avec sa zone', () => {
+    const battle = createBattle(new Grid(10, 10), ROSTER, ROSTER, PHASE_1_SCRIPT, () => 0);
+    setUpcomingPhases(battle, [
+      { enemyScript: PHASE_2_SCRIPT, obstacles: [{ x: 9, y: 0 }] },
+      { enemyScript: PHASE_2_SCRIPT, obstacles: [{ x: 9, y: 9 }] },
+    ]);
+    deployPlayerUnit(battle, ROSTER.fighter, 3, 4);
+
+    for (const expectedPhase of [1, 2]) {
+      tickBattle(battle, 2.1); // la vague de la phase arrive
+      killEnemies(battle);
+      tickBattle(battle, 0.1);
+      finishTransition(battle);
+      expect(battle.phaseIndex).toBe(expectedPhase);
+    }
+
+    expect(battle.grid.isObstacle(9, 9)).toBe(true);
+    expect(battle.grid.isObstacle(9, 0)).toBe(false);
+    expect(battle.upcomingPhases).toHaveLength(0);
+  });
+});
+
 describe('victoire à la fin du script (rules.md 7.3)', () => {
   function lastPhaseCleared() {
     const { battle } = twoPhaseBattle();
@@ -212,13 +235,5 @@ describe('victoire à la fin du script (rules.md 7.3)', () => {
     tickBattle(battle, 0.1);
 
     expect(battle.outcome).toBe('draw');
-  });
-});
-
-describe('mirrorObstacles', () => {
-  test('retourne les obstacles horizontalement, blocs 2x2 compris', () => {
-    expect(mirrorObstacles([{ x: 0, y: 3 }, { x: 2, y: 5, size: 2 }], 24)).toEqual([
-      { x: 23, y: 3, size: 1 }, { x: 20, y: 5, size: 2 },
-    ]);
   });
 });

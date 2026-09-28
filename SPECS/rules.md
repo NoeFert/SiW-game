@@ -164,18 +164,29 @@ Les unités d'une même vague (même instant du script) entrent ensemble, sur de
 2. **Éradication** : sinon, le ou les ennemis qui ont le plus de PV actuels.
 
 ### 7.3 Bataille en plusieurs phases (bataille-clickbait)
-Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. En v1, seule la bataille de la version clickbait (`technical.md` 5.6) en a deux ; la bataille 01 n'en a qu'une.
+Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. En v1, seule la bataille de la version clickbait (`technical.md` 5.6) en a plusieurs (trois) ; la bataille 01 n'en a qu'une.
 
 - **Fin d'une phase** : quand l'IA a déployé tout le script de la phase **et** qu'elle n'a plus aucune unité sur le terrain. Ce n'est pas une victoire : s'il reste une phase, la bataille continue.
 - **Transition** : tout est figé (aucune action possible, compteurs gelés) pendant que l'armée du joueur présente sur le terrain part vers la droite, puis entre par la gauche dans la zone suivante. Chaque unité arrive sur la case libre la plus à gauche de sa rangée (ou de la rangée libre la plus proche), les unités les plus avancées en premier. Les commandes en cours sont annulées.
-- **Zone 2** : même image de fond, affichée dans l'autre sens, avec les obstacles en miroir.
+- **Zones** : chaque phase a ses propres obstacles, dessinés pour poser une question au joueur (plans ASCII et propriétés vérifiées : `src/data/battlefield.js`, `tests/logic/clickbaitZones.test.js`). La même image de fond sert à toutes les zones, affichée dans un sens ou dans l'autre. Dans toutes les zones, le bord d'entrée de l'IA (dernière colonne) reste libre, aucune case libre n'est isolée, et une Légendaire 2×2 peut traverser.
+  - **Phase 1** : terrain de la bataille 01 (section 1).
+  - **Phase 2 — « Le mur »** (fond retourné) : un mur de rochers qui serpente (colonnes 14-17), percé d'un passage étroit d'une case (rangée 3 — une Légendaire 2×2 n'y passe pas) et d'un passage large de deux cases (rangées 10-11). Les tireurs ennemis tirent par-dessus le mur (pas de ligne de vue, section 4.5) ; les unités [Vol] le survolent.
+  - **Phase 3 — « Le fort »** (provisoire, fond normal) : une ruine en fer à cheval côté joueur, salle intérieure de 4×4 cases, ouverte vers l'ennemi par une entrée de deux cases. Elle protège du corps-à-corps mais pas des tirs. C'est un cul-de-sac assumé : exception à la règle « pas de cul-de-sac » de la section 1, qui ne vaut que pour la bataille 01.
+  - En réserve (validé, pas encore utilisé) : **« Les trois couloirs »**, deux crêtes qui séparent trois couloirs, franchissables seulement en volant.
+- **Murs** : les rochers d'un mur se touchent par un côté. Deux rochers qui ne se touchent que par un coin laissent passer une unité en diagonale (section 3).
 - **Ce qui est conservé** : les morts restent perdus, les PV perdus ne reviennent pas. La réserve du joueur (copies jamais déployées, unités revenues de fuite) reste déployable dans la moitié gauche de la nouvelle zone, avec le même plafond de 150 points. Le cooldown des commandes continue.
 - **Script de la phase suivante** : ses instants sont comptés depuis le début de la phase.
 - **Victoire de la bataille-clickbait** : dès que l'IA est à la fin du script de la **dernière** phase et qu'elle n'a plus aucune unité vivante sur le terrain — sans le compte à rebours de 15 secondes de la section 8.2, même s'il lui reste des copies en réserve. Si le joueur est éliminé au même instant, c'est un match nul (section 8.1). La défaite du joueur, elle, suit les règles habituelles (section 8).
 
-**Script provisoire de la phase 2** (à ajuster), instants comptés depuis le début de la phase 2 :
+**Scripts provisoires des phases 2 et 3** (à ajuster), instants comptés depuis le début de chaque phase.
+
+Phase 2 :
 - Si l'IA joue les Wyrms : t=0s 2 Vers de Lambton, t=5s 1 Amphiptère, t=12s 2 Vers de Lambton.
 - Si l'IA joue les Morts-Vivants : t=0s 2 New-reborn Skeletons, t=5s 1 Necromant Initiate, t=12s 2 New-reborn Skeletons.
+
+Phase 3 (une nuée d'abord — le fort la retient —, puis des tireurs — le fort devient un piège) :
+- Si l'IA joue les Wyrms : t=0s 4 Vers de Lambton, t=10s 2 Amphiptères.
+- Si l'IA joue les Morts-Vivants : t=0s 4 New-reborn Skeletons, t=10s 2 Necromant Initiates.
 
 ## 8. Fin de bataille
 

@@ -34,6 +34,26 @@ export const UNDEAD_CLICKBAIT_PHASE_2_SCRIPT = [
   { time: 12, species: UNDEAD_ROSTER.newRebornSkeleton },
 ];
 
+// rules.md 7.3 — bataille-clickbait, phase 3 ("Le fort") : provisoire. Une nuée de basiques
+// d'abord (le fort la retient), puis des tireurs (le fort devient un piège).
+export const WYRMS_CLICKBAIT_PHASE_3_SCRIPT = [
+  { time: 0, species: WYRMS_ROSTER.lambtonWorm },
+  { time: 0, species: WYRMS_ROSTER.lambtonWorm },
+  { time: 0, species: WYRMS_ROSTER.lambtonWorm },
+  { time: 0, species: WYRMS_ROSTER.lambtonWorm },
+  { time: 10, species: WYRMS_ROSTER.amphiptere },
+  { time: 10, species: WYRMS_ROSTER.amphiptere },
+];
+
+export const UNDEAD_CLICKBAIT_PHASE_3_SCRIPT = [
+  { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
+  { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
+  { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
+  { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
+  { time: 10, species: UNDEAD_ROSTER.necromantInitiate },
+  { time: 10, species: UNDEAD_ROSTER.necromantInitiate },
+];
+
 // IA jouant les Morts-Vivants — coût total 159, limité par le plafond simultané de 150 (rules.md 7.1).
 export const UNDEAD_AI_SCRIPT = [
   { time: 0, species: UNDEAD_ROSTER.newRebornSkeleton },
