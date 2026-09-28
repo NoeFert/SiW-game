@@ -1,6 +1,20 @@
-// Tous les textes affichés au joueur sur l'écran de bataille, regroupés pour une traduction
-// future (le jeu sera en anglais à terme ; français pour l'instant).
+// Textes affichés au joueur (introduction, choix de faction, écran de bataille), regroupés pour
+// une traduction future (le jeu sera en anglais à terme ; français pour l'instant).
 export const TEXT = {
+  // Titre du jeu, découpé pour la mise en forme ("in" plus petit, voir IntroScreen).
+  title: { first: 'Sovereign', middle: 'in', last: 'War' },
+  introLines: [
+    'Tu es un souverain,',
+    'Un être au sommet de ton espèce.',
+    'Ton but ultime est de mener tes fidèles vers la grandeur.',
+    'Mais en ce monde, plusieurs souverains existent.',
+    'Pour atteindre ton but, il y aura la guerre.',
+  ],
+  start: 'Commencer',
+
+  chooseFaction: 'Choisis ta faction',
+  factions: { wyrms: 'Wyrms', undead: 'Morts-Vivants' },
+
   presenceLabel: 'Présence sur le terrain',
   yourUnits: 'Vos unités',
   presenceTag: (cost) => `${cost} PP`,

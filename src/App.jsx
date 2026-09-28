@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import IntroScreen from './screens/IntroScreen.jsx';
 import FactionChoiceScreen from './screens/FactionChoiceScreen.jsx';
 import BattleScreen from './screens/BattleScreen.jsx';
 import VictoryScreen from './screens/VictoryScreen.jsx';
@@ -14,7 +15,7 @@ import {
 
 // technical.md 5.2 : l'écran de départ se déduit de l'état persistant, pas d'un routeur.
 function initialScreen() {
-  if (!getSavedFaction()) return 'factionChoice';
+  if (!getSavedFaction()) return 'intro';
   if (!hasWonFirstBattle()) return 'battle';
   return 'home';
 }
@@ -54,8 +55,12 @@ export default function App() {
   // Outil de test temporaire (voir HomeScreen) : repart comme au tout premier lancement.
   const resetDemo = useCallback(() => {
     clearProgress();
-    setScreen('factionChoice');
+    setScreen('intro');
   }, []);
+
+  if (screen === 'intro') {
+    return <IntroScreen onContinue={() => setScreen('factionChoice')} />;
+  }
 
   if (screen === 'factionChoice') {
     return <FactionChoiceScreen onChoose={chooseFaction} />;

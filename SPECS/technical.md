@@ -133,10 +133,11 @@ tests/
 
 ## 5. Écrans et navigation
 
-Le jeu v1 est composé de **six écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les cinq autres sont du React pur.
+Le jeu v1 est composé de **sept écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les six autres sont du React pur.
 
 ### 5.1 Liste des écrans
 
+0. **IntroScreen** — texte d'introduction centré (le joueur est un souverain qui devra mener les siens à la guerre), avec un bouton pour continuer. Affiché juste avant `FactionChoiceScreen`, donc **une seule fois**, au tout début d'une partie.
 1. **FactionChoiceScreen** — écran de choix de faction (Souveraine des Wyrms ou Souverain des Morts-Vivants). Affiché **une seule fois**, au tout début d'une partie (pas avant chaque bataille, même une fois que plusieurs batailles existeront en v2+).
 2. **BattleScreen** — l'écran de bataille actuel : tour de commandement React à gauche (pause, abandon, déploiement, commandes) + canevas Phaser (champ de bataille) à droite.
 3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3) — le contenu réel des récompenses est hors scope v1 (`roadmap.md`).
@@ -147,7 +148,7 @@ Le jeu v1 est composé de **six écrans distincts**. Un seul d'entre eux (l'écr
 ### 5.2 Enchaînement (v1)
 
 ```
-FactionChoiceScreen (une fois)
+IntroScreen → FactionChoiceScreen (une fois)
         │
         ▼
    BattleScreen ──────► DefeatScreen ──"Réessayer"──┐
@@ -163,7 +164,7 @@ FactionChoiceScreen (une fois)
    BattleScreen ◄──────────────────────────────────────┘
 ```
 
-- Au chargement de l'application, l'état persistant (localStorage, voir 5.4) est lu : s'il n'y a pas encore de faction choisie, `FactionChoiceScreen` s'affiche ; si une faction est déjà choisie mais la première bataille pas encore gagnée, l'app va directement à `BattleScreen` ; si la première bataille est déjà gagnée, l'app va directement à `HomeScreen`.
+- Au chargement de l'application, l'état persistant (localStorage, voir 5.4) est lu : s'il n'y a pas encore de faction choisie, `IntroScreen` s'affiche, puis `FactionChoiceScreen` ; si une faction est déjà choisie mais la première bataille pas encore gagnée, l'app va directement à `BattleScreen` ; si la première bataille est déjà gagnée, l'app va directement à `HomeScreen`.
 - Une défaite ne fait perdre ni la faction choisie ni aucune autre donnée persistée — seul un nouvel essai de la même bataille est proposé, et aucune perte d'unité d'une tentative ratée n'est comptabilisée (voir 5.4).
 
 ### 5.3 Squelette de VictoryScreen et DefeatScreen pour la v1
@@ -177,5 +178,5 @@ FactionChoiceScreen (une fois)
   2. un indicateur booléen "première bataille (tutoriel) gagnée"
   3. le nombre de copies restantes par unité de la faction du joueur (une entrée par type d'unité, ex : `{ lambtonWorm: 9, amphiptere: 8, fafnir: 1 }`), calculé et sauvegardé **au moment où la victoire de la bataille tutoriel est obtenue** — pas mis à jour lors d'une tentative ratée (voir 5.2)
 - C'est une exception ciblée à l'absence de persistance en v1 (voir `roadmap.md`), pas un système de sauvegarde généralisé. Ces trois valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `CivilizationScreen`.
-- Le bouton temporaire "Reset Demo" sur `HomeScreen` efface les trois valeurs et ramène à `FactionChoiceScreen`.
+- Le bouton temporaire "Reset Demo" sur `HomeScreen` efface les trois valeurs et ramène à `IntroScreen`.
 - Aucune autre donnée n'est persistée en v1 (l'état d'une bataille en cours, par exemple, repart de zéro à chaque chargement de `BattleScreen`).

@@ -11,6 +11,12 @@ export const SPECIES_SPRITES = {
   'Athos the Lord of Pain': { key: 'athos', facing: null },
 };
 
+// Sprite du souverain de chaque faction (écran de choix de faction).
+export const SOVEREIGN_SPRITES = {
+  wyrms: 'wyrm_sovereign',
+  undead: 'undead_sovereign',
+};
+
 // Chemin servi par Vite (publicDir = assets/).
 export function spritePath(key) {
   return `sprites/${key}.png`;
