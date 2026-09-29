@@ -1,5 +1,31 @@
 # SPECS-REVIEW.md
 
+## Audit du 2026-09-29 — couche méta du MVP
+
+Audit de cohérence et de complétude de `SPECS/` (skill `/spec-reviewer`), après l'ajout de la couche méta (`roadmap-mvp.md`, `rules.md` section 11).
+
+Fichiers relus ensemble : `CONCEPT.md`, `rules.md`, `units.md`, `roadmap.md`, `roadmap-mvp.md`, `technical.md`, `GRAPHICS.md`, `POC-SPECS.md`, `AGENTIC-WORKFLOW.md`, `ui-battle-screen-decisions.md`.
+
+| # | Type | Constat | Décision | Fichier mis à jour |
+|---|---|---|---|---|
+| 1 | Trou | Génération de l'« identifiant unique » d'un individu non précisée (risque : identifiant dérivé de la taille de la liste, réutilisé après une mort) | `crypto.randomUUID()` à la création ; aucun compteur sauvegardé | `technical.md` 5.4 |
+| 2 | Trou | Confirmation avant une invocation (action irréversible) non précisée | Un clic pour une unité non légendaire ; boîte de confirmation pour réinvoquer le [Légendaire] | `rules.md` 11.4 |
+| 3 | Trou | Sort des sauvegardes à l'ancien format (décompte de copies) | Pas de migration : sauvegarde sans liste d'individus effacée, retour à `IntroScreen` | `technical.md` 5.4 |
+| 4 | Trou | Emplacement et tests de la logique méta non prévus (`technical.md` ne parlait que du moteur de bataille) | Règles dans `src/logic/` (`army.js`, `summon.js`), `persistence.js` sans règle ; 6e priorité de tests ; 8 écrans dans l'arborescence | `technical.md` 2, 2.2, 2.3, 4 |
+| 5 | Incohérence | `rules.md` 7 : « une seule bataille scriptée » contre « Partir en guerre » dans le MVP | Bataille 01 scriptée ; batailles de « Partir en guerre » scriptées aussi, à définir | `rules.md` 7 |
+| 6 | Incohérence | « Budget total de 150 points » ambigu face au plafond d'armée de 500 | Renommé « plafond simultané sur le terrain », avec renvoi au plafond d'armée | `rules.md` 9, `units.md` |
+
+**Contradictions assumées :** `roadmap.md` décrit encore l'ancien MVP (civilisation en lecture seule, trois valeurs sauvegardées, monnaie exclue). `roadmap-mvp.md` fait priorité en cas de contradiction (écrit dans `roadmap-mvp.md` et `CLAUDE.md`) et liste les passages remplacés.
+
+**Conclusion :** un agent IA qui recevrait ces fichiers pourrait coder les étapes 1 à 3 de `roadmap-mvp.md` (données et sauvegarde, accueil, unités) sans inventer de règle, et l'étape 4 (armée) dès que le nom par défaut de l'armée est choisi. Restent ouverts, et doivent être tranchés avant de coder ce qui en dépend (`rules.md` section 10) :
+- somme de départ en Spirit Stones et moment du don, récompense de la bataille 01, coefficient de prix k et multiplicateur du [Légendaire] — **bloquants pour l'étape 5 (Invocation)** ;
+- nom par défaut de l'armée de départ — bloquant pour l'étape 4 ;
+- contenu de « Partir en guerre » ; phases et scripts de la bataille 01.
+
+---
+
+## Audit du 2026-09-28 — moteur de bataille
+
 Audit de cohérence et de complétude de `SPECS/` (skill `/spec-reviewer`), le 2026-09-28.
 
 Fichiers relus ensemble : `CONCEPT.md`, `rules.md`, `units.md`, `roadmap.md`, `technical.md`, `GRAPHICS.md`, `AGENTIC-WORKFLOW.md`, `ui-battle-screen-decisions.md`.

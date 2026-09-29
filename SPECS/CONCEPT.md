@@ -33,8 +33,15 @@ La version clickbait imite une **publicité de jeu de stratégie** : une bataill
 
 Le clickbait est construit comme une pub ; le MVP est **le jeu complet, construit comme un jeu**. Il reprend le même moteur de bataille et ajoute tout ce qu'une pub laisse de côté (détail dans `ROADMAP.md`) :
 - le **parcours complet** : introduction, choix de faction, bataille, écran de victoire ou de défaite avec « Réessayer », écran d'accueil ;
-- les **pertes définitives** : les copies tuées pendant la bataille sont sauvegardées et restent perdues, visibles sur l'écran de gestion de civilisation ;
+- les **pertes définitives** : les monstres tués pendant la bataille sont sauvegardés et restent perdus, visibles sur l'écran de gestion de civilisation ;
 - le **tutoriel complet**, qui apprend aussi les commandes et la retraite ;
-- toutes les fonctionnalités de bataille accessibles au joueur, sans les raccourcis propres au format pub.
+- toutes les fonctionnalités de bataille accessibles au joueur, sans les raccourcis propres au format pub ;
+- une **première boucle méta**, organisée autour de l'écran d'accueil (détail dans `roadmap-mvp.md` et `RULES.md` section 11) :
+  - la **gestion de civilisation** : consulter ses monstres espèce par espèce, et composer l'**armée** qui partira en guerre (500 points de présence au plus, au-dessus des 150 du terrain : l'armée contient des réserves) ;
+  - une monnaie, les **Spirit Stones**, reçue au départ puis en récompense des victoires ;
+  - l'**invocation** : dépenser ses Spirit Stones pour racheter des monstres d'espèces connues, ou réinvoquer son Légendaire tombé au combat ;
+  - « **Partir en guerre** » : les batailles qui suivent la bataille 01, pour lesquelles il faut une armée reconstituée (contenu à définir).
+
+La boucle méta donne son poids à l'objectif du joueur : chaque monstre perdu devra être racheté, et chaque Spirit Stone dépensée à reconstruire l'armée ne sert pas à la renforcer.
 
 Pour le Rendu 1, seule la version clickbait est jouable : le bouton « MVP » de l'écran d'introduction est grisé (`TECHNICAL.md` section 5.2).

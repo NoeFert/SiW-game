@@ -33,7 +33,8 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 - **Une seule armée** dans le MVP (les emplacements supplémentaires sont verrouillés, voir Suite)
 - Une armée est une liste d'identifiants d'individus (preset) : un même individu pourra figurer dans plusieurs armées quand d'autres emplacements seront débloqués
 - **Plafond : 500 PP** de coût total par armée (volontairement au-dessus des 150 PP du terrain) ; **minimum : 1 unité**
-- Actions : **renommer** l'armée, **ajouter / retirer** des unités par espèce, avec un compteur « X / 500 PP ». Pas de suppression (armée unique)
+- Actions : **renommer** l'armée (1 à 20 caractères), **ajouter / retirer** des unités par espèce, avec un compteur « X / 500 PP ». Pas de suppression (armée unique)
+- Un individu invoqué n'est **pas** ajouté automatiquement à l'armée
 - **Armée de départ** : créée automatiquement à l'arrivée sur l'accueil après la victoire de la bataille 01, avec **tous les survivants** (les dotations de départ totalisent au plus 430 PP, donc tiennent toujours sous 500), et un nom par défaut
 
 ### Monnaie : Spirit Stones

@@ -24,6 +24,8 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 - La **couche Phaser** (Scenes, Sprites, input sur le champ de bataille) est une couche fine par-dessus : elle lit l'état produit par la logique de jeu et l'affiche, elle transmet les clics du joueur sur le terrain vers la logique de jeu, mais ne contient elle-même aucune règle de jeu
 - La **couche React** (sidebar de déploiement, boutons, HUD, écrans de fin de bataille) suit le même principe : elle lit l'état produit par la logique de jeu et affiche des composants shadcn/8bitcn génériques, sans contenir de règle de jeu elle-même
 
+- La **logique méta** (individus possédés, armée, Spirit Stones, invocation — `rules.md` section 11) suit la même séparation : ses règles vivent dans `src/logic/` en JavaScript pur (ex : `army.js`, `summon.js`), jamais dans les composants React. `persistence.js` se contente de lire et d'écrire le localStorage, sans aucune règle de jeu
+
 **Pourquoi :** ça permet de tester toute la logique de combat/mouvement avec des tests automatisés rapides, sans avoir besoin de lancer le jeu dans un navigateur — essentiel pour la stratégie de tests ci-dessous. Ça garde aussi la porte ouverte à changer le moteur de rendu ou le framework d'UI plus tard sans toucher aux règles du jeu.
 
 ### 2.1 Style de modélisation des données
@@ -34,7 +36,7 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 ### 2.2 Répartition Phaser / React
 
 - **Phaser gère exclusivement le champ de bataille** : le canevas de jeu (grille, sprites d'unités, background, animations de combat, barres de vie au-dessus des unités, feedback visuel des aptitudes)
-- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la **tour de commandement** de l'écran de bataille (voir ci-dessous), l'écran de choix de faction, les écrans de fin de bataille (récompense, défaite), l'écran d'accueil, l'écran de gestion de civilisation, le compte à rebours de 15 secondes
+- **React + shadcn/8bitcn gèrent tout le reste de l'interface** : la **tour de commandement** de l'écran de bataille (voir ci-dessous), l'écran de choix de faction, les écrans de fin de bataille (récompense, défaite), l'écran d'accueil, l'écran de gestion de civilisation, l'écran d'invocation, le compte à rebours de 15 secondes
 - **Tour de commandement** (`src/ui/CommandTower.jsx`, détail dans `SPECS/ui-battle-screen-decisions.md`) : colonne **à gauche** du canevas, collée à la zone de déploiement du joueur. De haut en bas : bouton **Pause** (interrupteur ⏸ / ▶ de la pause principale, coin haut-droit, raccourci Espace), bouton **Abandonner** (emplacement provisoire à côté de Pause, avec boîte de confirmation), jauge de présence, liste « Vos unités » (seule zone qui défile, lignes regroupées par unités strictement identiques, drag & drop vers le terrain), **barre de commandes** fixée en bas (bouton « Commandes » avec cooldown, qui se déroule en [X] + icônes Aller / Attaquer / Fuir)
 - Le canevas Phaser et l'arbre React vivent côte à côte dans la page quand la bataille est affichée (la tour est **à côté** du champ de bataille, jamais superposée — seuls les tooltips, la confirmation d'abandon et le futur overlay tutoriel peuvent passer par-dessus) ; aucun des deux ne manipule directement le DOM ou les objets de l'autre — ils communiquent uniquement via l'état partagé exposé par `battle.js`. Toutes les règles d'interaction (pauses, déroulé d'une commande, contenu de la liste d'unités) vivent dans `src/logic/` (`pause.js`, `commandSelection.js`, `deployment.js`) ; React et Phaser ne font que lire l'état et transmettre les actions du joueur
 - **Signaux de pause sur le terrain** (Phaser) : désaturation complète pendant la pause principale, partielle pendant une pause d'interaction ; ce qui est cliquable (zone de déploiement, unités du joueur, ennemis ou cases ciblables) reste en couleur
@@ -52,6 +54,8 @@ src/
     pathfinding.js
     deployment.js
     battle.js
+    army.js        # Couche méta (rules.md 11)
+    summon.js
   data/            # Configuration statique (rosters, scripts IA)
     wyrmsRoster.js
     undeadRoster.js
@@ -59,7 +63,7 @@ src/
   scenes/          # Couche Phaser (rendu du champ de bataille, input sur le terrain)
     BattleScene.js
   ui/              # Couche React (sidebar, boutons, HUD, écrans)
-    screens/       # Les 7 écrans du jeu (voir section 5)
+    screens/       # Les 8 écrans du jeu (voir section 5)
       IntroScreen.jsx
       FactionChoiceScreen.jsx
       BattleScreen.jsx
@@ -67,6 +71,7 @@ src/
       DefeatScreen.jsx
       HomeScreen.jsx
       CivilizationScreen.jsx
+      SummonScreen.jsx
     CommandTower.jsx
     DeploymentList.jsx
     CommandBar.jsx
@@ -127,6 +132,7 @@ tests/
   3. Règles d'engagement au corps-à-corps (redirection vers un autre ennemi, file d'attente)
   4. Conditions de fin de bataille (victoire immédiate, cas d'égalité, compte à rebours de 15s)
   5. Gestion des points de présence et des copies (plafond vivant, copie perdue vs réutilisable)
+  6. Couche méta (`rules.md` 11) : plafond de 500 PP et minimum d'1 individu de l'armée, retrait des morts de la liste et de l'armée, prix d'invocation, [Légendaire] unique, solde insuffisant, validation du nom de l'armée
 - **Pas de tests automatisés sur la couche Phaser ni sur la couche React** (rendu, animations, input, composants UI) pour la v1 — cette partie reste validée manuellement en jouant, le coût de mise en place de tests d'interface n'étant pas justifié pour un prototype
 - Chaque règle chiffrée de `rules.md` doit pouvoir correspondre à au moins un test automatisé qui la vérifie — cohérent avec la consigne de `rules.md` ("chaque ligne doit être vérifiable")
 
@@ -134,17 +140,20 @@ tests/
 
 ## 5. Écrans et navigation
 
-Le jeu v1 est composé de **sept écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les six autres sont du React pur.
+Le jeu v1 est composé de **huit écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les sept autres sont du React pur.
 
 ### 5.1 Liste des écrans
 
 0. **IntroScreen** — texte d'introduction centré (le joueur est un souverain qui devra mener les siens à la guerre), avec un bouton pour continuer. Affiché juste avant `FactionChoiceScreen`, donc **une seule fois**, au tout début d'une partie.
 1. **FactionChoiceScreen** — écran de choix de faction (Souveraine des Wyrms ou Souverain des Morts-Vivants). Affiché **une seule fois**, au tout début d'une partie (pas avant chaque bataille, même une fois que plusieurs batailles existeront en v2+).
 2. **BattleScreen** — l'écran de bataille actuel : tour de commandement React à gauche (pause, abandon, déploiement, commandes) + canevas Phaser (champ de bataille) à droite.
-3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3) — le contenu réel des récompenses est hors scope v1 (`roadmap.md`).
+3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3). La victoire rapporte des Spirit Stones (`rules.md` 11.3) ; montant et affichage de cette récompense à définir (`roadmap-mvp.md`).
 4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé). Sert aussi après un match nul (`rules.md` 8.1), avec le titre « Match nul » au lieu de « Défaite » : même suite, aucun vainqueur.
-5. **HomeScreen** — écran d'accueil. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Pour la v1, affiche une ligne de texte indiquant la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), plus un bouton vers `CivilizationScreen`.
-6. **CivilizationScreen** — écran de gestion de civilisation, accessible depuis un bouton sur `HomeScreen`. **Lecture seule en v1** (aucune action possible). Affiche une ligne par type d'unité de la faction du joueur (unités regroupées uniquement si elles partagent exactement les mêmes nom et stats — donc une ligne par espèce du roster, voir `units.md`), avec le nombre de copies restantes sur le total initial. Reflète les pertes définitives (unités tuées, pas celles ayant fui) subies pendant la bataille tutoriel.
+5. **HomeScreen** — écran d'accueil, point central du jeu. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Affiche la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), le **solde de Spirit Stones** en haut à droite (`rules.md` 11.3), et trois boutons : **Partir en guerre** (désactivé tant que son contenu n'est pas spécifié, `roadmap-mvp.md`), **Gestion de civilisation** (`CivilizationScreen`) et **Invocation** (`SummonScreen`).
+6. **CivilizationScreen** — écran de gestion de civilisation, accessible depuis `HomeScreen`, en deux sections :
+   - **Unités** : une ligne par espèce du roster de la faction du joueur (sprite, nom, keywords, coût en PP, nombre d'individus possédés ; une espèce à 0 reste affichée, grisée). Un clic ouvre la **page de détail de l'espèce** (vue interne à l'écran, pas un écran à part) : grand sprite, nom, keywords, stats complètes de `units.md`, texte des aptitudes, nombre possédé et nombre dans l'armée, bouton « Invoquer » / « Réinvoquer » vers `SummonScreen`.
+   - **Armée** : nom modifiable, compteur « X / 500 PP », ajout / retrait par espèce (`rules.md` 11.2).
+7. **SummonScreen** — écran d'invocation, accessible depuis `HomeScreen` et depuis la page de détail d'une espèce. Une ligne par espèce de la faction du joueur, avec son prix en Spirit Stones et un bouton « Invoquer » (« Réinvoquer » pour un [Légendaire] mort, désactivé avec « Déjà à vos côtés » tant qu'il est vivant, désactivé aussi si le solde est insuffisant) — `rules.md` 11.4. Solde affiché comme sur `HomeScreen`.
 
 ### 5.2 Enchaînement (v1)
 
@@ -160,10 +169,14 @@ IntroScreen → FactionChoiceScreen (une fois)
   VictoryScreen                                        │
         │                                              │
         ▼                                              │
-   HomeScreen ──────► CivilizationScreen (lecture seule, retour possible vers HomeScreen)
-                                                          │
-   BattleScreen ◄──────────────────────────────────────┘
+   HomeScreen ◄────────────────────────────────────────┘ (après la victoire)
+     ├──► CivilizationScreen (Unités / détail d'une espèce / Armée) ──► retour HomeScreen
+     │         └── « Invoquer » depuis le détail ──► SummonScreen
+     ├──► SummonScreen ──► retour HomeScreen
+     └──► « Partir en guerre » (désactivé, contenu à spécifier)
 ```
+
+« Réessayer » sur `DefeatScreen` relance `BattleScreen`.
 
 - **Rendu 1 (POC) :** seule la version clickbait (5.6) est jouable. Sur `IntroScreen`, le bouton du jeu normal s'appelle « MVP » et il est grisé ; l'application démarre toujours sur `IntroScreen`, quelle que soit la sauvegarde (`MVP_LOCKED` dans `App.jsx`, à passer à `false` pour rouvrir le MVP). La règle ci-dessous s'applique une fois le MVP rouvert.
 - Au chargement de l'application, l'état persistant (localStorage, voir 5.4) est lu : s'il n'y a pas encore de faction choisie, `IntroScreen` s'affiche, puis `FactionChoiceScreen` ; si une faction est déjà choisie mais la première bataille pas encore gagnée, l'app va directement à `BattleScreen` ; si la première bataille est déjà gagnée, l'app va directement à `HomeScreen`.
@@ -171,16 +184,21 @@ IntroScreen → FactionChoiceScreen (une fois)
 
 ### 5.3 Squelette de VictoryScreen et DefeatScreen pour la v1
 - Les deux écrans sont volontairement minimaux : un titre (Victoire / Défaite ou Match nul), et un seul bouton d'action (Continuer vers l'accueil / Réessayer)
-- Pas de contenu de récompense réel à afficher pour la v1 (le design doc prévoit un système de récompenses en v2+, hors scope) — la structure du composant doit néanmoins être prête à accueillir ce contenu plus tard sans réécriture complète
+- L'affichage de la récompense en Spirit Stones reste à définir (`roadmap-mvp.md`) — la structure du composant doit être prête à accueillir ce contenu sans réécriture complète
 
 ### 5.4 Navigation et état persistant
 - **Gestion de la navigation entre écrans : état React simple** (ex : un state `currentScreen` géré dans le composant racine `App.jsx`), pas de librairie de routing (React Router ou équivalent) pour la v1 — le jeu est une session continue dans un seul onglet, sans besoin d'URLs distinctes par écran. Une vraie solution de routing pourra être introduite en v2+ si la sélection de niveau (plusieurs batailles) le justifie.
-- **Persistance via localStorage** : trois valeurs sont sauvegardées —
+- **Persistance via localStorage** : cinq valeurs sont sauvegardées (`roadmap-mvp.md`) —
   1. la faction choisie par le joueur
   2. un indicateur booléen "première bataille (tutoriel) gagnée"
-  3. le nombre de copies restantes par unité de la faction du joueur (une entrée par type d'unité, ex : `{ lambtonWorm: 9, amphiptere: 8, fafnir: 1 }`), calculé et sauvegardé **au moment où la victoire de la bataille tutoriel est obtenue** — pas mis à jour lors d'une tentative ratée (voir 5.2)
-- C'est une exception ciblée à l'absence de persistance en v1 (voir `roadmap.md`), pas un système de sauvegarde généralisé. Ces trois valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `CivilizationScreen`.
-- Le raccourci « restart game » du menu devs (section 5.7) efface les trois valeurs et ramène à `IntroScreen`. Il n'y a plus de bouton de réinitialisation côté joueur.
+  3. la **liste des individus possédés**, chacun `{ id, species }` (ex : `[{ id: 'u1', species: 'lambtonWorm' }, …]`, `rules.md` 11.1) : créée avec la dotation de départ au choix de la faction, mise à jour à la victoire de la bataille tutoriel (individus tués retirés) et à chaque invocation — jamais lors d'une tentative ratée (voir 5.2). Elle remplace l'ancien décompte de copies par espèce
+  4. l'**armée** : `{ name, unitIds }` (`rules.md` 11.2)
+  5. le **solde de Spirit Stones** (entier, `rules.md` 11.3)
+- **Identifiant d'un individu** : généré par `crypto.randomUUID()` à sa création (dotation de départ ou invocation). Jamais dérivé de la taille de la liste, qui réutiliserait l'identifiant d'un individu mort ; aucun compteur n'est sauvegardé.
+- Aucun champ de personnalisation n'est ajouté aux individus : l'identifiant suffit pour que les armées référencent des individus, et pour accueillir la personnalisation plus tard sans migration de sauvegarde.
+- C'est une exception ciblée à l'absence de persistance, pas un système de sauvegarde généralisé. Ces valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `HomeScreen`, `CivilizationScreen` et `SummonScreen`.
+- **Ancien format (décompte de copies par espèce) : pas de migration.** Une sauvegarde qui contient une faction mais pas de liste d'individus est considérée comme absente : elle est effacée et l'app repart de `IntroScreen`. Aucun joueur n'a de sauvegarde MVP (le build publié ne donne accès qu'au clickbait, qui ne sauvegarde rien).
+- Le raccourci « restart game » du menu devs (section 5.7) efface toutes ces valeurs et ramène à `IntroScreen`. Il n'y a plus de bouton de réinitialisation côté joueur.
 - Aucune autre donnée n'est persistée en v1 (l'état d'une bataille en cours, par exemple, repart de zéro à chaque chargement de `BattleScreen`).
 
 ### 5.5 Tutoriels
@@ -216,4 +234,4 @@ IntroScreen → FactionChoiceScreen (une fois)
 - Raccourcis :
   - **restart game** : efface la sauvegarde et relance le jeu normal depuis l'introduction.
   - **restart clickbait** : lance la version clickbait (section 5.6) depuis le choix de faction.
-  - **test-wyrm** : charge un joueur de test figé et ouvre l'accueil, sans jouer la bataille 01 — faction Wyrms, bataille 01 gagnée, 3 Vers de Lambton et 1 Amphiptère perdus (soit 9 / 7 / 1 copies restantes). Écrase la sauvegarde. Profils de test : `src/dev/testProfiles.js`.
+  - **test-wyrm** : charge un joueur de test figé et ouvre l'accueil, sans jouer la bataille 01 — faction Wyrms, bataille 01 gagnée, 3 Vers de Lambton et 1 Amphiptère perdus (soit 9 / 7 / 1 individus restants), une armée contenant ces 17 survivants (375 PP) et **10 000 Spirit Stones**. Écrase la sauvegarde. Profils de test : `src/dev/testProfiles.js`.

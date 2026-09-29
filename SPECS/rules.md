@@ -20,7 +20,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 - Le déploiement est limité par les **points de présence** disponibles : le joueur dispose d'un plafond de **150 points de présence pouvant être déployés simultanément** (voir section 9 et `units.md` pour le détail du coût de chaque unité).
 - Ce plafond est **vivant, pas un budget dépensé une seule fois** : le coût en points de présence d'une unité se libère dès qu'elle meurt ou fuit le terrain (commande de retraite, section 5), permettant au joueur de redéployer d'autres unités en cours de bataille tant que le total des unités actuellement sur le terrain reste sous le plafond.
 - **Limite de quantité par unité [Légendaire] :** un seul exemplaire de l'unité [Légendaire] d'une faction (Fafnir ou Athos selon le camp) peut être déployé simultanément sur le terrain, indépendamment du budget de points disponible.
-- **Copies disponibles pour la bataille :** chaque unité (légendaire ou non) dispose d'un nombre fixe de copies pour une même bataille (voir `units.md` pour le détail par unité).
+- **Copies disponibles pour la bataille :** chaque unité (légendaire ou non) dispose d'un nombre fixe de copies pour une même bataille. Pour le joueur du jeu normal, ce sont les individus qu'il possède (section 11.1) ; pour l'IA et pour la version clickbait, les copies de `units.md`.
   - Une unité **tuée** en combat consomme définitivement une copie (perdue pour le reste de la bataille, cohérent avec la mort définitive, section 4.4). C'est aussi le cas d'une unité tuée à l'instant même où elle atteint le bord en fuyant : elle est morte, pas en fuite.
   - Une unité qui **fuit** (retraite, section 5) retourne en réserve avec ses points de vie réduits conservés, et **reste disponible** pour un redéploiement ultérieur dans la même bataille — sa copie n'est pas perdue.
 - L'IA se déploie sur l'autre moitié du terrain (moitié droite, 12 colonnes), selon un script prédéfini (voir section 7).
@@ -56,7 +56,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 
 ### 4.4 Mort
 - Quand les points de vie d'une unité atteignent 0, elle meurt et est retirée du terrain.
-- Une unité morte en bataille est perdue définitivement, sauf mécanismes de réinvocation (hors scope v1, voir `roadmap.md`).
+- Une unité morte en bataille est perdue définitivement : l'individu ne revient jamais. Le joueur peut racheter un nouvel individu de la même espèce, ou réinvoquer son [Légendaire] (section 11.4).
 
 ### 4.5 Attaque à distance
 - Une unité à distance a une **portée de tir**, une valeur fixe propre à l'unité (voir `units.md` pour les valeurs du roster).
@@ -133,7 +133,7 @@ Les aptitudes spécifiques de chaque unité (déclencheur exact, effet, valeurs)
 
 - L'IA ne gère aucune ressource dynamiquement (pas d'achat, pas de progression) — son comportement est entièrement scripté.
 - Le script définit à l'avance, pour une bataille donnée : quelle unité est déployée et à quel instant précis depuis le début de la bataille. La case d'apparition n'est pas fixée à l'avance : elle est choisie au moment du déploiement selon la situation du terrain (voir 7.2).
-- Pour la v1, **une seule bataille scriptée** est prévue (pas de courbe de difficulté sur plusieurs batailles).
+- La bataille 01 est scriptée (section 7.1). Les batailles de « Partir en guerre » (`roadmap-mvp.md`) le seront aussi ; leur nombre et leurs scripts restent à définir (section 10).
 - Une fois déployée, une unité IA se comporte exactement comme une unité du joueur non commandée : mouvement et combat autonomes selon les mêmes règles (sections 3 et 4).
 
 ### 7.1 Script de bataille v1
@@ -213,7 +213,7 @@ Phase 3 (une nuée d'abord — le fort la retient —, puis des tireurs — le f
 
 ### 8.1 Victoire immédiate
 - Si toutes les unités du camp adverse sont mortes (aucune copie restante en réserve, aucune unité vivante sur le terrain), victoire immédiate pour l'autre camp.
-- **Cas d'égalité (draw) :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — les deux camps perdent leur dernière unité au même frame, sans copie restante en réserve d'aucun côté. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire pour la v1 (pas de récompenses post-bataille à distribuer, voir `roadmap.md`). Un match nul n'est pas une victoire : la bataille tutoriel n'est pas validée, le joueur voit un écran « Match nul » et peut réessayer, comme après une défaite (voir `technical.md` 5.1).
+- **Cas d'égalité (draw) :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — les deux camps perdent leur dernière unité au même frame, sans copie restante en réserve d'aucun côté. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire : un match nul ne rapporte aucune récompense (section 11.3). Un match nul n'est pas une victoire : la bataille tutoriel n'est pas validée, le joueur voit un écran « Match nul » et peut réessayer, comme après une défaite (voir `technical.md` 5.1).
 - **Réserves de l'IA :** dans la bataille 01, l'IA dispose des copies de `units.md` ; une fois son script terminé et son terrain vide, il lui reste donc des réserves qu'elle ne redéploie jamais, et la section 8.2 s'applique (victoire du joueur après 15 s). La bataille-clickbait fait exception : victoire immédiate dès la fin du script de la dernière phase (section 7.3).
 
 ### 8.2 Terrain vide avec réserves restantes
@@ -230,8 +230,51 @@ Deux factions sont disponibles en v1 : **Souveraine des Wyrms** et **Souverain d
 
 Les stats précises de chaque unité (points de vie, dégâts, coût, vitesses, portée, aptitudes) sont des **données**, pas des règles — voir le document séparé [`units.md`](units.md).
 
-**Budget total de chaque camp : 150 points de présence.**
+**Plafond simultané sur le terrain : 150 points de présence par camp** (section 2). À ne pas confondre avec le plafond de l'armée, 500 points (section 11.2), qui limite ce que le joueur emmène en bataille.
 
 ## 10. Valeurs à définir
 
-Toutes les valeurs chiffrées du scope v1 ont été tranchées, y compris le roster de la faction adverse et les conditions de fin de bataille. Cette section sera réutilisée si de nouveaux points restent ouverts.
+Les valeurs de la bataille sont tranchées. Restent ouvertes, pour la couche méta (section 11) :
+- somme de départ en Spirit Stones, et moment où elle est donnée ;
+- récompense de la victoire de la bataille 01 (montant, fixe ou liée aux pertes) ;
+- coefficient de prix k, et multiplicateur éventuel du [Légendaire] ;
+- nom par défaut de l'armée de départ ;
+- contenu de « Partir en guerre » (batailles, récompenses, conséquences d'une défaite).
+
+## 11. Couche méta (jeu normal, hors version clickbait)
+
+Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles ne s'applique à la version clickbait, où rien n'est sauvegardé.
+
+### 11.1 Individus possédés
+- Le joueur possède une **liste d'individus**. Un individu n'a que deux caractéristiques : un **identifiant unique** et son **espèce**. Ses stats sont celles de l'espèce (`units.md`).
+- **Dotation de départ** : au choix de la faction, le joueur reçoit, pour chaque espèce de sa faction, autant d'individus que la colonne « Copies de départ » de `units.md` (ex : Wyrms : 12 Vers de Lambton, 8 Amphiptères, 1 Fafnir).
+- **Pertes** : à la victoire de la bataille 01, chaque individu tué pendant la bataille est retiré de la liste. Une tentative perdue ou un match nul ne retire aucun individu.
+- L'interface regroupe toujours les individus **par espèce** : deux individus de la même espèce sont indiscernables pour le joueur.
+
+### 11.2 Armée
+- L'**armée** est une liste d'identifiants d'individus possédés, avec un **nom**.
+- Le joueur n'a **qu'une armée**. Les emplacements supplémentaires sont hors scope (`roadmap-mvp.md`).
+- **Plafond** : la somme des coûts en points de présence de ses individus ne dépasse jamais **500**. Ce plafond est distinct du plafond simultané de 150 points sur le terrain (section 2).
+- **Minimum** : l'armée contient au moins **1 individu**.
+- **Composition** : le joueur ajoute ou retire des individus **par espèce**, un à la fois. Un ajout qui ferait dépasser 500 est impossible, tout comme le retrait du dernier individu de l'armée. Les individus d'une espèce étant indiscernables (11.1), n'importe lequel peut être ajouté ou retiré.
+- **Renommage** : le joueur peut renommer l'armée à tout moment depuis la gestion de civilisation.
+  - Le nom fait de **1 à 20 caractères**, sans filtre (accents, chiffres, emojis acceptés).
+  - Validation par Entrée ou par un bouton ✓, annulation par Échap.
+  - Un nom vide ou fait uniquement d'espaces est refusé : l'ancien nom est conservé.
+- **Armée de départ** : créée automatiquement à la victoire de la bataille 01, avec **tous les individus survivants**. Les dotations de départ totalisent au plus 430 points (Wyrms) et 418 points (Morts-Vivants) : elles tiennent toujours sous le plafond.
+- **Mort d'un individu** : il est retiré de l'armée en même temps que de la liste des individus possédés (11.1).
+
+### 11.3 Spirit Stones
+- Monnaie du jeu (nom provisoire). Le solde est un **nombre entier**, jamais négatif, affiché en haut à droite de l'écran d'accueil.
+- **Gains** : une somme de départ, puis une récompense à chaque victoire (bataille 01, puis batailles de « Partir en guerre »). Montants : section 10.
+- **Défaite, abandon ou match nul** : aucune récompense.
+
+### 11.4 Invocation
+- L'écran Invocation propose chaque espèce de la faction du joueur. Invoquer, c'est **payer son prix** et **ajouter un nouvel individu** de cette espèce à la liste (11.1).
+- **Prix** : coût en points de présence de l'espèce × k, avec un multiplicateur éventuel pour le [Légendaire] (valeurs : section 10).
+- **Solde insuffisant** : l'invocation est impossible (bouton désactivé).
+- **Confirmation** : un clic invoque directement une unité non légendaire. La réinvocation du [Légendaire] passe par une boîte de confirmation (« Réinvoquer [nom] pour X Spirit Stones ? ») ; l'annuler ne dépense rien.
+- **Espèces non légendaires** : aucun plafond de possession.
+- **[Légendaire]** : au plus **un** individu possédé. Tant qu'il est vivant, l'invocation est impossible (« Déjà à vos côtés ») ; s'il est mort, elle est possible et s'appelle « Réinvoquer ». Rachat et réinvocation sont la même action : pas de délai, pas de coût croissant.
+- Pas de gacha : seules les espèces du roster de la faction du joueur sont proposées.
+- Un individu invoqué **n'est pas ajouté à l'armée** : le joueur l'y ajoute lui-même depuis la gestion de civilisation (11.2).

@@ -2,13 +2,15 @@
 
 Stats des unités des deux factions. Ce fichier contient des **données**, pas des règles — pour le fonctionnement des mécaniques (comment le corps-à-corps, le tir à distance, les aptitudes se comportent), voir `rules.md`.
 
-**Budget de chaque camp (joueur ou IA) : 150 points de présence simultanés** (plafond vivant, voir `rules.md` 2). Le joueur choisit l'une des deux factions, l'IA joue l'autre (`rules.md` 9).
+**Plafond simultané sur le terrain, pour chaque camp (joueur ou IA) : 150 points de présence** (plafond vivant, voir `rules.md` 2). À ne pas confondre avec le plafond de l'armée du joueur, 500 points (`rules.md` 11.2). Le joueur choisit l'une des deux factions, l'IA joue l'autre (`rules.md` 9).
+
+**Copies de départ** : copies de l'IA pour une bataille, et de la version clickbait. Dans le jeu normal, c'est la dotation de départ du joueur, pas un maximum : il peut ensuite en racheter (`rules.md` 11).
 
 ---
 
 ## Faction : Wyrms
 
-| Unité | Keywords | Attaque | Taille | Coût | PV | Dégâts | Vitesse dépl. | Vitesse atk | Portée | Copies disponibles |
+| Unité | Keywords | Attaque | Taille | Coût | PV | Dégâts | Vitesse dépl. | Vitesse atk | Portée | Copies de départ |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Ver de Lambton | (basique) | Corps-à-corps | 1 case | 10 | 40 | 8 | 1,25 case/s | 1,0 s | — | 12 |
 | Amphiptère | [Vol] | À distance | 1 case | 25 | 18 | 10 | 2 cases/s | 1,3 s | 4 cases | 8 |
@@ -22,7 +24,7 @@ Stats des unités des deux factions. Ce fichier contient des **données**, pas d
 
 ## Faction : Morts-Vivants
 
-| Unité | Keywords | Attaque | Taille | Coût | PV | Dégâts | Vitesse dépl. | Vitesse atk | Portée | Copies disponibles |
+| Unité | Keywords | Attaque | Taille | Coût | PV | Dégâts | Vitesse dépl. | Vitesse atk | Portée | Copies de départ |
 |---|---|---|---|---|---|---|---|---|---|---|
 | New-reborn Skeleton | (basique) | Corps-à-corps | 1 case | 6 | 22 | 5 | 1,25 case/s | 1,0 s | — | 18 |
 | Necromant Initiate | [Vol] | À distance | 1 case | 25 | 18 | 10 | 2 cases/s | 1,3 s | 4 cases | 8 |

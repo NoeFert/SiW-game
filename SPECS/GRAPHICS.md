@@ -47,6 +47,10 @@ Les obstacles de la grille utilisent un seul sprite de rocher, d'autres pourront
 
 ![Rocher](assets/rocks.png)
 
+## Spirit Stones (monnaie)
+
+Icône provisoire : un **losange violet**, dessiné en CSS ou en SVG inline (pas d'asset pour l'instant). Il accompagne partout le solde et les prix en Spirit Stones : en haut à droite de l'accueil, sur l'écran Invocation (`rules.md` 11.3 et 11.4). À remplacer par un vrai sprite plus tard.
+
 ## Signaux visuels en bataille
 
 - **Pause** : terrain désaturé ; ce qui reste cliquable garde ses couleurs (`ui-battle-screen-decisions.md` section 3).
