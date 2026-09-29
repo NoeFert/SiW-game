@@ -6,6 +6,7 @@ import VictoryScreen from './screens/VictoryScreen.jsx';
 import DefeatScreen from './screens/DefeatScreen.jsx';
 import HomeScreen from './screens/HomeScreen.jsx';
 import CivilizationScreen from './screens/CivilizationScreen.jsx';
+import SummonScreen from './screens/SummonScreen.jsx';
 import DevMenu from './dev/DevMenu.jsx';
 import { TEST_PROFILES, loadTestProfile } from './dev/testProfiles.js';
 import { ROSTERS } from './data/rosters.js';
@@ -44,6 +45,9 @@ export default function App() {
   const [battleAttempt, setBattleAttempt] = useState(0); // change de clé = BattleScreen tout neuf
   const [clickbaitFaction, setClickbaitFaction] = useState(null);
   const [victoryReport, setVictoryReport] = useState(null); // bilan de victoire (clickbait)
+  // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil (null) ou depuis la page de détail
+  // d'une espèce (sa clé de roster) ; « Retour » ramène à l'écran d'origine.
+  const [summonFrom, setSummonFrom] = useState(null);
   const isClickbait = mode === 'clickbait';
   const playerFaction = isClickbait ? clickbaitFaction : getSavedFaction();
 
@@ -149,12 +153,36 @@ export default function App() {
   } else if (screen === 'defeat' || screen === 'draw') {
     content = <DefeatScreen isDraw={screen === 'draw'} onRetry={startBattle} />;
   } else if (screen === 'civilization') {
-    content = <CivilizationScreen playerFaction={playerFaction} onBack={goHome} />;
+    content = (
+      <CivilizationScreen
+        playerFaction={playerFaction}
+        initialSpecies={summonFrom}
+        onBack={goHome}
+        onOpenSummon={(speciesKey) => {
+          setSummonFrom(speciesKey);
+          setScreen('summon');
+        }}
+      />
+    );
+  } else if (screen === 'summon') {
+    content = (
+      <SummonScreen
+        playerFaction={playerFaction}
+        onBack={() => setScreen(summonFrom ? 'civilization' : 'home')}
+      />
+    );
   } else {
     content = (
       <HomeScreen
         playerFaction={playerFaction}
-        onOpenCivilization={() => setScreen('civilization')}
+        onOpenCivilization={() => {
+          setSummonFrom(null);
+          setScreen('civilization');
+        }}
+        onOpenSummon={() => {
+          setSummonFrom(null);
+          setScreen('summon');
+        }}
       />
     );
   }

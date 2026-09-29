@@ -102,3 +102,28 @@ export function renameArmy(army, name) {
   if (length === 0 || length > ARMY_NAME_MAX_LENGTH) return army;
   return { ...army, name: trimmed };
 }
+
+// rules.md 10 / 11.4 : prix d'invocation = coût en PP × k, × un multiplicateur pour le
+// [Légendaire]. Valeurs provisoires (k = 1, pas de multiplicateur) jusqu'à l'étape 6 de
+// roadmap-mvp.md.
+export const SUMMON_PRICE_FACTOR = 1;
+export const LEGENDARY_PRICE_MULTIPLIER = 1;
+
+export function summonPrice(species) {
+  const multiplier = species.keywords.includes('legendary') ? LEGENDARY_PRICE_MULTIPLIER : 1;
+  return species.cost * SUMMON_PRICE_FACTOR * multiplier;
+}
+
+// rules.md 11.4 : impossible pour un [Légendaire] vivant ou si le solde est insuffisant.
+export function canSummon(species, ownedCount, spiritStones) {
+  return summonAction(species, ownedCount) !== 'alreadyOwned' && spiritStones >= summonPrice(species);
+}
+
+// rules.md 11.4 : invoquer = payer le prix et ajouter un nouvel individu à la liste (pas à
+// l'armée). Renvoie la nouvelle liste et le nouveau solde, ou `null` si c'est impossible.
+export function summon(roster, units, spiritStones, speciesKey) {
+  const species = roster[speciesKey];
+  const owned = units.filter((unit) => unit.species === speciesKey).length;
+  if (!canSummon(species, owned, spiritStones)) return null;
+  return { units: [...units, createUnit(speciesKey)], spiritStones: spiritStones - summonPrice(species) };
+}

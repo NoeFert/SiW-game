@@ -98,7 +98,7 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 
 ## Points encore ouverts
 
-- **Économie** : somme de départ en Spirit Stones (montant ; 0 provisoire, donné au choix de la faction), récompense de la bataille 01 (montant, fixe ou liée aux pertes), coefficient de prix k et multiplicateur éventuel du Légendaire
+- **Économie** : somme de départ en Spirit Stones (montant ; 0 provisoire, donné au choix de la faction), récompense de la bataille 01 (montant, fixe ou liée aux pertes), coefficient de prix k et multiplicateur éventuel du Légendaire (provisoirement k = 1, sans multiplicateur)
 - **Partir en guerre** : nombre de batailles, terrains, scripts IA, récompenses, déblocage, et ce qui se passe à la défaite (pertes persistées ou non)
 
 ---

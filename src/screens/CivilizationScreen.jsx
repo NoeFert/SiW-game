@@ -74,8 +74,9 @@ function statRows(species) {
 }
 
 // technical.md 5.1 : page de détail d'une espèce (vue interne à l'écran). Le bouton d'invocation
-// reste désactivé jusqu'à l'arrivée de SummonScreen (roadmap-mvp.md, étape 5).
-function SpeciesDetail({ species, owned, inArmy, onBack }) {
+// mène à SummonScreen ; désactivé pour un [Légendaire] vivant (« Déjà à vos côtés », rules.md 11.4).
+function SpeciesDetail({ species, owned, inArmy, onBack, onSummon }) {
+  const action = summonAction(species, owned);
   return (
     <div className="flex flex-col gap-6 text-sm">
       <div className="flex items-center gap-6">
@@ -108,7 +109,7 @@ function SpeciesDetail({ species, owned, inArmy, onBack }) {
       )}
       <div className="flex gap-4">
         <Button onClick={onBack}>{T.back}</Button>
-        <Button disabled>{TEXT.summonActions[summonAction(species, owned)]}</Button>
+        <Button disabled={action === 'alreadyOwned'} onClick={onSummon}>{TEXT.summonActions[action]}</Button>
       </div>
     </div>
   );
@@ -194,9 +195,12 @@ function ArmySection({ roster, units, army, onChange }) {
 
 // technical.md 5.1 : gestion de civilisation en deux sections — Unités (liste par espèce + page
 // de détail) et Armée (composition et renommage, sauvegardés à chaque changement).
-export default function CivilizationScreen({ playerFaction, onBack }) {
+// `initialSpecies` : espèce dont la page de détail s'ouvre directement (retour de SummonScreen).
+export default function CivilizationScreen({
+  playerFaction, initialSpecies = null, onBack, onOpenSummon,
+}) {
   const [section, setSection] = useState('units');
-  const [selectedKey, setSelectedKey] = useState(null);
+  const [selectedKey, setSelectedKey] = useState(initialSpecies);
   const [army, setArmy] = useState(getArmy);
   const roster = ROSTERS[playerFaction];
   const units = getOwnedUnits() ?? [];
@@ -216,6 +220,7 @@ export default function CivilizationScreen({ playerFaction, onBack }) {
         owned={owned[selectedKey]}
         inArmy={inArmy[selectedKey]}
         onBack={() => setSelectedKey(null)}
+        onSummon={() => onOpenSummon(selectedKey)}
       />
     );
   } else if (section === 'army') {

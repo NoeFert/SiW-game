@@ -237,7 +237,7 @@ Les stats précises de chaque unité (points de vie, dégâts, coût, vitesses, 
 Les valeurs de la bataille sont tranchées. Restent ouvertes, pour la couche méta (section 11) :
 - somme de départ en Spirit Stones : **0, provisoire**, donnée au choix de la faction (montant définitif à l'étape 6 de `roadmap-mvp.md`) ;
 - récompense de la victoire de la bataille 01 (montant, fixe ou liée aux pertes) ;
-- coefficient de prix k, et multiplicateur éventuel du [Légendaire] ;
+- coefficient de prix k : **1, provisoire** ; multiplicateur du [Légendaire] : **aucun (×1), provisoire** (valeurs définitives à l'étape 6 de `roadmap-mvp.md`) ;
 - nom par défaut de l'armée de départ : **« Armée 1 »** (tranché) ;
 - contenu de « Partir en guerre » (batailles, récompenses, conséquences d'une défaite).
 

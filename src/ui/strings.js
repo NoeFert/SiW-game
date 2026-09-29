@@ -82,6 +82,10 @@ export const TEXT = {
     addUnit: 'Ajouter',
     removeUnit: 'Retirer',
   },
+  summon: {
+    title: 'Invocation',
+    confirmResummon: (name, price) => `Réinvoquer ${name} pour ${price} Spirit Stones ?`,
+  },
   // rules.md 11.4 : libellé du bouton d'invocation (clé = résultat de summonAction).
   summonActions: {
     summon: 'Invoquer',
