@@ -1,4 +1,4 @@
-// technical.md 5.4 : exception ciblée à l'absence de persistance — seules ces huit valeurs sont
+// technical.md 5.4 : exception ciblée à l'absence de persistance — seules ces neuf valeurs sont
 // sauvegardées (roadmap-mvp.md) : de quoi reconstituer l'écran de départ au chargement et
 // afficher HomeScreen, CivilizationScreen, SummonScreen et WarScreen.
 const FACTION_KEY = 'siw.playerFaction';
@@ -9,6 +9,7 @@ const SPIRIT_STONES_KEY = 'siw.spiritStones';
 const PLAYER_XP_KEY = 'siw.playerXp';
 const FALLEN_LEGENDARY_LEVEL_KEY = 'siw.fallenLegendaryLevel';
 const WON_WAR_BATTLES_KEY = 'siw.wonWarBattles';
+const FOUNTAIN_LAST_HARVEST_KEY = 'siw.fountainLastHarvest';
 // Ancien format (décompte de copies par espèce), seulement effacé : pas de migration.
 const LEGACY_OWNED_COPIES_KEY = 'siw.ownedCopies';
 
@@ -85,6 +86,17 @@ export function saveWonWarBattles(battleIds) {
   localStorage.setItem(WON_WAR_BATTLES_KEY, JSON.stringify(battleIds));
 }
 
+// Heure (ms) de la dernière récolte de la Spirit Fountain (rules.md 11.8), `null` tant qu'elle
+// n'est pas en route.
+export function getFountainLastHarvest() {
+  const time = localStorage.getItem(FOUNTAIN_LAST_HARVEST_KEY);
+  return time === null ? null : Number(time);
+}
+
+export function saveFountainLastHarvest(timeMs) {
+  localStorage.setItem(FOUNTAIN_LAST_HARVEST_KEY, String(timeMs));
+}
+
 // technical.md 5.4 : une sauvegarde avec une faction mais sans liste d'individus est à l'ancien
 // format — considérée comme absente.
 export function isLegacySave() {
@@ -96,6 +108,7 @@ export function isLegacySave() {
 export function clearProgress() {
   [
     FACTION_KEY, FIRST_VICTORY_KEY, OWNED_UNITS_KEY, ARMY_KEY, SPIRIT_STONES_KEY, PLAYER_XP_KEY,
-    FALLEN_LEGENDARY_LEVEL_KEY, WON_WAR_BATTLES_KEY, LEGACY_OWNED_COPIES_KEY,
+    FALLEN_LEGENDARY_LEVEL_KEY, WON_WAR_BATTLES_KEY, FOUNTAIN_LAST_HARVEST_KEY,
+    LEGACY_OWNED_COPIES_KEY,
   ].forEach((key) => localStorage.removeItem(key));
 }

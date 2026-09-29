@@ -2,7 +2,6 @@
 // localStorage (la sauvegarde vit dans persistence.js).
 import { removeDeadFromArmy } from './army.js';
 import { applyVictoryToUnits, individualXpGains } from './levels.js';
-import { summonPrice } from './summon.js';
 
 // rules.md 11.7 : au rejeu, 25 % de la récompense de la première victoire (provisoire).
 export const REPLAY_REWARD_PERCENT = 25;
@@ -52,12 +51,4 @@ export function resolveWarDefeat(save, battleUnits, roster) {
     save: { units, army: removeDeadFromArmy(save.army, units), fallenLegendaryLevel },
     lost: lossReport(roster, save.units, dead),
   };
-}
-
-// rules.md 11.7 : filet de sécurité — sans aucun individu et avec un solde inférieur au prix de
-// l'unité basique (sans keyword), le solde est porté à ce prix. Renvoie le solde à appliquer.
-export function safetyNetSpiritStones(roster, units, spiritStones) {
-  const basic = Object.values(roster).find((species) => species.keywords.length === 0);
-  if (units.length > 0) return spiritStones;
-  return Math.max(spiritStones, summonPrice(basic));
 }

@@ -2,14 +2,16 @@ import { createUnit } from '../logic/ownedUnits.js';
 import { createArmy } from '../logic/army.js';
 import {
   clearProgress, savePlayerFaction, markFirstBattleWon, saveOwnedUnits, saveArmy, saveSpiritStones,
-  savePlayerXp, saveFallenLegendaryLevel,
+  savePlayerXp, saveFallenLegendaryLevel, saveFountainLastHarvest,
 } from '../persistence.js';
+import { FOUNTAIN_MINUTE_MS } from '../logic/fountain.js';
 import { TEXT } from '../ui/strings.js';
 
 // Outil de dev — joueurs de test figés, pour tester à la main l'après-bataille 01 sans la
 // rejouer. Chaque profil écrase la sauvegarde (technical.md 5.4) par un état fixe.
 // `unitXp` : un individu par valeur, avec cette XP (technical.md 5.7 ; seuils cumulés des
-// niveaux : 2 à 50, 3 à 150, 4 à 300, 5 à 500). Tous les individus sont dans l'armée.
+// niveaux : 2 à 50, 3 à 150, 4 à 300, 5 à 500). Tous les individus sont dans l'armée. La Spirit
+// Fountain est pleine (dernière récolte il y a 24 h, rules.md 11.8), pour tester la récolte.
 const TEST_WYRM = {
   faction: 'wyrms',
   spiritStones: 10000,
@@ -42,4 +44,5 @@ export function loadTestProfile({
   saveSpiritStones(spiritStones);
   savePlayerXp(playerXp);
   if (fallenLegendaryLevel !== null) saveFallenLegendaryLevel(fallenLegendaryLevel);
+  saveFountainLastHarvest(Date.now() - 24 * 60 * FOUNTAIN_MINUTE_MS);
 }

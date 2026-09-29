@@ -38,7 +38,7 @@ Le clickbait est construit comme une pub ; le MVP est **le jeu complet, construi
 - toutes les fonctionnalités de bataille accessibles au joueur, sans les raccourcis propres au format pub ;
 - une **première boucle méta**, organisée autour de l'écran d'accueil (détail dans `roadmap-mvp.md` et `RULES.md` section 11) :
   - la **gestion de civilisation** : consulter ses monstres espèce par espèce, et composer l'**armée** qui partira en guerre (500 points de présence au plus, au-dessus des 150 du terrain : l'armée contient des réserves) ;
-  - une monnaie, les **Spirit Stones**, reçue au départ puis en récompense des victoires ;
+  - une monnaie, les **Spirit Stones**, reçue au départ puis en récompense des victoires, et produite en continu par la **Spirit Fountain** de l'accueil, dont la capacité grandit avec le niveau du souverain ;
   - l'**invocation** : dépenser ses Spirit Stones pour racheter des monstres d'espèces connues, ou réinvoquer son Légendaire tombé au combat ;
   - « **Partir en guerre** » : trois batailles qui suivent la bataille 01, à conquérir l'une après l'autre avec son armée. Chacune traverse deux zones ; une bataille gagnée peut être rejouée pour progresser, mais une défaite coûte cher : les monstres tombés sont perdus quand même (`RULES.md` section 11.7) ;
   - les **niveaux** (`RULES.md` sections 11.5 et 11.6) :

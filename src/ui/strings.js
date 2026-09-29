@@ -97,6 +97,11 @@ export const TEXT = {
     keptLevel: 'Niveau gardé :',
     levelPrice: (level, price) => `niv ${level} — ${price}`,
   },
+  // Spirit Fountain de l'accueil (rules.md 11.8), nom provisoire.
+  fountain: {
+    name: 'Spirit Fountain',
+    content: (content, capacity) => `${content} / ${capacity}`,
+  },
   // « Partir en guerre » (rules.md 11.7). Noms des batailles provisoires.
   war: {
     title: 'Partir en guerre',

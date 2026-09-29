@@ -51,6 +51,10 @@ Les obstacles de la grille utilisent un seul sprite de rocher, d'autres pourront
 
 Icône provisoire : un **losange violet**, dessiné en CSS ou en SVG inline (pas d'asset pour l'instant). Il accompagne partout le solde et les prix en Spirit Stones : en haut à droite de l'accueil, sur l'écran Invocation (`rules.md` 11.3 et 11.4). À remplacer par un vrai sprite plus tard.
 
+## Spirit Fountain (accueil)
+
+Provisoire, **sans asset** : un bouton 8bitcn « Spirit Fountain » avec l'icône des Spirit Stones (losange violet), le contenu « X / capacité » et une barre de remplissage violette. À remplacer plus tard par un sprite de fontaine (`rules.md` 11.8).
+
 ## Niveaux (joueur et individus)
 
 Les niveaux (`rules.md` 11.5 et 11.6) reprennent la **couleur signature de la faction du joueur** (doré pour les Wyrms, menthe pour les Morts-Vivants) :

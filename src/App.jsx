@@ -19,12 +19,12 @@ import { getCasualtyReport } from './logic/deployment.js';
 import { createStartingUnits } from './logic/ownedUnits.js';
 import { STARTING_SPIRIT_STONES } from './logic/summon.js';
 import { resolveVictory } from './logic/victory.js';
-import { resolveWarDefeat, safetyNetSpiritStones, victoryReward } from './logic/war.js';
+import { resolveWarDefeat, victoryReward } from './logic/war.js';
 import {
   getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, getOwnedUnits,
   saveOwnedUnits, getArmy, saveArmy, getSpiritStones, saveSpiritStones, getPlayerXp, savePlayerXp,
   getFallenLegendaryLevel, saveFallenLegendaryLevel, getWonWarBattles, saveWonWarBattles,
-  isLegacySave, clearProgress,
+  getFountainLastHarvest, saveFountainLastHarvest, isLegacySave, clearProgress,
 } from './persistence.js';
 import { TEXT } from './ui/strings.js';
 
@@ -32,13 +32,9 @@ import { TEXT } from './ui/strings.js';
 // est rouvert depuis. Passer à true regriserait le bouton MVP et démarrerait toujours sur l'intro.
 const MVP_LOCKED = false;
 
-// rules.md 11.7 : filet de sécurité, appliqué à chaque arrivée sur l'accueil — un joueur sans
-// individu ni de quoi invoquer une unité basique voit son solde porté à son prix.
-function applySafetyNet() {
-  const units = getOwnedUnits() ?? [];
-  const spiritStones = getSpiritStones();
-  const safe = safetyNetSpiritStones(ROSTERS[getSavedFaction()], units, spiritStones);
-  if (safe !== spiritStones) saveSpiritStones(safe);
+// rules.md 11.8 : la Spirit Fountain se met en route, vide, à la première arrivée sur l'accueil.
+function startFountain() {
+  if (getFountainLastHarvest() === null) saveFountainLastHarvest(Date.now());
 }
 
 // technical.md 5.2 : l'écran de départ se déduit de l'état persistant, pas d'un routeur.
@@ -48,7 +44,7 @@ function initialScreen() {
   if (isLegacySave()) clearProgress();
   if (!getSavedFaction()) return 'intro';
   if (!hasWonFirstBattle()) return 'battle';
-  applySafetyNet();
+  startFountain();
   return 'home';
 }
 
@@ -80,7 +76,7 @@ export default function App() {
   }, []);
 
   const goHome = useCallback(() => {
-    applySafetyNet();
+    startFountain();
     setScreen('home');
   }, []);
 

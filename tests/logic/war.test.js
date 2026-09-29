@@ -1,10 +1,9 @@
 import {
-  warBattleState, isWarCompleted, victoryReward, lossReport, resolveWarDefeat, safetyNetSpiritStones,
+  warBattleState, isWarCompleted, victoryReward, lossReport, resolveWarDefeat,
 } from '../../src/logic/war.js';
 import { createArmy } from '../../src/logic/army.js';
 import { BATTLES, WAR_BATTLE_IDS } from '../../src/data/battles.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
-import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
 
 const IDS = ['war1', 'war2', 'war3'];
 
@@ -85,17 +84,5 @@ describe('défaite dans « Partir en guerre » (rules.md 11.7)', () => {
   test('armée entièrement tuée : armée vide', () => {
     const { save: wiped } = resolveWarDefeat(save, units.map((u) => deployed(u.id, { alive: false })), WYRMS_ROSTER);
     expect(wiped.army.unitIds).toEqual([]);
-  });
-});
-
-describe('filet de sécurité (rules.md 11.7)', () => {
-  test('aucun individu et solde insuffisant : solde porté au prix de l\'unité basique', () => {
-    expect(safetyNetSpiritStones(WYRMS_ROSTER, [], 3)).toBe(10);
-    expect(safetyNetSpiritStones(UNDEAD_ROSTER, [], 0)).toBe(6);
-  });
-
-  test('sans effet si le joueur a encore un individu ou assez de Spirit Stones', () => {
-    expect(safetyNetSpiritStones(WYRMS_ROSTER, [{ id: 'a', species: 'fafnir', xp: 0 }], 0)).toBe(0);
-    expect(safetyNetSpiritStones(WYRMS_ROSTER, [], 42)).toBe(42);
   });
 });

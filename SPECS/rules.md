@@ -239,6 +239,7 @@ Les valeurs de la bataille sont tranchées. Restent ouvertes, pour la couche mé
 - récompenses de victoire en Spirit Stones : bataille 01 : **50** ; « Partir en guerre » : **60 / 80 / 100** à la première victoire, **25 %** au rejeu — **provisoires** (11.7) ;
 - coefficient de prix k : **1, provisoire** ; multiplicateur du [Légendaire] : **aucun (×1), provisoire** (valeurs définitives au second passage de `roadmap-mvp.md`) ;
 - nom par défaut de l'armée de départ : **« Armée 1 »** (tranché) ;
+- Spirit Fountain : **1 Spirit Stone par minute**, capacité **20 + 10 × niveau du joueur** — **provisoires** (11.8) ;
 - récompense de niveau du joueur : **50 × le nouveau niveau** en Spirit Stones, **provisoire** (revue avec k au second passage de `roadmap-mvp.md`) ; les autres valeurs de niveau (XP, courbes, bonus de stats, prix des niveaux gardés) sont tranchées en 11.5, 11.6 et 11.4 ;
 - zones et scripts de l'IA définitifs des batailles de « Partir en guerre » (**provisoires**, 11.7).
 
@@ -269,9 +270,9 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 
 ### 11.3 Spirit Stones
 - Monnaie du jeu (nom provisoire). Le solde est un **nombre entier**, jamais négatif, affiché en haut à droite de l'écran d'accueil.
-- **Gains** : une somme de départ, puis une récompense à chaque victoire (bataille 01, puis batailles de « Partir en guerre »), et une récompense à chaque niveau du joueur (11.5). Montants : section 10.
+- **Gains** : une somme de départ, puis une récompense à chaque victoire (bataille 01, puis batailles de « Partir en guerre »), une récompense à chaque niveau du joueur (11.5), et la Spirit Fountain (11.8). Montants : section 10.
 - **Défaite, abandon ou match nul** : aucune récompense.
-- **Filet de sécurité** : un joueur sans individu ni de quoi en invoquer un voit son solde porté au prix de l'unité basique (11.7).
+- **Spirit Fountain** : revenu continu, récolté depuis l'accueil (11.8). Elle garantit qu'un joueur qui a tout perdu pourra toujours réinvoquer.
 
 ### 11.4 Invocation
 - L'écran Invocation propose chaque espèce de la faction du joueur. Invoquer, c'est **payer son prix** et **ajouter un nouvel individu** de cette espèce à la liste (11.1).
@@ -318,5 +319,13 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 - **Victoire** : dès que l'IA a fini le script de la **dernière zone** et n'a plus aucune unité vivante sur le terrain, sans compte à rebours de 15 s (comme la bataille-clickbait, 7.3). Conséquences : pertes (11.1), XP (11.5, 11.6), récompense en Spirit Stones (ci-dessous).
 - **Défaite, abandon ou match nul** : les individus **tués pendant la bataille sont perdus quand même** (mort définitive, retirés de la liste et de l'armée), et le niveau du [Légendaire] mort est mémorisé (11.4). **Aucune** XP, **aucune** récompense. L'écran de défaite liste les unités perdues et propose **« Réessayer »** (même bataille, avec l'armée telle qu'elle reste) et **« Retour à l'accueil »** (pour réinvoquer et recomposer l'armée). Si l'armée est vide, « Réessayer » est désactivé.
 - **Récompenses** en Spirit Stones (provisoires, section 10) : bataille 01 : **50** ; batailles 1 / 2 / 3 : **60 / 80 / 100** à la **première** victoire, puis **25 %** de ce montant à chaque victoire suivante (arrondi à l'entier inférieur : 15 / 20 / 25).
-- **Filet de sécurité** : en arrivant sur l'accueil, si le joueur ne possède **plus aucun individu** et que son solde est **inférieur au prix de l'unité basique** de sa faction (11.4), son solde est **porté à ce prix** — il peut toujours invoquer une unité, la mettre dans son armée et repartir.
 - **Fin du contenu** : une fois les trois batailles gagnées, l'écran « Partir en guerre » affiche « D'autres terres à conquérir arrivent bientôt… » ; les trois batailles restent rejouables.
+
+### 11.8 Spirit Fountain
+- Objet de l'**écran d'accueil** qui **génère des Spirit Stones en continu**, que le joueur récolte d'un clic. Elle garantit qu'un joueur qui a perdu toutes ses unités pourra toujours en réinvoquer (elle remplace l'ancien « filet de sécurité »).
+- **Mise en route** : à la **première arrivée sur l'accueil** (après la victoire de la bataille 01), **vide**.
+- **Production** : **1 Spirit Stone par minute**, en **temps réel** — y compris jeu fermé ou pendant une bataille. Le contenu vaut le nombre de **minutes entières** écoulées depuis la dernière récolte (ou la mise en route), **plafonné à la capacité**.
+- **Capacité** : **20 + 10 × niveau du joueur** (11.5 ; 30 au niveau 1, 50 au niveau 3). La capacité est toujours celle du niveau **actuel** : monter de niveau l'augmente immédiatement.
+- **Récolte** : un clic sur la fontaine ajoute **tout son contenu** au solde et la vide. Sans effet si elle est vide. La minute entamée n'est pas perdue (la production continue là où elle en était) ; si la fontaine était **pleine**, ce qui aurait dépassé la capacité est perdu et la production repart de la récolte.
+- **Horloge reculée** (heure de l'appareil changée) : le contenu n'est jamais négatif (0).
+- Valeurs de production et de capacité **provisoires** (section 10).
