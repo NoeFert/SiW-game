@@ -6,8 +6,11 @@ import {
 } from '@/components/ui/8bit/card.jsx';
 import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
-import { armyUnits, countUnitsBySpecies, summonAction } from '../logic/civilization.js';
-import { getArmy, getOwnedUnits } from '../persistence.js';
+import {
+  ARMY_NAME_MAX_LENGTH, ARMY_PP_CAP, addToArmy, armyCost, armyUnits, canAddToArmy,
+  canRemoveFromArmy, countUnitsBySpecies, removeFromArmy, renameArmy, summonAction,
+} from '../logic/civilization.js';
+import { getArmy, getOwnedUnits, saveArmy } from '../persistence.js';
 import { TEXT, unitName } from '../ui/strings.js';
 
 const T = TEXT.civilization;
@@ -111,14 +114,121 @@ function SpeciesDetail({ species, owned, inArmy, onBack }) {
   );
 }
 
-// technical.md 5.1 : gestion de civilisation, section Unités (liste par espèce + page de
-// détail). La section Armée arrive à l'étape 4 de roadmap-mvp.md.
+// rules.md 11.2 : nom de l'armée, renommable. Entrée ou ✓ valide, Échap annule ; la saisie est
+// bornée à 20 caractères, et un nom refusé par renameArmy (vide ou espaces) garde l'ancien.
+function ArmyName({ name, onRename }) {
+  const [draft, setDraft] = useState(null); // null = pas en cours d'édition
+
+  if (draft === null) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="retro text-sm">{name}</span>
+        <button type="button" onClick={() => setDraft(name)} title={T.rename} className="hover:text-white/70">✎</button>
+      </div>
+    );
+  }
+
+  const confirm = () => {
+    onRename(draft);
+    setDraft(null);
+  };
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => {
+          if ([...e.target.value].length <= ARMY_NAME_MAX_LENGTH) setDraft(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') confirm();
+          if (e.key === 'Escape') setDraft(null);
+        }}
+        className="retro text-sm bg-black/60 border-2 border-white/60 px-2 py-1 outline-none focus:border-white"
+      />
+      <button type="button" onClick={confirm} title={T.confirmRename} className="hover:text-white/70">✓</button>
+    </div>
+  );
+}
+
+// technical.md 5.1 / rules.md 11.2 : section Armée — nom, compteur « X / 500 PP », et une ligne
+// par espèce (individus dans l'armée / possédés) avec retrait et ajout un par un.
+function ArmySection({ roster, units, army, onChange }) {
+  const owned = countUnitsBySpecies(roster, units);
+  const inArmy = countUnitsBySpecies(roster, armyUnits(army, units));
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <ArmyName name={army.name} onRename={(name) => onChange(renameArmy(army, name))} />
+        <span className="retro text-xs">{T.armyCost(armyCost(army, units, roster), ARMY_PP_CAP)}</span>
+      </div>
+      {Object.entries(roster).map(([key, species]) => (
+        <div key={key} className="flex items-center gap-3 border-2 border-white/30 bg-black/40 px-3 py-2">
+          <SpeciesSprite species={species} className="size-10" />
+          <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <span className="font-bold">{unitName(species)}</span>
+            <Badge className="text-[10px] mx-1.5">{TEXT.presenceTag(species.cost)}</Badge>
+          </div>
+          <Button
+            size="sm"
+            title={T.removeUnit}
+            disabled={!canRemoveFromArmy(army, units, key)}
+            onClick={() => onChange(removeFromArmy(army, units, key))}
+          >
+            −
+          </Button>
+          <span className="retro text-xs w-14 text-center">{T.armyCount(inArmy[key], owned[key])}</span>
+          <Button
+            size="sm"
+            title={T.addUnit}
+            disabled={!canAddToArmy(army, units, roster, key)}
+            onClick={() => onChange(addToArmy(army, units, roster, key))}
+          >
+            +
+          </Button>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// technical.md 5.1 : gestion de civilisation en deux sections — Unités (liste par espèce + page
+// de détail) et Armée (composition et renommage, sauvegardés à chaque changement).
 export default function CivilizationScreen({ playerFaction, onBack }) {
+  const [section, setSection] = useState('units');
   const [selectedKey, setSelectedKey] = useState(null);
+  const [army, setArmy] = useState(getArmy);
   const roster = ROSTERS[playerFaction];
   const units = getOwnedUnits() ?? [];
   const owned = countUnitsBySpecies(roster, units);
-  const inArmy = countUnitsBySpecies(roster, armyUnits(getArmy(), units));
+  const inArmy = countUnitsBySpecies(roster, armyUnits(army, units));
+
+  const changeArmy = (newArmy) => {
+    saveArmy(newArmy);
+    setArmy(newArmy);
+  };
+
+  let content;
+  if (selectedKey) {
+    content = (
+      <SpeciesDetail
+        species={roster[selectedKey]}
+        owned={owned[selectedKey]}
+        inArmy={inArmy[selectedKey]}
+        onBack={() => setSelectedKey(null)}
+      />
+    );
+  } else if (section === 'army') {
+    content = <ArmySection roster={roster} units={units} army={army} onChange={changeArmy} />;
+  } else {
+    content = (
+      <section className="flex flex-col gap-3">
+        {Object.entries(roster).map(([key, species]) => (
+          <SpeciesRow key={key} species={species} owned={owned[key]} onClick={() => setSelectedKey(key)} />
+        ))}
+      </section>
+    );
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 text-white">
@@ -126,22 +236,17 @@ export default function CivilizationScreen({ playerFaction, onBack }) {
         <CardHeader>
           <CardTitle>{T.title}</CardTitle>
         </CardHeader>
-        <CardContent>
-          {selectedKey ? (
-            <SpeciesDetail
-              species={roster[selectedKey]}
-              owned={owned[selectedKey]}
-              inArmy={inArmy[selectedKey]}
-              onBack={() => setSelectedKey(null)}
-            />
-          ) : (
-            <section className="flex flex-col gap-3">
-              <h2 className="retro text-xs">{T.units}</h2>
-              {Object.entries(roster).map(([key, species]) => (
-                <SpeciesRow key={key} species={species} owned={owned[key]} onClick={() => setSelectedKey(key)} />
+        <CardContent className="flex flex-col gap-4">
+          {!selectedKey && (
+            <div className="flex gap-4">
+              {[['units', T.units], ['army', T.army]].map(([key, label]) => (
+                <Button key={key} variant={section === key ? 'default' : 'secondary'} onClick={() => setSection(key)}>
+                  {label}
+                </Button>
               ))}
-            </section>
+            </div>
           )}
+          {content}
         </CardContent>
       </Card>
       {!selectedKey && <Button onClick={onBack}>{T.back}</Button>}

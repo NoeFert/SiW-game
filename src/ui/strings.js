@@ -74,6 +74,13 @@ export const TEXT = {
     attackSpeed: (seconds) => `${formatDecimal(seconds)} s`,
     range: (range) => (range === null ? '—' : `${range} cases`),
     abilities: 'Aptitudes',
+    army: 'Armée',
+    armyCost: (cost, cap) => `${cost} / ${cap} PP`,
+    armyCount: (inArmy, owned) => `${inArmy} / ${owned}`,
+    rename: 'Renommer',
+    confirmRename: 'Valider',
+    addUnit: 'Ajouter',
+    removeUnit: 'Retirer',
   },
   // rules.md 11.4 : libellé du bouton d'invocation (clé = résultat de summonAction).
   summonActions: {

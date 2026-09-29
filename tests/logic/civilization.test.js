@@ -1,6 +1,7 @@
 import {
   createUnit, createStartingUnits, countUnitsBySpecies, keepSurvivors, createArmy, armyUnits,
-  summonAction,
+  summonAction, ARMY_PP_CAP, armyCost, canAddToArmy, addToArmy, canRemoveFromArmy,
+  removeFromArmy, renameArmy,
 } from '../../src/logic/civilization.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
@@ -88,5 +89,80 @@ describe('summonAction — Invoquer / Réinvoquer (rules.md 11.4)', () => {
 
   test('[Légendaire] mort : « Réinvoquer »', () => {
     expect(summonAction(UNDEAD_ROSTER.athos, 0)).toBe('resummon');
+  });
+});
+
+describe('armée — coût, ajout et retrait (rules.md 11.2)', () => {
+  const roster = WYRMS_ROSTER;
+  const lambtons = (n) => Array.from({ length: n }, () => createUnit('lambtonWorm'));
+
+  test('le coût est la somme des coûts en PP des individus de l\'armée', () => {
+    const units = [...lambtons(2), createUnit('fafnir'), createUnit('amphiptere')];
+    expect(armyCost(createArmy('A', units.slice(0, 3)), units, roster)).toBe(130);
+  });
+
+  test('ajouter un individu d\'une espèce prend un individu possédé hors de l\'armée', () => {
+    const units = lambtons(3);
+    const army = addToArmy(createArmy('A', [units[0]]), units, roster, 'lambtonWorm');
+    expect(army.unitIds).toHaveLength(2);
+    expect(new Set(army.unitIds).size).toBe(2);
+    expect(armyCost(army, units, roster)).toBe(20);
+  });
+
+  test('ajout impossible s\'il ne reste aucun individu de l\'espèce hors de l\'armée', () => {
+    const units = lambtons(2);
+    const army = createArmy('A', units);
+    expect(canAddToArmy(army, units, roster, 'lambtonWorm')).toBe(false);
+    expect(canAddToArmy(army, units, roster, 'fafnir')).toBe(false);
+    expect(addToArmy(army, units, roster, 'lambtonWorm')).toBe(army);
+  });
+
+  test('ajout possible jusqu\'à 500 PP pile, impossible au-delà', () => {
+    const units = lambtons(51);
+    const army = createArmy('A', units.slice(0, 49)); // 490 PP
+    const at500 = addToArmy(army, units, roster, 'lambtonWorm');
+    expect(armyCost(at500, units, roster)).toBe(ARMY_PP_CAP);
+    expect(canAddToArmy(at500, units, roster, 'lambtonWorm')).toBe(false);
+  });
+
+  test('retirer un individu d\'une espèce présente dans l\'armée', () => {
+    const units = [...lambtons(2), createUnit('fafnir')];
+    const army = removeFromArmy(createArmy('A', units), units, 'fafnir');
+    expect(countUnitsBySpecies(roster, armyUnits(army, units))).toEqual({ lambtonWorm: 2, amphiptere: 0, fafnir: 0 });
+  });
+
+  test('retrait impossible d\'une espèce absente de l\'armée', () => {
+    const units = lambtons(2);
+    expect(canRemoveFromArmy(createArmy('A', units), units, 'fafnir')).toBe(false);
+  });
+
+  test('retrait impossible du dernier individu de l\'armée (minimum 1)', () => {
+    const units = lambtons(2);
+    const army = createArmy('A', [units[0]]);
+    expect(canRemoveFromArmy(army, units, 'lambtonWorm')).toBe(false);
+    expect(removeFromArmy(army, units, 'lambtonWorm')).toBe(army);
+  });
+});
+
+describe('renameArmy — renommage (rules.md 11.2)', () => {
+  const army = createArmy('Armée 1', []);
+
+  test('nom accepté, sans filtre (accents, chiffres, emojis)', () => {
+    expect(renameArmy(army, 'Légion 42 🐉').name).toBe('Légion 42 🐉');
+  });
+
+  test('20 caractères acceptés, 21 refusés (un emoji compte pour un caractère)', () => {
+    expect(renameArmy(army, 'a'.repeat(20)).name).toBe('a'.repeat(20));
+    expect(renameArmy(army, 'a'.repeat(21))).toBe(army);
+    expect(renameArmy(army, '🐉'.repeat(20)).name).toBe('🐉'.repeat(20));
+  });
+
+  test('nom vide ou fait d\'espaces refusé : l\'ancien nom est conservé', () => {
+    expect(renameArmy(army, '')).toBe(army);
+    expect(renameArmy(army, '   ')).toBe(army);
+  });
+
+  test('les espaces de début et de fin sont retirés', () => {
+    expect(renameArmy(army, '  Horde  ').name).toBe('Horde');
   });
 });
