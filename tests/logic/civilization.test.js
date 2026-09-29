@@ -1,5 +1,6 @@
 import {
-  createUnit, createStartingUnits, countUnitsBySpecies, keepSurvivors, createArmy,
+  createUnit, createStartingUnits, countUnitsBySpecies, keepSurvivors, createArmy, armyUnits,
+  summonAction,
 } from '../../src/logic/civilization.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
@@ -60,5 +61,32 @@ describe('createArmy — armée (rules.md 11.2)', () => {
   test('nom + identifiants des individus', () => {
     const units = [createUnit('lambtonWorm'), createUnit('fafnir')];
     expect(createArmy('Armée 1', units)).toEqual({ name: 'Armée 1', unitIds: [units[0].id, units[1].id] });
+  });
+});
+
+describe('armyUnits — individus de l\'armée (rules.md 11.2)', () => {
+  test('ne garde que les individus dont l\'identifiant est dans l\'armée', () => {
+    const units = [createUnit('lambtonWorm'), createUnit('lambtonWorm'), createUnit('fafnir')];
+    const army = createArmy('Armée 1', [units[0], units[2]]);
+    expect(armyUnits(army, units)).toEqual([units[0], units[2]]);
+  });
+
+  test('sans armée (avant la victoire de la bataille 01), aucun individu', () => {
+    expect(armyUnits(null, [createUnit('lambtonWorm')])).toEqual([]);
+  });
+});
+
+describe('summonAction — Invoquer / Réinvoquer (rules.md 11.4)', () => {
+  test('espèce non légendaire : toujours « Invoquer », sans plafond de possession', () => {
+    expect(summonAction(WYRMS_ROSTER.lambtonWorm, 0)).toBe('summon');
+    expect(summonAction(WYRMS_ROSTER.lambtonWorm, 50)).toBe('summon');
+  });
+
+  test('[Légendaire] vivant : « Déjà à vos côtés »', () => {
+    expect(summonAction(WYRMS_ROSTER.fafnir, 1)).toBe('alreadyOwned');
+  });
+
+  test('[Légendaire] mort : « Réinvoquer »', () => {
+    expect(summonAction(UNDEAD_ROSTER.athos, 0)).toBe('resummon');
   });
 });

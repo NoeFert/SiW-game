@@ -51,6 +51,42 @@ export const TEXT = {
     civilization: 'Gestion de civilisation',
     summon: 'Invocation',
   },
+  civilization: {
+    title: 'Gestion de civilisation',
+    units: 'Unités',
+    back: 'Retour',
+    owned: (count) => `Possédés : ${count}`,
+    inArmy: (count) => `Dans l'armée : ${count}`,
+    stats: {
+      hp: 'PV',
+      damage: 'Dégâts',
+      attackType: 'Attaque',
+      size: 'Taille',
+      moveSpeed: 'Vitesse de déplacement',
+      attackSpeed: 'Vitesse d\'attaque',
+      range: 'Portée',
+      cost: 'Coût',
+    },
+    attackTypes: { melee: 'Corps-à-corps', ranged: 'À distance', hybrid: 'Hybride' },
+    hybridDamage: (damage) => `${damage.ranged} (distance) / ${damage.melee} (corps-à-corps)`,
+    size: (size) => (size === 1 ? '1 case' : `${size * size} cases (${size}×${size})`),
+    moveSpeed: (speed) => `${formatDecimal(speed)} case/s`,
+    attackSpeed: (seconds) => `${formatDecimal(seconds)} s`,
+    range: (range) => (range === null ? '—' : `${range} cases`),
+    abilities: 'Aptitudes',
+  },
+  // rules.md 11.4 : libellé du bouton d'invocation (clé = résultat de summonAction).
+  summonActions: {
+    summon: 'Invoquer',
+    resummon: 'Réinvoquer',
+    alreadyOwned: 'Déjà à vos côtés',
+  },
+  // Texte des aptitudes (units.md), par nom d'aptitude (`abilities[].name` du roster).
+  abilityDescriptions: {
+    'Attaque dévastatrice': 'Toutes les 5 attaques (distance et corps-à-corps confondus), la 5e inflige +100 % de dégâts (60 à distance / 90 au corps-à-corps).',
+    'Frappe paralysante': 'Toutes les 4 attaques, la cible touchée voit sa prochaine attaque annulée.',
+    'Soif de sang': 'Chaque fois qu\'il porte le coup fatal à un ennemi, il régénère 40 PV (sans dépasser ses PV max).',
+  },
 
   chooseFaction: 'Choisis ta faction',
   factions: { wyrms: 'Wyrms', undead: 'Morts-Vivants' },
@@ -89,6 +125,11 @@ export const TEXT = {
     flying: 'Vol',
   },
 };
+
+// Nombre décimal à la française, avec au moins un chiffre après la virgule (units.md : « 1,0 s »).
+function formatDecimal(n) {
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: 1 });
+}
 
 export function unitName(species) {
   return TEXT.unitNames[species.name] ?? species.name;

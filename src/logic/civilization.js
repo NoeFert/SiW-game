@@ -39,3 +39,17 @@ export function createArmy(name, units) {
 // rules.md 10 : somme de départ en Spirit Stones, donnée au choix de la faction. Provisoire (0)
 // tant que l'économie n'est pas chiffrée (roadmap-mvp.md, étape 6).
 export const STARTING_SPIRIT_STONES = 0;
+
+// Individus possédés présents dans l'armée (rules.md 11.2).
+export function armyUnits(army, units) {
+  const ids = new Set(army?.unitIds ?? []);
+  return units.filter((unit) => ids.has(unit.id));
+}
+
+// rules.md 11.4 : action d'invocation d'une espèce, selon le nombre d'individus possédés —
+// 'summon' (Invoquer), 'resummon' (Réinvoquer : [Légendaire] mort) ou 'alreadyOwned'
+// ([Légendaire] vivant, « Déjà à vos côtés »).
+export function summonAction(species, ownedCount) {
+  if (!species.keywords.includes('legendary')) return 'summon';
+  return ownedCount > 0 ? 'alreadyOwned' : 'resummon';
+}
