@@ -51,6 +51,14 @@ Les obstacles de la grille utilisent un seul sprite de rocher, d'autres pourront
 
 Icône provisoire : un **losange violet**, dessiné en CSS ou en SVG inline (pas d'asset pour l'instant). Il accompagne partout le solde et les prix en Spirit Stones : en haut à droite de l'accueil, sur l'écran Invocation (`rules.md` 11.3 et 11.4). À remplacer par un vrai sprite plus tard.
 
+## Niveaux (joueur et individus)
+
+Les niveaux (`rules.md` 11.5 et 11.6) reprennent la **couleur signature de la faction du joueur** (doré pour les Wyrms, menthe pour les Morts-Vivants) :
+- **badge « niv X »** (composant Badge 8bitcn) : accordéons et page de détail de la gestion de civilisation, lignes de la tour de bataille (`ui-battle-screen-decisions.md` 2.2), niveau du joueur sur l'accueil ;
+- **barre d'XP** : même couleur, sur fond sombre ; pleine avec « MAX » au niveau 5 d'un individu.
+
+Rien n'est ajouté sur le terrain : les unités en bataille ne montrent pas leur niveau.
+
 ## Signaux visuels en bataille
 
 - **Pause** : terrain désaturé ; ce qui reste cliquable garde ses couleurs (`ui-battle-screen-decisions.md` section 3).

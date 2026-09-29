@@ -2,7 +2,7 @@
 
 Règles du jeu en détail, chiffrées. Chaque ligne doit être vérifiable en jouant une bataille.
 
-Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap.md` pour ce qui est repoussé en v2+.
+Ce fichier couvre le **scope v1** : le moteur de bataille (sections 1 à 9) et la couche méta du MVP (section 11 : individus, armée, Spirit Stones, invocation, niveaux). Voir `roadmap.md` et `roadmap-mvp.md` pour ce qui est repoussé en suite.
 
 ---
 
@@ -20,7 +20,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 - Le déploiement est limité par les **points de présence** disponibles : le joueur dispose d'un plafond de **150 points de présence pouvant être déployés simultanément** (voir section 9 et `units.md` pour le détail du coût de chaque unité).
 - Ce plafond est **vivant, pas un budget dépensé une seule fois** : le coût en points de présence d'une unité se libère dès qu'elle meurt ou fuit le terrain (commande de retraite, section 5), permettant au joueur de redéployer d'autres unités en cours de bataille tant que le total des unités actuellement sur le terrain reste sous le plafond.
 - **Limite de quantité par unité [Légendaire] :** un seul exemplaire de l'unité [Légendaire] d'une faction (Fafnir ou Athos selon le camp) peut être déployé simultanément sur le terrain, indépendamment du budget de points disponible.
-- **Copies disponibles pour la bataille :** chaque unité (légendaire ou non) dispose d'un nombre fixe de copies pour une même bataille. Pour le joueur du jeu normal, ce sont les individus qu'il possède (section 11.1) ; pour l'IA et pour la version clickbait, les copies de `units.md`.
+- **Copies disponibles pour la bataille :** chaque unité (légendaire ou non) dispose d'un nombre fixe de copies pour une même bataille. Pour le joueur du jeu normal, ce sont **tous les individus qu'il possède** pour la bataille 01 (section 11.1 — l'armée n'existe pas encore), puis **les individus de son armée** (11.2) pour les batailles de « Partir en guerre », chacun avec les stats de son niveau (11.6) ; pour l'IA et pour la version clickbait, les copies de `units.md`.
   - Une unité **tuée** en combat consomme définitivement une copie (perdue pour le reste de la bataille, cohérent avec la mort définitive, section 4.4). C'est aussi le cas d'une unité tuée à l'instant même où elle atteint le bord en fuyant : elle est morte, pas en fuite.
   - Une unité qui **fuit** (retraite, section 5) retourne en réserve avec ses points de vie réduits conservés, et **reste disponible** pour un redéploiement ultérieur dans la même bataille — sa copie n'est pas perdue.
 - L'IA se déploie sur l'autre moitié du terrain (moitié droite, 12 colonnes), selon un script prédéfini (voir section 7).
@@ -98,7 +98,7 @@ Ce fichier couvre uniquement le **scope v1** (moteur de bataille). Voir `roadmap
 ### 5.1 Limitation des commandes
 - Le nombre de commandes est limité par un **cooldown** entre deux commandes (pas de quota fixe par bataille en v1).
 - Durée du cooldown : **5 secondes** de temps de bataille entre deux commandes. Le cooldown **ne s'écoule pas pendant les pauses** (section 5.2). Pendant le cooldown, la barre de commandes ne peut pas s'ouvrir.
-- Cette limitation de cooldown diminue avec le niveau du joueur (mécanique de déblocage progressif — détail de la courbe hors scope v1, une seule valeur fixe suffit pour la v1).
+- Cette limitation de cooldown diminuera avec le niveau du joueur (11.5) dans la Suite (`roadmap-mvp.md`) : **dans le MVP, le cooldown reste fixe à 5 s, quel que soit le niveau du joueur**.
 
 ### 5.2 Pauses
 Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s'écoule que si **aucune** n'est active.
@@ -235,10 +235,11 @@ Les stats précises de chaque unité (points de vie, dégâts, coût, vitesses, 
 ## 10. Valeurs à définir
 
 Les valeurs de la bataille sont tranchées. Restent ouvertes, pour la couche méta (section 11) :
-- somme de départ en Spirit Stones : **0, provisoire**, donnée au choix de la faction (montant définitif à l'étape 6 de `roadmap-mvp.md`) ;
+- somme de départ en Spirit Stones : **0, provisoire**, donnée au choix de la faction (montant définitif au second passage de `roadmap-mvp.md`) ;
 - récompense de la victoire de la bataille 01 (montant, fixe ou liée aux pertes) ;
-- coefficient de prix k : **1, provisoire** ; multiplicateur du [Légendaire] : **aucun (×1), provisoire** (valeurs définitives à l'étape 6 de `roadmap-mvp.md`) ;
+- coefficient de prix k : **1, provisoire** ; multiplicateur du [Légendaire] : **aucun (×1), provisoire** (valeurs définitives au second passage de `roadmap-mvp.md`) ;
 - nom par défaut de l'armée de départ : **« Armée 1 »** (tranché) ;
+- récompense de niveau du joueur : **50 × le nouveau niveau** en Spirit Stones, **provisoire** (revue avec k au second passage de `roadmap-mvp.md`) ; les autres valeurs de niveau (XP, courbes, bonus de stats, prix des niveaux gardés) sont tranchées en 11.5, 11.6 et 11.4 ;
 - contenu de « Partir en guerre » (batailles, récompenses, conséquences d'une défaite).
 
 ## 11. Couche méta (jeu normal, hors version clickbait)
@@ -246,35 +247,59 @@ Les valeurs de la bataille sont tranchées. Restent ouvertes, pour la couche mé
 Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles ne s'applique à la version clickbait, où rien n'est sauvegardé.
 
 ### 11.1 Individus possédés
-- Le joueur possède une **liste d'individus**. Un individu n'a que deux caractéristiques : un **identifiant unique** et son **espèce**. Ses stats sont celles de l'espèce (`units.md`).
+- Le joueur possède une **liste d'individus**. Un individu a trois caractéristiques : un **identifiant unique**, son **espèce** et son **XP** (section 11.6). Ses stats sont celles de l'espèce (`units.md`), augmentées selon son niveau (11.6).
 - **Dotation de départ** : au choix de la faction, le joueur reçoit, pour chaque espèce de sa faction, autant d'individus que la colonne « Copies de départ » de `units.md` (ex : Wyrms : 12 Vers de Lambton, 8 Amphiptères, 1 Fafnir).
-- **Pertes** : à la victoire de la bataille 01, chaque individu tué pendant la bataille est retiré de la liste. Une tentative perdue ou un match nul ne retire aucun individu.
-- L'interface regroupe toujours les individus **par espèce** : deux individus de la même espèce sont indiscernables pour le joueur.
+- **Pertes** : à **chaque victoire** (bataille 01, puis batailles de « Partir en guerre »), chaque individu tué pendant la bataille est retiré de la liste (et de l'armée, 11.2). Après la bataille 01, une tentative perdue ou un match nul ne retire aucun individu ; pour les défaites de « Partir en guerre », la règle reste à définir (section 10).
+- **Dotation de départ et invocation** : tout nouvel individu est **niveau 1, 0 XP** (sauf réinvocation du [Légendaire] à un niveau gardé, 11.4).
+- Les individus sont **discernables** par leur niveau : l'interface les regroupe par espèce, puis les liste un par un (accordéons de la gestion de civilisation, 11.2 et `technical.md` 5.1) ou par niveau (tour de bataille, `ui-battle-screen-decisions.md` 2.2). Deux individus de même espèce et même niveau restent interchangeables.
 
 ### 11.2 Armée
 - L'**armée** est une liste d'identifiants d'individus possédés, avec un **nom**.
 - Le joueur n'a **qu'une armée**. Les emplacements supplémentaires sont hors scope (`roadmap-mvp.md`).
 - **Plafond** : la somme des coûts en points de présence de ses individus ne dépasse jamais **500**. Ce plafond est distinct du plafond simultané de 150 points sur le terrain (section 2).
 - **Minimum** : l'armée contient au moins **1 individu**.
-- **Composition** : le joueur ajoute ou retire des individus **par espèce**, un à la fois. Un ajout qui ferait dépasser 500 est impossible, tout comme le retrait du dernier individu de l'armée. Les individus d'une espèce étant indiscernables (11.1), n'importe lequel peut être ajouté ou retiré.
+- **Composition** : le joueur ajoute ou retire des individus **un par un**, en cochant ou décochant l'individu choisi dans l'accordéon de son espèce (`technical.md` 5.1). Un ajout qui ferait dépasser 500 est impossible, tout comme le retrait du dernier individu de l'armée. Le coût d'un individu est celui de son espèce, quel que soit son niveau (11.6).
 - **Renommage** : le joueur peut renommer l'armée à tout moment depuis la gestion de civilisation.
   - Le nom fait de **1 à 20 caractères**, sans filtre (accents, chiffres, emojis acceptés).
   - Validation par Entrée ou par un bouton ✓, annulation par Échap.
   - Un nom vide ou fait uniquement d'espaces est refusé : l'ancien nom est conservé.
+  - Les espaces au début et à la fin du nom sont retirés avant l'enregistrement (« ␣␣Horde␣␣ » devient « Horde ») ; la limite de 20 caractères se compte après ce retrait, un emoji comptant pour un caractère.
 - **Armée de départ** : créée automatiquement à la victoire de la bataille 01, avec **tous les individus survivants**. Les dotations de départ totalisent au plus 430 points (Wyrms) et 418 points (Morts-Vivants) : elles tiennent toujours sous le plafond.
 - **Mort d'un individu** : il est retiré de l'armée en même temps que de la liste des individus possédés (11.1).
 
 ### 11.3 Spirit Stones
 - Monnaie du jeu (nom provisoire). Le solde est un **nombre entier**, jamais négatif, affiché en haut à droite de l'écran d'accueil.
-- **Gains** : une somme de départ, puis une récompense à chaque victoire (bataille 01, puis batailles de « Partir en guerre »). Montants : section 10.
+- **Gains** : une somme de départ, puis une récompense à chaque victoire (bataille 01, puis batailles de « Partir en guerre »), et une récompense à chaque niveau du joueur (11.5). Montants : section 10.
 - **Défaite, abandon ou match nul** : aucune récompense.
 
 ### 11.4 Invocation
 - L'écran Invocation propose chaque espèce de la faction du joueur. Invoquer, c'est **payer son prix** et **ajouter un nouvel individu** de cette espèce à la liste (11.1).
 - **Prix** : coût en points de présence de l'espèce × k, avec un multiplicateur éventuel pour le [Légendaire] (valeurs : section 10).
 - **Solde insuffisant** : l'invocation est impossible (bouton désactivé).
-- **Confirmation** : un clic invoque directement une unité non légendaire. La réinvocation du [Légendaire] passe par une boîte de confirmation (« Réinvoquer [nom] pour X Spirit Stones ? ») ; l'annuler ne dépense rien.
-- **Espèces non légendaires** : aucun plafond de possession.
-- **[Légendaire]** : au plus **un** individu possédé. Tant qu'il est vivant, l'invocation est impossible (« Déjà à vos côtés ») ; s'il est mort, elle est possible et s'appelle « Réinvoquer ». Rachat et réinvocation sont la même action : pas de délai, pas de coût croissant.
+- **Confirmation** : un clic invoque directement une unité non légendaire. La réinvocation du [Légendaire] passe par une boîte de confirmation, où le joueur choisit aussi le niveau (voir ci-dessous) ; l'annuler ne dépense rien.
+- **Espèces non légendaires** : aucun plafond de possession. Un individu invoqué est niveau 1, 0 XP.
+- **[Légendaire]** : au plus **un** individu possédé. Tant qu'il est vivant, l'invocation est impossible (« Déjà à vos côtés ») ; s'il est mort, elle est possible et s'appelle « Réinvoquer ». Rachat et réinvocation sont la même action : pas de délai, pas de coût croissant d'une réinvocation à l'autre.
+- **Niveau gardé à la réinvocation** : le niveau du [Légendaire] à sa mort est mémorisé, et **écrasé à chaque nouvelle mort** (ex : mort niveau 5, réinvoqué niveau 1, remort niveau 2 → on ne peut plus le reprendre qu'au niveau 2 au plus : réinvoquer bas, c'est renoncer au niveau d'avant). À la réinvocation, le joueur choisit un niveau **entre 1 et ce niveau mémorisé**. Chaque niveau gardé au-delà du 1 coûte **+25 % du prix de base** : prix = prix de base × (1 + 0,25 × (niveau choisi − 1)), arrondi à l'entier inférieur (ex : Fafnir mort niveau 5, prix de base 110 → 110 au niveau 1, 165 au niveau 3, 220 au niveau 5). L'individu réinvoqué a l'XP du **début** du niveau choisi (11.6) : la progression au-delà est perdue. Un [Légendaire] mort au niveau 1 se réinvoque donc au niveau 1, au prix de base.
 - Pas de gacha : seules les espèces du roster de la faction du joueur sont proposées.
 - Un individu invoqué **n'est pas ajouté à l'armée** : le joueur l'y ajoute lui-même depuis la gestion de civilisation (11.2).
+
+### 11.5 Niveau du joueur
+- Le joueur a un **XP** cumulé, qui détermine son **niveau** (niveau 1 à 0 XP).
+- **Gain d'XP à la victoire** d'une bataille de « Partir en guerre » : **100 XP**, plus un bonus de **100 × (PP des survivants / PP de l'armée)**, arrondi à l'entier inférieur. Les deux totaux portent sur **toute l'armée emmenée** en bataille (individus déployés ou restés en réserve) ; un survivant est un individu de l'armée encore en vie à la fin. Victoire sans perte : 200 XP.
+- **Bataille 01 (tutoriel)** : **100 XP fixes**, sans bonus (l'armée n'existe pas encore, et le tutoriel garde ainsi moins de facteurs variables).
+- **Défaite, abandon ou match nul** : aucun XP.
+- **Courbe** : passer du niveau N au niveau N + 1 demande **500 × N XP** (500 XP du niveau 1 au 2, 1 000 du 2 au 3, etc. — 1 500 XP cumulés pour le niveau 3). **Pas de niveau maximum.**
+- **Récompense de niveau** : chaque niveau atteint rapporte **50 × le nouveau niveau** en Spirit Stones (100 au niveau 2, 150 au niveau 3). Si un gain d'XP fait franchir plusieurs niveaux, chacun est récompensé.
+- **Affichage** : niveau et barre d'XP (« XP dans le niveau / XP du niveau ») sur l'écran d'accueil, près du solde ; XP gagnée sur l'écran de victoire.
+- Hors MVP (`roadmap-mvp.md`, Suite) : déblocage d'emplacements d'armée et hausse ponctuelle du plafond de l'armée à certains niveaux.
+
+### 11.6 Niveau des individus
+- Chaque individu du joueur a un **XP** cumulé, qui détermine son **niveau**, de **1 à 5**.
+- **Gain d'XP**, compté **seulement à la victoire** (comme les pertes, 11.1 : une défaite, un abandon ou un match nul ne changent rien), **bataille 01 comprise** :
+  - **+10 XP** pour chaque individu déployé au moins une fois pendant la bataille et **vivant à la fin** (sur le terrain ou revenu en réserve après une fuite) ;
+  - **+ le coût en PP de chaque ennemi qu'il a achevé** (coup fatal, section 4.1 ; ex : un New-reborn Skeleton rapporte 6, Athos 110). Coup fatal simultané (4.1) : chacun des individus qui ont achevé l'ennemi au même instant gagne la totalité de son coût. Un individu mort pendant la bataille ne gagne rien (mort définitive).
+- **Courbe** : passer du niveau N au niveau N + 1 demande **50 × N XP** (50, 100, 150, 200 — niveau 5 à 500 XP cumulés). Au niveau 5, l'XP n'augmente plus (plafonnée à 500).
+- **Effet du niveau** : **+10 % de PV max et de dégâts par niveau au-dessus du 1** (+40 % au niveau 5), **arrondi à l'entier le plus proche** (0,5 arrondi au-dessus ; calcul en entiers : base × (9 + niveau) / 10, pour éviter les erreurs de virgule). Ex : dégâts du Ver de Lambton 8 / 9 / 10 / 10 / 11, PV 40 / 44 / 48 / 52 / 56 ; dégâts du New-reborn Skeleton 5 / 6 / 6 / 7 / 7. Pour une attaque hybride, les deux valeurs de dégâts sont augmentées. Les vitesses, la portée, la taille et le **coût en PP ne changent pas**. Le niveau ne change jamais pendant une bataille : l'XP n'étant comptée qu'à la victoire, un individu combat toute la bataille avec les stats du niveau qu'il avait au début.
+- **Aptitudes** : les aptitudes qui multiplient les dégâts (Attaque dévastatrice de Fafnir) s'appliquent aux dégâts du niveau ; la régénération de Soif de sang (Athos) reste de 40 PV, plafonnée aux PV max du niveau.
+- **Affichage** : sur l'écran de victoire du jeu normal, les individus qui ont gagné au moins un niveau (`technical.md` 5.3).
+- Les unités de l'IA et celles de la version clickbait sont toujours **niveau 1** (stats de `units.md`).

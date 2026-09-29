@@ -12,9 +12,9 @@ import { TEST_PROFILES, loadTestProfile } from './dev/testProfiles.js';
 import { ROSTERS } from './data/rosters.js';
 import { FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from './data/battles.js';
 import { countOwnedCopies, getCasualtyReport } from './logic/deployment.js';
-import {
-  createStartingUnits, keepSurvivors, createArmy, STARTING_SPIRIT_STONES,
-} from './logic/civilization.js';
+import { createStartingUnits, keepSurvivors } from './logic/ownedUnits.js';
+import { createArmy } from './logic/army.js';
+import { STARTING_SPIRIT_STONES } from './logic/summon.js';
 import {
   getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, getOwnedUnits,
   saveOwnedUnits, saveArmy, saveSpiritStones, isLegacySave, clearProgress,

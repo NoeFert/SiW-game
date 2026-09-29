@@ -40,8 +40,12 @@ Le clickbait est construit comme une pub ; le MVP est **le jeu complet, construi
   - la **gestion de civilisation** : consulter ses monstres espèce par espèce, et composer l'**armée** qui partira en guerre (500 points de présence au plus, au-dessus des 150 du terrain : l'armée contient des réserves) ;
   - une monnaie, les **Spirit Stones**, reçue au départ puis en récompense des victoires ;
   - l'**invocation** : dépenser ses Spirit Stones pour racheter des monstres d'espèces connues, ou réinvoquer son Légendaire tombé au combat ;
-  - « **Partir en guerre** » : les batailles qui suivent la bataille 01, pour lesquelles il faut une armée reconstituée (contenu à définir).
+  - « **Partir en guerre** » : les batailles qui suivent la bataille 01, pour lesquelles il faut une armée reconstituée (contenu à définir) ;
+  - les **niveaux** (`RULES.md` sections 11.5 et 11.6) :
+    - chaque **monstre** gagne de l'expérience quand il survit à une victoire et quand il achève des ennemis. En montant de niveau (jusqu'au niveau 5), il devient plus robuste et plus fort, sans coûter plus de points de présence : un vétéran vaut plus qu'une recrue sur le terrain. Chaque monstre devient ainsi un individu reconnaissable dans la gestion de civilisation ;
+    - le **souverain** progresse lui aussi à chaque victoire, d'autant plus que son armée en sort intacte, et chaque niveau lui rapporte des Spirit Stones ;
+    - un **Légendaire** tombé peut être réinvoqué au niveau qu'il avait atteint, contre un prix plus élevé.
 
-La boucle méta donne son poids à l'objectif du joueur : chaque monstre perdu devra être racheté, et chaque Spirit Stone dépensée à reconstruire l'armée ne sert pas à la renforcer.
+La boucle méta donne son poids à l'objectif du joueur : chaque monstre perdu devra être racheté, et chaque Spirit Stone dépensée à reconstruire l'armée ne sert pas à la renforcer. Les niveaux renforcent encore cet enjeu : perdre un monstre, c'est aussi perdre son expérience, et un vétéran racheté repart de zéro.
 
 Pour le Rendu 1, seule la version clickbait est jouable : le bouton « MVP » de l'écran d'introduction est grisé (`TECHNICAL.md` section 5.2).

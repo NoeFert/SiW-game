@@ -23,6 +23,8 @@ Le POC est un aperçu du MVP modifié pour le format d'une pub : il n'en utilise
 
 **Objectif :** valider que le cœur du gameplay (unités autonomes + contrôle limité du joueur) est jouable et amusant, avant d'investir dans la couche méta.
 
+> **Couche méta du MVP** (accueil, gestion de civilisation, armée, invocation, Spirit Stones, niveaux du joueur et des individus) : voir `roadmap-mvp.md`, qui **fait priorité** sur ce fichier en cas de contradiction (liste des points remplacés en fin de `roadmap-mvp.md`).
+
 ### Inclus
 - Une grille avec obstacles (voir `rules.md` section 1)
 - **Deux factions jouables** (Souveraine des Wyrms et Souverain des Morts-Vivants), roster réduit de 3 unités chacune (basique, [Vol], [Légendaire]). Le joueur choisit sa faction en début de partie ; l'IA contrôle automatiquement l'autre — pour éviter que le joueur affronte sa propre armée en miroir (voir `rules.md` section 9 et `units.md`)

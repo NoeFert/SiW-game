@@ -9,9 +9,10 @@ import {
 } from '@/components/ui/8bit/card.jsx';
 import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
+import { countUnitsBySpecies } from '../logic/ownedUnits.js';
 import {
-  canSummon, countUnitsBySpecies, summon, summonAction, summonPrice,
-} from '../logic/civilization.js';
+  canSummon, summon, summonAction, summonPrice,
+} from '../logic/summon.js';
 import {
   getOwnedUnits, getSpiritStones, saveOwnedUnits, saveSpiritStones,
 } from '../persistence.js';

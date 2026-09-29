@@ -86,6 +86,12 @@ Titre « Vos unités », puis **un composant par ligne**, empilés verticalement
   - **Ligne 2 :** les PV + l'ATK **en premier**, puis les tags de keyword.
   - **Retour à la ligne automatique** si les stats et les keywords ne tiennent pas sur une ligne (ex : Fafnir avec [Légendaire] et [Vol]).
 
+#### Niveaux (jeu normal, `rules.md` 11.6)
+
+- **Une ligne par espèce et par niveau** : les individus d'une même espèce et d'un même niveau sont regroupés (`2x`) ; deux niveaux différents font deux lignes (« Ver de Lambton niv 3 », « Ver de Lambton niv 1 »). Le joueur choisit donc le niveau de l'individu qu'il déploie.
+- Le niveau s'affiche après le nom, sur la ligne 1. Les PV et l'ATK de la ligne 2 sont ceux du niveau.
+- Version clickbait et unités de l'IA : toujours niveau 1, affichage inchangé (pas de mention du niveau).
+
 #### Unités blessées (recommandation acceptée à l'étape 1)
 
 - PV au format **`♥ 25/40`**, avec la valeur actuelle dans une couleur d'alerte (orange ou rouge selon la gravité).

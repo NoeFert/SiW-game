@@ -6,10 +6,12 @@ import {
 } from '@/components/ui/8bit/card.jsx';
 import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
+import { countUnitsBySpecies } from '../logic/ownedUnits.js';
 import {
   ARMY_NAME_MAX_LENGTH, ARMY_PP_CAP, addToArmy, armyCost, armyUnits, canAddToArmy,
-  canRemoveFromArmy, countUnitsBySpecies, removeFromArmy, renameArmy, summonAction,
-} from '../logic/civilization.js';
+  canRemoveFromArmy, removeFromArmy, renameArmy,
+} from '../logic/army.js';
+import { summonAction } from '../logic/summon.js';
 import { getArmy, getOwnedUnits, saveArmy } from '../persistence.js';
 import { TEXT, unitName } from '../ui/strings.js';
 

@@ -1,7 +1,6 @@
 import { ROSTERS } from '../data/rosters.js';
-import {
-  createStartingUnits, countUnitsBySpecies, keepSurvivors, createArmy,
-} from '../logic/civilization.js';
+import { createStartingUnits, countUnitsBySpecies, keepSurvivors } from '../logic/ownedUnits.js';
+import { createArmy } from '../logic/army.js';
 import {
   savePlayerFaction, markFirstBattleWon, saveOwnedUnits, saveArmy, saveSpiritStones,
 } from '../persistence.js';

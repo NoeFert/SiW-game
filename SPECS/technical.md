@@ -24,7 +24,7 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 - La **couche Phaser** (Scenes, Sprites, input sur le champ de bataille) est une couche fine par-dessus : elle lit l'état produit par la logique de jeu et l'affiche, elle transmet les clics du joueur sur le terrain vers la logique de jeu, mais ne contient elle-même aucune règle de jeu
 - La **couche React** (sidebar de déploiement, boutons, HUD, écrans de fin de bataille) suit le même principe : elle lit l'état produit par la logique de jeu et affiche des composants shadcn/8bitcn génériques, sans contenir de règle de jeu elle-même
 
-- La **logique méta** (individus possédés, armée, Spirit Stones, invocation — `rules.md` section 11) suit la même séparation : ses règles vivent dans `src/logic/` en JavaScript pur (ex : `army.js`, `summon.js`), jamais dans les composants React. `persistence.js` se contente de lire et d'écrire le localStorage, sans aucune règle de jeu
+- La **logique méta** (individus possédés, armée, Spirit Stones, invocation — `rules.md` section 11) suit la même séparation : ses règles vivent dans `src/logic/` en JavaScript pur, un fichier par domaine — `ownedUnits.js` (individus possédés, dotation, pertes), `army.js` (armée), `summon.js` (invocation), `levels.js` (niveaux du joueur et des individus) —, jamais dans les composants React. `persistence.js` se contente de lire et d'écrire le localStorage, sans aucune règle de jeu
 
 **Pourquoi :** ça permet de tester toute la logique de combat/mouvement avec des tests automatisés rapides, sans avoir besoin de lancer le jeu dans un navigateur — essentiel pour la stratégie de tests ci-dessous. Ça garde aussi la porte ouverte à changer le moteur de rendu ou le framework d'UI plus tard sans toucher aux règles du jeu.
 
@@ -54,8 +54,10 @@ src/
     pathfinding.js
     deployment.js
     battle.js
-    army.js        # Couche méta (rules.md 11)
-    summon.js
+    ownedUnits.js  # Couche méta (rules.md 11) : individus possédés
+    army.js        #   armée
+    summon.js      #   invocation
+    levels.js      #   niveaux du joueur et des individus
   data/            # Configuration statique (rosters, scripts IA)
     wyrmsRoster.js
     undeadRoster.js
@@ -133,6 +135,7 @@ tests/
   4. Conditions de fin de bataille (victoire immédiate, cas d'égalité, compte à rebours de 15s)
   5. Gestion des points de présence et des copies (plafond vivant, copie perdue vs réutilisable)
   6. Couche méta (`rules.md` 11) : plafond de 500 PP et minimum d'1 individu de l'armée, retrait des morts de la liste et de l'armée, prix d'invocation, [Légendaire] unique, solde insuffisant, validation du nom de l'armée
+  7. Niveaux (`rules.md` 11.5 et 11.6) : courbes d'XP du joueur et des individus, plafond du niveau 5, stats par niveau et leur arrondi, XP gagnée à la victoire (survie, coups fatals, coup fatal simultané, bonus de survivants), récompenses de niveau, prix du niveau gardé à la réinvocation
 - **Pas de tests automatisés sur la couche Phaser ni sur la couche React** (rendu, animations, input, composants UI) pour la v1 — cette partie reste validée manuellement en jouant, le coût de mise en place de tests d'interface n'étant pas justifié pour un prototype
 - Chaque règle chiffrée de `rules.md` doit pouvoir correspondre à au moins un test automatisé qui la vérifie — cohérent avec la consigne de `rules.md` ("chaque ligne doit être vérifiable")
 
@@ -147,13 +150,15 @@ Le jeu v1 est composé de **huit écrans distincts**. Un seul d'entre eux (l'éc
 0. **IntroScreen** — texte d'introduction centré (le joueur est un souverain qui devra mener les siens à la guerre), avec un bouton pour continuer. Affiché juste avant `FactionChoiceScreen`, donc **une seule fois**, au tout début d'une partie.
 1. **FactionChoiceScreen** — écran de choix de faction (Souveraine des Wyrms ou Souverain des Morts-Vivants). Affiché **une seule fois**, au tout début d'une partie (pas avant chaque bataille, même une fois que plusieurs batailles existeront en v2+).
 2. **BattleScreen** — l'écran de bataille actuel : tour de commandement React à gauche (pause, abandon, déploiement, commandes) + canevas Phaser (champ de bataille) à droite.
-3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3). La victoire rapporte des Spirit Stones (`rules.md` 11.3) ; montant et affichage de cette récompense à définir (`roadmap-mvp.md`).
+3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3). La victoire rapporte des Spirit Stones (`rules.md` 11.3) ; montant et affichage de cette récompense à définir (`roadmap-mvp.md`). Dans le jeu normal, il affiche l'**XP gagnée par le joueur** (`rules.md` 11.5).
 4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé). Sert aussi après un match nul (`rules.md` 8.1), avec le titre « Match nul » au lieu de « Défaite » : même suite, aucun vainqueur.
-5. **HomeScreen** — écran d'accueil, point central du jeu. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Affiche la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), le **solde de Spirit Stones** en haut à droite (`rules.md` 11.3), et trois boutons : **Partir en guerre** (désactivé tant que son contenu n'est pas spécifié, `roadmap-mvp.md`), **Gestion de civilisation** (`CivilizationScreen`) et **Invocation** (`SummonScreen`).
+5. **HomeScreen** — écran d'accueil, point central du jeu. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Affiche la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), le **solde de Spirit Stones** en haut à droite (`rules.md` 11.3), le **niveau du joueur et sa barre d'XP** près du solde (`rules.md` 11.5), et trois boutons : **Partir en guerre** (désactivé tant que son contenu n'est pas spécifié, `roadmap-mvp.md`), **Gestion de civilisation** (`CivilizationScreen`) et **Invocation** (`SummonScreen`).
 6. **CivilizationScreen** — écran de gestion de civilisation, accessible depuis `HomeScreen`, en deux sections :
-   - **Unités** : une ligne par espèce du roster de la faction du joueur (sprite, nom, keywords, coût en PP, nombre d'individus possédés ; une espèce à 0 reste affichée, grisée). Un clic ouvre la **page de détail de l'espèce** (vue interne à l'écran, pas un écran à part) : grand sprite, nom, keywords, stats complètes de `units.md`, texte des aptitudes, nombre possédé et nombre dans l'armée, bouton « Invoquer » / « Réinvoquer » vers `SummonScreen`.
-   - **Armée** : nom modifiable, compteur « X / 500 PP », ajout / retrait par espèce (`rules.md` 11.2).
-7. **SummonScreen** — écran d'invocation, accessible depuis `HomeScreen` et depuis la page de détail d'une espèce. Une ligne par espèce de la faction du joueur, avec son prix en Spirit Stones et un bouton « Invoquer » (« Réinvoquer » pour un [Légendaire] mort, désactivé avec « Déjà à vos côtés » tant qu'il est vivant, désactivé aussi si le solde est insuffisant) — `rules.md` 11.4. Solde affiché comme sur `HomeScreen`.
+   - **Unités** : un **accordéon par espèce** du roster de la faction du joueur. En-tête : sprite, nom, keywords, coût en PP, nombre d'individus possédés ; une espèce à 0 reste affichée, grisée, avec son bouton « Invoquer » / « Réinvoquer » vers `SummonScreen`. Ouvert : un individu par ligne (niveau, barre d'XP, présent dans l'armée ou non). Un clic sur un individu ouvre la **page de détail de l'individu** (vue interne à l'écran, pas un écran à part) : grand sprite, nom de l'espèce, keywords, niveau et barre d'XP, présence dans l'armée, stats complètes **à son niveau** (`rules.md` 11.6), texte des aptitudes, bouton « Invoquer » / « Réinvoquer » de son espèce vers `SummonScreen`.
+   - **Armée** : nom modifiable, compteur « X / 500 PP », et un **accordéon par espèce** — fermé, un résumé seul (« 7 / 9 dans l'armée ») ; ouvert, un individu par ligne (niveau, barre d'XP) avec une case « dans l'armée » à cocher / décocher (`rules.md` 11.2).
+   - Dans un accordéon ouvert (Unités comme Armée), les individus sont triés par **niveau décroissant, puis XP décroissante** : les vétérans en haut.
+   - Au niveau 5 (maximum, `rules.md` 11.6), la barre d'XP d'un individu est pleine et affiche **« MAX »** au lieu de « X / Y XP » (provisoire, voir la Suite de `roadmap-mvp.md`).
+7. **SummonScreen** — écran d'invocation, accessible depuis `HomeScreen` et depuis la page de détail d'une espèce. Une ligne par espèce de la faction du joueur, avec son prix en Spirit Stones et un bouton « Invoquer » (« Réinvoquer » pour un [Légendaire] mort, désactivé avec « Déjà à vos côtés » tant qu'il est vivant, désactivé aussi si le solde est insuffisant) — `rules.md` 11.4. La boîte de confirmation de « Réinvoquer » propose le **niveau gardé** (de 1 au niveau du [Légendaire] à sa mort) et affiche le prix correspondant. Solde affiché comme sur `HomeScreen`.
 
 ### 5.2 Enchaînement (v1)
 
@@ -184,19 +189,26 @@ IntroScreen → FactionChoiceScreen (une fois)
 
 ### 5.3 Squelette de VictoryScreen et DefeatScreen pour la v1
 - Les deux écrans sont volontairement minimaux : un titre (Victoire / Défaite ou Match nul), et un seul bouton d'action (Continuer vers l'accueil / Réessayer)
+- **Victoire dans le jeu normal** : entre le titre et le bouton, deux blocs de niveaux (`rules.md` 11.5 et 11.6) :
+  - l'**XP gagnée par le joueur** (« +X XP ») ;
+  - les **individus qui ont gagné au moins un niveau** pendant la bataille, regroupés par espèce et par passage de niveau, au format du bilan des pertes (ex : « 2x [sprite] Ver de Lambton niv 1 → 2 »). Bloc absent si aucun individu n'a monté de niveau.
+- **Version clickbait : aucun changement** — elle garde son bilan des pertes (5.6), sans XP ni niveau.
 - L'affichage de la récompense en Spirit Stones reste à définir (`roadmap-mvp.md`) — la structure du composant doit être prête à accueillir ce contenu sans réécriture complète
 
 ### 5.4 Navigation et état persistant
 - **Gestion de la navigation entre écrans : état React simple** (ex : un state `currentScreen` géré dans le composant racine `App.jsx`), pas de librairie de routing (React Router ou équivalent) pour la v1 — le jeu est une session continue dans un seul onglet, sans besoin d'URLs distinctes par écran. Une vraie solution de routing pourra être introduite en v2+ si la sélection de niveau (plusieurs batailles) le justifie.
-- **Persistance via localStorage** : cinq valeurs sont sauvegardées (`roadmap-mvp.md`) —
+- **Persistance via localStorage** : sept valeurs sont sauvegardées (`roadmap-mvp.md`) —
   1. la faction choisie par le joueur
   2. un indicateur booléen "première bataille (tutoriel) gagnée"
-  3. la **liste des individus possédés**, chacun `{ id, species }` (ex : `[{ id: 'u1', species: 'lambtonWorm' }, …]`, `rules.md` 11.1) : créée avec la dotation de départ au choix de la faction, mise à jour à la victoire de la bataille tutoriel (individus tués retirés) et à chaque invocation — jamais lors d'une tentative ratée (voir 5.2). Elle remplace l'ancien décompte de copies par espèce
+  3. la **liste des individus possédés**, chacun `{ id, species, xp }` (ex : `[{ id: 'u1', species: 'lambtonWorm', xp: 0 }, …]`, `rules.md` 11.1 et 11.6 ; le niveau se calcule à partir de l'XP, il n'est pas sauvegardé) : créée avec la dotation de départ au choix de la faction, mise à jour à chaque victoire (individus tués retirés, XP gagnée) et à chaque invocation — jamais lors d'une tentative ratée (voir 5.2). Elle remplace l'ancien décompte de copies par espèce
   4. l'**armée** : `{ name, unitIds }` (`rules.md` 11.2)
   5. le **solde de Spirit Stones** (entier, `rules.md` 11.3)
+  6. l'**XP du joueur** (entier, `rules.md` 11.5 ; le niveau se calcule à partir de l'XP)
+  7. le **niveau du [Légendaire] à sa mort** (entier, ou absent s'il n'est jamais mort ; `rules.md` 11.4), mis à jour à chaque mort du [Légendaire] à la victoire
 - **Identifiant d'un individu** : généré par `crypto.randomUUID()` à sa création (dotation de départ ou invocation). Jamais dérivé de la taille de la liste, qui réutiliserait l'identifiant d'un individu mort ; aucun compteur n'est sauvegardé.
 - Aucun champ de personnalisation n'est ajouté aux individus : l'identifiant suffit pour que les armées référencent des individus, et pour accueillir la personnalisation plus tard sans migration de sauvegarde.
 - C'est une exception ciblée à l'absence de persistance, pas un système de sauvegarde généralisé. Ces valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `HomeScreen`, `CivilizationScreen` et `SummonScreen`.
+- **Individus sauvegardés sans `xp`** (sauvegardes antérieures aux niveaux) : pas de migration, un individu sans `xp` compte comme 0 XP (niveau 1) ; un joueur sans XP sauvegardée est à 0 XP.
 - **Ancien format (décompte de copies par espèce) : pas de migration.** Une sauvegarde qui contient une faction mais pas de liste d'individus est considérée comme absente : elle est effacée et l'app repart de `IntroScreen`. Aucun joueur n'a de sauvegarde MVP (le build publié ne donne accès qu'au clickbait, qui ne sauvegarde rien).
 - Le raccourci « restart game » du menu devs (section 5.7) efface toutes ces valeurs et ramène à `IntroScreen`. Il n'y a plus de bouton de réinitialisation côté joueur.
 - Aucune autre donnée n'est persistée en v1 (l'état d'une bataille en cours, par exemple, repart de zéro à chaque chargement de `BattleScreen`).
@@ -235,3 +247,8 @@ IntroScreen → FactionChoiceScreen (une fois)
   - **restart game** : efface la sauvegarde et relance le jeu normal depuis l'introduction.
   - **restart clickbait** : lance la version clickbait (section 5.6) depuis le choix de faction.
   - **test-wyrm** : charge un joueur de test figé et ouvre l'accueil, sans jouer la bataille 01 — faction Wyrms, bataille 01 gagnée, 3 Vers de Lambton et 1 Amphiptère perdus (soit 9 / 7 / 1 individus restants), une armée contenant ces 17 survivants (375 PP) et **10 000 Spirit Stones**. Écrase la sauvegarde. Profils de test : `src/dev/testProfiles.js`.
+    - **Niveaux** (`rules.md` 11.5 et 11.6) : joueur à **1 700 XP** (niveau 3, 200 / 1 500 dans le niveau). XP des individus (seuils cumulés : niveau 2 à 50, 3 à 150, 4 à 300, 5 à 500) :
+      - Vers de Lambton : 500 (niveau 5, MAX), 320 (4), 160 (3), 60 (2), 20, 0, 0, 0, 0 (niveau 1) ;
+      - Amphiptères : 70 (niveau 2), 30, 0, 0, 0, 0, 0 (niveau 1) ;
+      - Fafnir : 350 (niveau 4).
+  - **test-wyrm-fallen** : comme test-wyrm, mais **Fafnir est mort au niveau 5** — il n'est ni dans les individus possédés ni dans l'armée (16 individus, 265 PP), et le niveau du [Légendaire] à sa mort vaut 5. Sert à tester la réinvocation avec niveau gardé (`rules.md` 11.4).

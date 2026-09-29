@@ -1,5 +1,36 @@
 # SPECS-REVIEW.md
 
+## Audit du 2026-09-29 (2e passage) — niveaux du joueur et des individus
+
+Audit de cohérence et de complétude de `SPECS/` (skill `/spec-reviewer`), après l'ajout des niveaux (`/enricher` : `rules.md` 11.5 et 11.6, `roadmap-mvp.md` étapes 6 à 11) et le code des étapes 1 à 5 de `roadmap-mvp.md`.
+
+Fichiers relus ensemble : `CONCEPT.md`, `rules.md`, `units.md`, `roadmap.md`, `roadmap-mvp.md`, `technical.md`, `GRAPHICS.md`, `POC-SPECS.md`, `AGENTIC-WORKFLOW.md`, `ui-battle-screen-decisions.md` (`POC-ASSETS.md` n'existe pas).
+
+| # | Type | Constat | Décision | Fichier mis à jour |
+|---|---|---|---|---|
+| 1 | Incohérence | `rules.md` 5.1 : le cooldown « diminue avec le niveau du joueur » — ce niveau existe désormais, sans courbe | Cooldown fixe à 5 s dans le MVP ; réduction selon le niveau renvoyée en Suite | `rules.md` 5.1, `roadmap-mvp.md` (Suite) |
+| 2 | Incohérence | `rules.md` §2 : en bataille, « les individus qu'il possède » ; §9 et 11.5 : l'armée « limite ce que le joueur emmène » | Bataille 01 : tous les individus possédés ; batailles de « Partir en guerre » : les individus de l'armée | `rules.md` §2 |
+| 3 | Cas limite | Arrondi inférieur du +10 % : certains niveaux n'apportent aucun dégât (Ver et Squelette niveau 2) | Arrondi au plus proche (0,5 au-dessus), calcul en entiers : base × (9 + niveau) / 10 ; exemples chiffrés | `rules.md` 11.6 |
+| 4 | Incohérence specs ↔ code | `technical.md` annonce `army.js` / `summon.js`, le code a un seul `civilization.js` | Un fichier par domaine : `ownedUnits.js`, `army.js`, `summon.js`, `levels.js` ; specs et code mis à jour (`civilization.js` découpé, tests aussi ; 294 tests verts avant et après) | `technical.md` 2, 2.3 |
+| 5 | Incohérence | `technical.md` 5.3 : écran de victoire « titre + un bouton » contre XP affichée (5.1, 11.5) | Jeu normal : titre, « +X XP », individus qui ont monté de niveau (regroupés, « 2x Ver de Lambton niv 1 → 2 »), bouton. **Version clickbait inchangée** | `technical.md` 5.3, `rules.md` 11.6, `roadmap-mvp.md` |
+| 6 | Mentions dépassées | En-tête de `rules.md` limité au « moteur de bataille » ; niveaux absents des priorités de tests | En-tête : moteur + couche méta ; 7e priorité de tests : niveaux | `rules.md` (en-tête), `technical.md` 4 |
+| 7 | Trou | Profil `test-wyrm` sans valeurs de niveau ; réinvocation à niveau gardé non testable à la main | `test-wyrm` : joueur 1 700 XP, individus à niveaux variés (dont un MAX), Fafnir niveau 4 ; nouveau profil `test-wyrm-fallen` : Fafnir mort au niveau 5 | `technical.md` 5.7, `roadmap-mvp.md` |
+| 8 | Trou | Espaces autour du nom d'armée (le code les retire, la règle n'en parlait pas) | Retirés avant l'enregistrement ; 20 caractères comptés après retrait | `rules.md` 11.2 |
+| 9 | Trou | `rules.md` 11.1 : morts retirés seulement « à la victoire de la bataille 01 », alors que XP et mémoire du [Légendaire] valent à chaque victoire | Morts retirés à chaque victoire ; défaites de « Partir en guerre » : à définir | `rules.md` 11.1 |
+
+Trous comblés pendant `/enricher`, juste avant cet audit : coup fatal simultané (chaque tueur gagne toute l'XP), niveau figé pendant une bataille, niveau mémorisé du [Légendaire] écrasé à chaque mort, tri des individus (niveau puis XP décroissants), « MAX » au niveau 5, repères visuels dans `GRAPHICS.md`.
+
+**Écarts code ↔ specs** (à corriger en développement) :
+- icône de Spirit Stones (losange violet, `GRAPHICS.md`) absente des soldes et prix de `HomeScreen` et `SummonScreen` ;
+- tout le code des niveaux (étapes 6 à 11 de `roadmap-mvp.md`) reste à écrire.
+
+**Conclusion :** un agent IA qui recevrait ces fichiers sans autre contexte **n'aurait pas besoin d'inventer de règle** pour coder les étapes 6 à 11 de `roadmap-mvp.md` (niveaux). Restent ouverts, sans bloquer ces étapes (`rules.md` section 10) :
+- contenu de « Partir en guerre » (batailles, scripts, récompenses, conséquences d'une défaite) ; phases et scripts de la bataille 01 ;
+- récompense en Spirit Stones de la bataille 01 ;
+- valeurs **provisoires** à revoir au second passage de roadmap : somme de départ (0), k (1), multiplicateur du [Légendaire] (×1), récompense de niveau du joueur (50 × niveau).
+
+---
+
 ## Audit du 2026-09-29 — couche méta du MVP
 
 Audit de cohérence et de complétude de `SPECS/` (skill `/spec-reviewer`), après l'ajout de la couche méta (`roadmap-mvp.md`, `rules.md` section 11).
