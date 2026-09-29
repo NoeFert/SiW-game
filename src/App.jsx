@@ -12,17 +12,24 @@ import { ROSTERS } from './data/rosters.js';
 import { FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from './data/battles.js';
 import { countOwnedCopies, getCasualtyReport } from './logic/deployment.js';
 import {
-  getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, saveOwnedCopies,
-  clearProgress,
+  createStartingUnits, keepSurvivors, createArmy, STARTING_SPIRIT_STONES,
+} from './logic/civilization.js';
+import {
+  getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, getOwnedUnits,
+  saveOwnedUnits, saveArmy, saveSpiritStones, isLegacySave, clearProgress,
 } from './persistence.js';
+import { TEXT } from './ui/strings.js';
 
 // technical.md 5.1 : pour le Rendu 1, seule la version clickbait (le POC) est jouable. Le bouton
 // MVP (jeu normal) est grisé et le jeu démarre toujours sur l'intro. Passer à false pour rouvrir.
 const MVP_LOCKED = true;
 
 // technical.md 5.2 : l'écran de départ se déduit de l'état persistant, pas d'un routeur.
+// Une sauvegarde à l'ancien format (technical.md 5.4) est effacée : l'app repart de l'intro.
 function initialScreen() {
-  if (MVP_LOCKED || !getSavedFaction()) return 'intro';
+  if (MVP_LOCKED) return 'intro';
+  if (isLegacySave()) clearProgress();
+  if (!getSavedFaction()) return 'intro';
   if (!hasWonFirstBattle()) return 'battle';
   return 'home';
 }
@@ -45,21 +52,32 @@ export default function App() {
     setScreen('battle');
   }, []);
 
+  // rules.md 11.1/11.3 : au choix de la faction, dotation de départ et somme de départ.
   const chooseFaction = useCallback((faction) => {
-    if (isClickbait) setClickbaitFaction(faction); else savePlayerFaction(faction);
+    if (isClickbait) {
+      setClickbaitFaction(faction);
+    } else {
+      savePlayerFaction(faction);
+      saveOwnedUnits(createStartingUnits(ROSTERS[faction]));
+      saveSpiritStones(STARTING_SPIRIT_STONES);
+    }
     startBattle();
   }, [isClickbait, startBattle]);
 
-  // technical.md 5.4 : les copies possédées ne sont figées qu'à la victoire — une tentative
-  // ratée ne sauvegarde rien, ses pertes sont donc oubliées au "Réessayer". Rien n'est
-  // sauvegardé en mode clickbait : on y affiche à la place le bilan des unités en vie/perdues.
+  // technical.md 5.4 : les pertes ne sont retirées qu'à la victoire — une tentative ratée ne
+  // sauvegarde rien, ses pertes sont donc oubliées au "Réessayer". La victoire crée aussi
+  // l'armée de départ avec tous les survivants (rules.md 11.2). Rien n'est sauvegardé en mode
+  // clickbait : on y affiche à la place le bilan des unités en vie/perdues.
   const handleVictory = useCallback((battle) => {
     const unitsOnField = battle.units.filter((u) => u.isOnField);
     const roster = ROSTERS[playerFaction];
     if (isClickbait) {
       setVictoryReport(getCasualtyReport(roster, battle.playerDeployment, 'player', unitsOnField));
     } else {
-      saveOwnedCopies(countOwnedCopies(roster, battle.playerDeployment, 'player', unitsOnField));
+      const survivors = countOwnedCopies(roster, battle.playerDeployment, 'player', unitsOnField);
+      const units = keepSurvivors(getOwnedUnits(), survivors);
+      saveOwnedUnits(units);
+      saveArmy(createArmy(TEXT.defaultArmyName, units));
       markFirstBattleWon();
       setVictoryReport(null);
     }

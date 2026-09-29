@@ -91,16 +91,15 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 |---|---|
 | Unités possédées | Liste d'individus `{ id, species }` en données, affichage regroupé par espèce ; la dotation de départ vient de `units.md` ; un individu tué est perdu définitivement |
 | Pourquoi des individus dès le MVP | La sauvegarde doit de toute façon changer (monnaie, armée), et une armée référence des individus : cela évite une migration des sauvegardes quand la personnalisation arrivera. Aucun champ de personnalisation n'est ajouté maintenant |
-| Armée | Une seule armée (preset d'identifiants), renommable, 500 PP max, 1 unité min ; créée automatiquement avec tous les survivants de la bataille 01 |
+| Armée | Une seule armée (preset d'identifiants), renommable, 500 PP max, 1 unité min ; créée automatiquement avec tous les survivants de la bataille 01, nommée « Armée 1 » |
 | Invocation | Achat d'espèces connues sans plafond ; Légendaire unique, réinvocable seulement s'il est mort ; même action pour rachat et réinvocation ; prix = coût PP × k |
 | Monnaie | Spirit Stones (nom provisoire) : somme de départ + récompenses de victoire ; solde affiché en haut à droite de l'accueil |
 | Partir en guerre | Dans le MVP, développé après la gestion et l'invocation ; contenu à spécifier |
 
 ## Points encore ouverts
 
-- **Économie** : somme de départ en Spirit Stones (montant, et moment du don : choix de faction ou arrivée sur l'accueil), récompense de la bataille 01 (montant, fixe ou liée aux pertes), coefficient de prix k et multiplicateur éventuel du Légendaire
+- **Économie** : somme de départ en Spirit Stones (montant ; 0 provisoire, donné au choix de la faction), récompense de la bataille 01 (montant, fixe ou liée aux pertes), coefficient de prix k et multiplicateur éventuel du Légendaire
 - **Partir en guerre** : nombre de batailles, terrains, scripts IA, récompenses, déblocage, et ce qui se passe à la défaite (pertes persistées ou non)
-- **Nom par défaut** de l'armée de départ
 
 ---
 

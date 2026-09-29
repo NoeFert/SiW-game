@@ -39,6 +39,19 @@ export const TEXT = {
     noLosses: 'Aucune perte !',
   },
 
+  // Couche méta (rules.md 11).
+  defaultArmyName: 'Armée 1', // rules.md 10 : nom de l'armée de départ
+  spiritStones: (amount) => `${amount} Spirit Stones`, // nom provisoire (rules.md 11.3)
+  playingAs: {
+    wyrms: 'Vous jouez la Souveraine des Wyrms.',
+    undead: 'Vous jouez le Souverain des Morts-Vivants.',
+  },
+  home: {
+    goToWar: 'Partir en guerre',
+    civilization: 'Gestion de civilisation',
+    summon: 'Invocation',
+  },
+
   chooseFaction: 'Choisis ta faction',
   factions: { wyrms: 'Wyrms', undead: 'Morts-Vivants' },
 
