@@ -15,8 +15,9 @@ const VICTORY_SCREEN_DELAY_MS = 3000;
 // "phaser-root" est conservé sur ce conteneur car DeploymentList.jsx repère le <canvas> par
 // ce sélecteur pour convertir les coordonnées de glisser-déposer (voir renderConstants.js).
 // `battleId` : bataille à jouer (src/data/battles.js), avec son tutoriel s'il en a un.
+// `playerUnits` : individus du joueur engagés (jeu normal, rules.md 2), ou null (clickbait).
 export default function BattleScreen({
-  playerFaction, battleId, onVictory, onDefeat,
+  playerFaction, battleId, playerUnits, onVictory, onDefeat,
 }) {
   const containerRef = useRef(null);
 
@@ -34,12 +35,13 @@ export default function BattleScreen({
         autoCenter: Phaser.Scale.CENTER_VERTICALLY,
       },
     });
-    game.scene.start('BattleScene', { playerFaction, battleId });
+    game.scene.start('BattleScene', { playerFaction, battleId, playerUnits });
 
     return () => {
       game.destroy(true);
       interactionState.battle = null;
     };
+    // playerUnits n'est lu qu'au montage : chaque tentative remonte l'écran (clé battleAttempt).
   }, [playerFaction, battleId]);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function BattleScreen({
       if (outcome === 'playerVictory') {
         // Le terrain reste affiché quelques secondes avant l'écran de victoire.
         const { battle } = interactionState;
-        victoryTimeoutId = setTimeout(() => onVictory(battle), VICTORY_SCREEN_DELAY_MS); // App en extrait les copies possédées (5.4)
+        victoryTimeoutId = setTimeout(() => onVictory(battle), VICTORY_SCREEN_DELAY_MS); // App en tire pertes et XP (5.4)
         return;
       }
       if (outcome === 'enemyVictory' || outcome === 'draw') {

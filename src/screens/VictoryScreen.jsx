@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/8bit/button.jsx';
+import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
+import { LevelBadge } from '../ui/LevelDisplay.jsx';
 import { TEXT, unitName } from '../ui/strings.js';
 
 // Une ligne du bilan : "8x [sprite] Ver de Lambton". Les unités perdues sont grisées.
@@ -25,11 +27,42 @@ function ReportList({ title, rows, count, lost }) {
   );
 }
 
-// technical.md 5.3 : squelette minimal — le contenu de récompense réel est hors scope v1
-// (roadmap.md). technical.md 5.6 : en version clickbait, `report` (getCasualtyReport) affiche
-// les unités perdues, pour faire sentir le poids des pertes. Sans `report` (jeu normal),
-// l'écran reste un simple titre + bouton.
-export default function VictoryScreen({ onContinue, report }) {
+// technical.md 5.3 : jeu normal — XP gagnée par le joueur, puis individus qui ont gagné au
+// moins un niveau, regroupés (« 2x [sprite] Ver de Lambton niv 1 → 2 »), bloc absent s'il n'y
+// en a aucun (rules.md 11.5 et 11.6).
+function ProgressReport({ progress, playerFaction }) {
+  const roster = ROSTERS[playerFaction];
+  return (
+    <>
+      <p className="retro text-sm">{TEXT.levels.xpGained(progress.xpGained)}</p>
+      {progress.levelUps.length > 0 && (
+        <section className="flex flex-col gap-3 w-96">
+          <h2 className="retro text-xs">{TEXT.levels.levelUps}</h2>
+          {progress.levelUps.map(({ species, from, to, count }) => (
+            <div key={`${species}-${from}-${to}`} className="flex items-center gap-3 border-2 border-white/30 bg-black/40 px-3 py-2">
+              <span className="retro text-xs w-8 text-right">{count}x</span>
+              <img
+                src={spritePath(SPECIES_SPRITES[roster[species].name].key)}
+                alt=""
+                className="pixelated size-10 object-contain"
+              />
+              <span className="flex-1 text-sm">{unitName(roster[species])}</span>
+              <LevelBadge level={to} faction={playerFaction} label={TEXT.levels.levelUp(from, to)} />
+            </div>
+          ))}
+        </section>
+      )}
+    </>
+  );
+}
+
+// technical.md 5.3 : squelette minimal — la récompense en Spirit Stones reste à définir
+// (roadmap-mvp.md). technical.md 5.6 : en version clickbait, `report` (getCasualtyReport)
+// affiche les unités perdues, pour faire sentir le poids des pertes. Jeu normal : `progress`
+// (resolveVictory) affiche l'XP et les niveaux gagnés.
+export default function VictoryScreen({
+  onContinue, report, progress, playerFaction,
+}) {
   const lost = report?.filter((row) => row.lost > 0) ?? [];
 
   return (
@@ -38,6 +71,7 @@ export default function VictoryScreen({ onContinue, report }) {
       {report && (lost.length > 0
         ? <ReportList title={TEXT.report.lost} rows={lost} count={(row) => row.lost} lost />
         : <p className="retro text-xs">{TEXT.report.noLosses}</p>)}
+      {progress && <ProgressReport progress={progress} playerFaction={playerFaction} />}
       <Button onClick={onContinue}>Continuer</Button>
     </div>
   );

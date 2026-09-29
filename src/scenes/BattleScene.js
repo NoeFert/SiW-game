@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Grid from '../logic/grid.js';
 import { createBattle, tickBattle } from '../logic/battle.js';
+import { createDeploymentState } from '../logic/deployment.js';
 import { isBattleTimeRunning } from '../logic/pause.js';
 import { startTutorial } from '../logic/tutorial.js';
 import { setUpcomingPhases, phaseTransitionProgress } from '../logic/phases.js';
@@ -49,6 +50,7 @@ export default class BattleScene extends Phaser.Scene {
     this.playerFaction = data.playerFaction;
     this.enemyFaction = data.playerFaction === 'wyrms' ? 'undead' : 'wyrms';
     this.battleDefinition = BATTLES[data.battleId]; // src/data/battles.js
+    this.playerUnits = data.playerUnits ?? null; // individus du joueur (jeu normal, rules.md 2)
     // rules.md 7.3 : phases de la bataille (zones), résolues pour la faction jouée par l'IA.
     this.phases = this.battleDefinition.phases.map(({ enemyScripts, obstacles, flippedBackground }) => ({
       enemyScript: enemyScripts[this.enemyFaction], obstacles, flippedBackground,
@@ -151,6 +153,9 @@ export default class BattleScene extends Phaser.Scene {
     const enemyRoster = ROSTERS[playerFaction === 'wyrms' ? 'undead' : 'wyrms'];
 
     this.battle = createBattle(this.grid, playerRoster, enemyRoster, this.phases[0].enemyScript);
+    // rules.md 2 et 11.6 : dans le jeu normal, la réserve du joueur est faite de ses individus,
+    // chacun avec son niveau ; sinon (clickbait), des copies de units.md.
+    if (this.playerUnits) this.battle.playerDeployment = createDeploymentState(playerRoster, this.playerUnits);
     setUpcomingPhases(this.battle, this.phases.slice(1));
     this.battle.victoryWhenScriptCleared = !!this.battleDefinition.victoryWhenScriptCleared;
     const { tutorial, orders = null, surrenderAllowed = true } = this.battleDefinition;
@@ -480,7 +485,7 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
-    const ratio = Math.max(0, unit.hp / unit.species.maxHp);
+    const ratio = Math.max(0, unit.hp / unit.maxHp);
     view.barFill.setSize(view.barWidth * ratio, 6);
     view.barFill.fillColor = healthBarColor(ratio);
 

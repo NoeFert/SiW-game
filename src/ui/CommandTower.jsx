@@ -32,7 +32,7 @@ export default function CommandTower({ playerFaction }) {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-4 py-2">
-          <DeploymentList battle={battle} unitsOnField={unitsOnField} />
+          <DeploymentList battle={battle} unitsOnField={unitsOnField} playerFaction={playerFaction} />
         </div>
 
         <div className="flex-none px-4 py-4 border-t-2 border-foreground/20">

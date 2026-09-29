@@ -49,7 +49,7 @@ export function renderUnitList(units) {
       const symbol = symbolFor(unit);
       const where = unit.hasFled ? 'OFF FIELD (fled)' : `pos (${unit.x},${unit.y})`;
       return `[${symbol}] #${unit.id} ${unit.species.name} (${unit.faction}) — ` +
-        `HP ${unit.hp}/${unit.species.maxHp} — ${where} — status: ${unit.status}`;
+        `HP ${unit.hp}/${unit.maxHp} — ${where} — status: ${unit.status}`;
     })
     .join('\n');
 }

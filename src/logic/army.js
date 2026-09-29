@@ -20,35 +20,35 @@ export function armyCost(army, units, roster) {
   return armyUnits(army, units).reduce((sum, unit) => sum + roster[unit.species].cost, 0);
 }
 
-// Un individu possédé de cette espèce, hors de l'armée (n'importe lequel : ils sont
-// indiscernables, rules.md 11.1).
-function unitOutsideArmy(army, units, speciesKey) {
-  const ids = new Set(army.unitIds);
-  return units.find((unit) => unit.species === speciesKey && !ids.has(unit.id));
+// rules.md 11.2 : le joueur coche un individu précis pour l'ajouter. Impossible s'il n'est pas
+// possédé, s'il est déjà dans l'armée, ou si le coût dépasserait 500 (le coût est celui de
+// l'espèce, quel que soit le niveau).
+export function canAddToArmy(army, units, roster, unitId) {
+  const unit = units.find((u) => u.id === unitId);
+  return unit !== undefined && !army.unitIds.includes(unitId)
+    && armyCost(army, units, roster) + roster[unit.species].cost <= ARMY_PP_CAP;
 }
 
-// rules.md 11.2 : ajout d'un individu d'une espèce, impossible s'il n'en reste aucun hors de
-// l'armée ou si le coût dépasserait 500.
-export function canAddToArmy(army, units, roster, speciesKey) {
-  return unitOutsideArmy(army, units, speciesKey) !== undefined
-    && armyCost(army, units, roster) + roster[speciesKey].cost <= ARMY_PP_CAP;
+export function addToArmy(army, units, roster, unitId) {
+  if (!canAddToArmy(army, units, roster, unitId)) return army;
+  return { ...army, unitIds: [...army.unitIds, unitId] };
 }
 
-export function addToArmy(army, units, roster, speciesKey) {
-  if (!canAddToArmy(army, units, roster, speciesKey)) return army;
-  return { ...army, unitIds: [...army.unitIds, unitOutsideArmy(army, units, speciesKey).id] };
-}
-
-// rules.md 11.2 : retrait d'un individu d'une espèce, impossible pour le dernier de l'armée.
-export function canRemoveFromArmy(army, units, speciesKey) {
+// rules.md 11.2 : retrait d'un individu précis, impossible pour le dernier de l'armée.
+export function canRemoveFromArmy(army, units, unitId) {
   const members = armyUnits(army, units);
-  return members.length > 1 && members.some((unit) => unit.species === speciesKey);
+  return members.length > 1 && members.some((unit) => unit.id === unitId);
 }
 
-export function removeFromArmy(army, units, speciesKey) {
-  if (!canRemoveFromArmy(army, units, speciesKey)) return army;
-  const removed = armyUnits(army, units).find((unit) => unit.species === speciesKey);
-  return { ...army, unitIds: army.unitIds.filter((id) => id !== removed.id) };
+export function removeFromArmy(army, units, unitId) {
+  if (!canRemoveFromArmy(army, units, unitId)) return army;
+  return { ...army, unitIds: army.unitIds.filter((id) => id !== unitId) };
+}
+
+// rules.md 11.2 : un individu mort est retiré de l'armée en même temps que de la liste.
+export function removeDeadFromArmy(army, units) {
+  const owned = new Set(units.map((unit) => unit.id));
+  return { ...army, unitIds: army.unitIds.filter((id) => owned.has(id)) };
 }
 
 // rules.md 11.2 : nom de 1 à 20 caractères (comptés en caractères affichés, emojis compris),

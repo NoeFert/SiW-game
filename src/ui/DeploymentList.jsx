@@ -11,13 +11,13 @@ import { TEXT } from './strings.js';
 
 const MESSAGE_DURATION_MS = 2500;
 
-const rowKey = (row) => `${row.species.name}-${row.hp}`;
+const rowKey = (row) => `${row.species.name}-${row.level}-${row.hp}`;
 
 // rules.md 2 : liste des unités déployables de la tour. Le drag part de n'importe où sur une
 // ligne (Pointer Events suivis sur `window`) et se termine sur le canevas (repéré par son
 // <canvas> DOM, pas par un objet Phaser). Toutes les règles (contenu et regroupement des
 // lignes, pause, plafond, copies, zone) sont dans src/logic/.
-export default function DeploymentList({ battle, unitsOnField }) {
+export default function DeploymentList({ battle, unitsOnField, playerFaction }) {
   const [drag, setDrag] = useState(null); // { row, x, y } en coordonnées écran
   const [blockedKey, setBlockedKey] = useState(null); // ligne grisée cliquée : tooltip ouvert
   const [message, setMessage] = useState('');
@@ -85,7 +85,7 @@ export default function DeploymentList({ battle, unitsOnField }) {
         // Tooltip contrôlé : ouvert uniquement par un clic sur une ligne grisée, jamais au survol.
         <Tooltip key={rowKey(row)} open={blockedKey === rowKey(row)}>
           <TooltipTrigger>
-            <UnitRow row={row} onPointerDown={(event) => onPointerDown(row, event)} />
+            <UnitRow row={row} playerFaction={playerFaction} onPointerDown={(event) => onPointerDown(row, event)} />
           </TooltipTrigger>
           <TooltipContent side="top" font="normal" className="max-w-64">
             {TEXT.notEnoughPresence}

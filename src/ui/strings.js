@@ -42,6 +42,16 @@ export const TEXT = {
   // Couche méta (rules.md 11).
   defaultArmyName: 'Armée 1', // rules.md 10 : nom de l'armée de départ
   spiritStones: (amount) => `${amount} Spirit Stones`, // nom provisoire (rules.md 11.3)
+  // Niveaux (rules.md 11.5 et 11.6).
+  levels: {
+    badge: (level) => `niv ${level}`,
+    player: (level) => `Niveau ${level}`,
+    xp: (xpInLevel, xpForLevel) => `${xpInLevel} / ${xpForLevel} XP`,
+    max: 'MAX',
+    xpGained: (xp) => `+${xp} XP`,
+    levelUps: 'Montées de niveau',
+    levelUp: (from, to) => `niv ${from} → ${to}`,
+  },
   playingAs: {
     wyrms: 'Vous jouez la Souveraine des Wyrms.',
     undead: 'Vous jouez le Souverain des Morts-Vivants.',
@@ -55,8 +65,9 @@ export const TEXT = {
     title: 'Gestion de civilisation',
     units: 'Unités',
     back: 'Retour',
-    owned: (count) => `Possédés : ${count}`,
-    inArmy: (count) => `Dans l'armée : ${count}`,
+    inArmyYes: "Dans l'armée",
+    inArmyNo: "Hors de l'armée",
+    inArmyTag: "dans l'armée",
     stats: {
       hp: 'PV',
       damage: 'Dégâts',
@@ -76,15 +87,15 @@ export const TEXT = {
     abilities: 'Aptitudes',
     army: 'Armée',
     armyCost: (cost, cap) => `${cost} / ${cap} PP`,
-    armyCount: (inArmy, owned) => `${inArmy} / ${owned}`,
+    armySummary: (inArmy, owned) => `${inArmy} / ${owned} dans l'armée`,
     rename: 'Renommer',
     confirmRename: 'Valider',
-    addUnit: 'Ajouter',
-    removeUnit: 'Retirer',
   },
   summon: {
     title: 'Invocation',
-    confirmResummon: (name, price) => `Réinvoquer ${name} pour ${price} Spirit Stones ?`,
+    confirmResummon: (name, level, price) => `Réinvoquer ${name} niveau ${level} pour ${price} Spirit Stones ?`,
+    keptLevel: 'Niveau gardé :',
+    levelPrice: (level, price) => `niv ${level} — ${price}`,
   },
   // rules.md 11.4 : libellé du bouton d'invocation (clé = résultat de summonAction).
   summonActions: {

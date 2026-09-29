@@ -2,6 +2,7 @@ import { createUnit } from '../../src/logic/ownedUnits.js';
 import { createArmy, armyUnits } from '../../src/logic/army.js';
 import {
   summonAction, SUMMON_PRICE_FACTOR, LEGENDARY_PRICE_MULTIPLIER, summonPrice, canSummon, summon,
+  resummonPrice,
 } from '../../src/logic/summon.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
@@ -69,5 +70,39 @@ describe('invocation (rules.md 11.4)', () => {
     const army = createArmy('A', units);
     const result = summon(roster, units, 100, 'lambtonWorm');
     expect(armyUnits(army, result.units)).toEqual(units);
+  });
+});
+
+describe('réinvocation à niveau gardé (rules.md 11.4)', () => {
+  const roster = WYRMS_ROSTER;
+
+  test('+25 % du prix de base par niveau gardé au-delà du 1 (Fafnir : 110 / 165 / 220)', () => {
+    expect(resummonPrice(roster.fafnir, 1)).toBe(110);
+    expect(resummonPrice(roster.fafnir, 3)).toBe(165);
+    expect(resummonPrice(roster.fafnir, 5)).toBe(220);
+  });
+
+  test('arrondi à l\'entier inférieur', () => {
+    expect(resummonPrice({ ...roster.fafnir, cost: 11 }, 2)).toBe(13); // 13,75
+  });
+
+  test('le Légendaire revient au début du niveau choisi, au prix correspondant', () => {
+    const result = summon(roster, [], 1000, 'fafnir', 3, 5);
+    expect(result.units[0].xp).toBe(150);
+    expect(result.spiritStones).toBe(1000 - 165);
+  });
+
+  test('niveau choisi au-delà du niveau à la mort : impossible', () => {
+    expect(summon(roster, [], 1000, 'fafnir', 4, 3)).toBeNull();
+  });
+
+  test('solde insuffisant pour le niveau choisi : impossible', () => {
+    expect(summon(roster, [], 164, 'fafnir', 3, 5)).toBeNull();
+    expect(summon(roster, [], 164, 'fafnir', 1, 5).spiritStones).toBe(54);
+  });
+
+  test('une unité non légendaire est toujours invoquée niveau 1', () => {
+    expect(summon(roster, [], 1000, 'lambtonWorm', 3, 5)).toBeNull();
+    expect(summon(roster, [], 1000, 'lambtonWorm').units[0].xp).toBe(0);
   });
 });

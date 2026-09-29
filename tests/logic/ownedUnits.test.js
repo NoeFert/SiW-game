@@ -1,14 +1,15 @@
 import {
-  createUnit, createStartingUnits, countUnitsBySpecies, keepSurvivors,
+  createUnit, createStartingUnits, countUnitsBySpecies,
 } from '../../src/logic/ownedUnits.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
 import { UNDEAD_ROSTER } from '../../src/data/undeadRoster.js';
 
 describe('createUnit — individu (rules.md 11.1)', () => {
-  test('un individu n\'a qu\'un identifiant et une espèce', () => {
+  test('un individu a un identifiant, une espèce et une XP (niveau 1, 0 XP par défaut)', () => {
     const unit = createUnit('lambtonWorm');
-    expect(Object.keys(unit).sort()).toEqual(['id', 'species']);
+    expect(Object.keys(unit).sort()).toEqual(['id', 'species', 'xp']);
     expect(unit.species).toBe('lambtonWorm');
+    expect(unit.xp).toBe(0);
   });
 
   test('chaque individu a un identifiant unique', () => {
@@ -38,20 +39,5 @@ describe('countUnitsBySpecies', () => {
   test('une espèce sans individu compte 0', () => {
     expect(countUnitsBySpecies(WYRMS_ROSTER, [createUnit('amphiptere')]))
       .toEqual({ lambtonWorm: 0, amphiptere: 1, fafnir: 0 });
-  });
-});
-
-describe('keepSurvivors — pertes à la victoire (rules.md 11.1)', () => {
-  test('retire les individus tués, espèce par espèce', () => {
-    const units = createStartingUnits(WYRMS_ROSTER);
-    const survivors = keepSurvivors(units, { lambtonWorm: 9, amphiptere: 7, fafnir: 1 });
-    expect(countUnitsBySpecies(WYRMS_ROSTER, survivors)).toEqual({ lambtonWorm: 9, amphiptere: 7, fafnir: 1 });
-    survivors.forEach((u) => expect(units).toContain(u));
-  });
-
-  test('une espèce entièrement tuée disparaît de la liste', () => {
-    const units = createStartingUnits(WYRMS_ROSTER);
-    const survivors = keepSurvivors(units, { lambtonWorm: 12, amphiptere: 8, fafnir: 0 });
-    expect(survivors.some((u) => u.species === 'fafnir')).toBe(false);
   });
 });

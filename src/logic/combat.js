@@ -60,7 +60,7 @@ function attackModeFor(unit, target) {
 }
 
 function damageFor(unit, mode) {
-  const damage = unit.species.damage;
+  const { damage } = unit;
   return typeof damage === 'object' ? damage[mode] : damage;
 }
 
@@ -139,7 +139,7 @@ function applyOnKillAbilities(attacker) {
   for (const ability of attacker.species.abilities ?? []) {
     if (ability.trigger === 'onKill' && ability.type === 'heal') {
       const before = attacker.hp;
-      attacker.hp = Math.min(attacker.species.maxHp, attacker.hp + ability.amount);
+      attacker.hp = Math.min(attacker.maxHp, attacker.hp + ability.amount);
       healed += attacker.hp - before;
     }
   }
@@ -243,6 +243,7 @@ function applyAttacks(pendingAttacks) {
     const key = `${attacker.id}->${target.id}`;
     if (!targetWasAlive || target.isAlive || !attacker.isAlive || credited.has(key)) continue;
     credited.add(key);
+    attacker.killXp += target.species.cost; // rules.md 11.6 : XP du coup fatal, chaque tueur
     const healed = applyOnKillAbilities(attacker);
     if (healed > 0) events.push({ type: 'heal', unit: attacker, amount: healed });
   }

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { Fragment, useCallback, useState } from 'react';
 import IntroScreen from './screens/IntroScreen.jsx';
 import FactionChoiceScreen from './screens/FactionChoiceScreen.jsx';
 import BattleScreen from './screens/BattleScreen.jsx';
@@ -11,13 +11,14 @@ import DevMenu from './dev/DevMenu.jsx';
 import { TEST_PROFILES, loadTestProfile } from './dev/testProfiles.js';
 import { ROSTERS } from './data/rosters.js';
 import { FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from './data/battles.js';
-import { countOwnedCopies, getCasualtyReport } from './logic/deployment.js';
-import { createStartingUnits, keepSurvivors } from './logic/ownedUnits.js';
-import { createArmy } from './logic/army.js';
+import { getCasualtyReport } from './logic/deployment.js';
+import { createStartingUnits } from './logic/ownedUnits.js';
 import { STARTING_SPIRIT_STONES } from './logic/summon.js';
+import { resolveVictory } from './logic/victory.js';
 import {
   getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, getOwnedUnits,
-  saveOwnedUnits, saveArmy, saveSpiritStones, isLegacySave, clearProgress,
+  saveOwnedUnits, getArmy, saveArmy, getSpiritStones, saveSpiritStones, getPlayerXp, savePlayerXp,
+  getFallenLegendaryLevel, saveFallenLegendaryLevel, isLegacySave, clearProgress,
 } from './persistence.js';
 import { TEXT } from './ui/strings.js';
 
@@ -45,9 +46,11 @@ export default function App() {
   const [battleAttempt, setBattleAttempt] = useState(0); // change de clé = BattleScreen tout neuf
   const [clickbaitFaction, setClickbaitFaction] = useState(null);
   const [victoryReport, setVictoryReport] = useState(null); // bilan de victoire (clickbait)
+  const [victoryProgress, setVictoryProgress] = useState(null); // XP et niveaux (jeu normal)
   // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil (null) ou depuis la page de détail
   // d'une espèce (sa clé de roster) ; « Retour » ramène à l'écran d'origine.
   const [summonFrom, setSummonFrom] = useState(null);
+  const [saveVersion, setSaveVersion] = useState(0); // menu devs : recharge l'écran après un profil
   const isClickbait = mode === 'clickbait';
   const playerFaction = isClickbait ? clickbaitFaction : getSavedFaction();
 
@@ -68,22 +71,37 @@ export default function App() {
     startBattle();
   }, [isClickbait, startBattle]);
 
-  // technical.md 5.4 : les pertes ne sont retirées qu'à la victoire — une tentative ratée ne
-  // sauvegarde rien, ses pertes sont donc oubliées au "Réessayer". La victoire crée aussi
-  // l'armée de départ avec tous les survivants (rules.md 11.2). Rien n'est sauvegardé en mode
-  // clickbait : on y affiche à la place le bilan des unités en vie/perdues.
+  // technical.md 5.4 : pertes et XP ne sont comptées qu'à la victoire — une tentative ratée ne
+  // sauvegarde rien, ses pertes sont donc oubliées au "Réessayer". La victoire (resolveVictory,
+  // rules.md 11) retire les morts, donne l'XP aux individus et au joueur, crée l'armée de départ
+  // avec tous les survivants. Rien n'est sauvegardé en mode clickbait : on y affiche à la place
+  // le bilan des unités en vie/perdues.
   const handleVictory = useCallback((battle) => {
     const unitsOnField = battle.units.filter((u) => u.isOnField);
     const roster = ROSTERS[playerFaction];
     if (isClickbait) {
       setVictoryReport(getCasualtyReport(roster, battle.playerDeployment, 'player', unitsOnField));
     } else {
-      const survivors = countOwnedCopies(roster, battle.playerDeployment, 'player', unitsOnField);
-      const units = keepSurvivors(getOwnedUnits(), survivors);
-      saveOwnedUnits(units);
-      saveArmy(createArmy(TEXT.defaultArmyName, units));
+      const { save, report } = resolveVictory(
+        {
+          units: getOwnedUnits(),
+          army: getArmy(),
+          playerXp: getPlayerXp(),
+          spiritStones: getSpiritStones(),
+          fallenLegendaryLevel: getFallenLegendaryLevel(),
+        },
+        battle.units,
+        roster,
+        { firstBattle: !hasWonFirstBattle(), armyName: TEXT.defaultArmyName },
+      );
+      saveOwnedUnits(save.units);
+      saveArmy(save.army);
+      savePlayerXp(save.playerXp);
+      saveSpiritStones(save.spiritStones);
+      if (save.fallenLegendaryLevel !== null) saveFallenLegendaryLevel(save.fallenLegendaryLevel);
       markFirstBattleWon();
       setVictoryReport(null);
+      setVictoryProgress(report);
     }
     setScreen('victory');
   }, [isClickbait, playerFaction]);
@@ -117,14 +135,16 @@ export default function App() {
   const devActions = [
     { label: 'restart game', run: restartGame },
     { label: 'restart clickbait', run: startClickbait },
-    {
-      label: 'test-wyrm',
-      run: () => {
-        loadTestProfile(TEST_PROFILES.testWyrm);
-        setMode('game');
-        setScreen('home');
-      },
-    },
+    ...[['test-wyrm', TEST_PROFILES.testWyrm], ['test-wyrm-fallen', TEST_PROFILES.testWyrmFallen]]
+      .map(([label, profile]) => ({
+        label,
+        run: () => {
+          loadTestProfile(profile);
+          setSaveVersion((v) => v + 1);
+          setMode('game');
+          setScreen('home');
+        },
+      })),
   ];
 
   let content;
@@ -144,12 +164,22 @@ export default function App() {
         key={battleAttempt}
         playerFaction={playerFaction}
         battleId={isClickbait ? CLICKBAIT_BATTLE_ID : FIRST_BATTLE_ID}
+        // rules.md 2 : bataille 01 du jeu normal = tous les individus possédés, avec leur niveau ;
+        // version clickbait = copies de units.md (null).
+        playerUnits={isClickbait ? null : getOwnedUnits()}
         onVictory={handleVictory}
         onDefeat={handleDefeat}
       />
     );
   } else if (screen === 'victory') {
-    content = <VictoryScreen onContinue={continueAfterVictory} report={victoryReport} />;
+    content = (
+      <VictoryScreen
+        onContinue={continueAfterVictory}
+        report={victoryReport}
+        progress={victoryProgress}
+        playerFaction={playerFaction}
+      />
+    );
   } else if (screen === 'defeat' || screen === 'draw') {
     content = <DefeatScreen isDraw={screen === 'draw'} onRetry={startBattle} />;
   } else if (screen === 'civilization') {
@@ -189,7 +219,7 @@ export default function App() {
 
   return (
     <>
-      {content}
+      <Fragment key={saveVersion}>{content}</Fragment>
       {import.meta.env.DEV && <DevMenu actions={devActions} />}
     </>
   );

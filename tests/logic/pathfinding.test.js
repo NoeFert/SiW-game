@@ -149,7 +149,7 @@ describe('findPath — bloc rigide 2x2 face à un couloir trop étroit', () => {
   // d'une case de large en y=3 : une unité normale passe, un bloc 2x2 non.
   // Espèce générique au sol (pas Fafnir : il est [Vol] et ignorerait ce mur de toute façon).
   const wallObstacles = [0, 1, 2, 4, 5, 6].map((y) => ({ x: 2, y }));
-  const groundColossus = { keywords: [], size: 2, maxHp: 999 };
+  const groundColossus = { keywords: [], size: 2, maxHp: 999, damage: 1 };
 
   test('a 1x1 unit crosses through the single-cell gap', () => {
     const grid = new Grid(6, 7, wallObstacles);

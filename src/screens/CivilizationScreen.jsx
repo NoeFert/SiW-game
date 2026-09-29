@@ -6,13 +6,16 @@ import {
 } from '@/components/ui/8bit/card.jsx';
 import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
-import { countUnitsBySpecies } from '../logic/ownedUnits.js';
 import {
-  ARMY_NAME_MAX_LENGTH, ARMY_PP_CAP, addToArmy, armyCost, armyUnits, canAddToArmy,
-  canRemoveFromArmy, removeFromArmy, renameArmy,
+  ARMY_NAME_MAX_LENGTH, ARMY_PP_CAP, addToArmy, armyCost, canAddToArmy, canRemoveFromArmy,
+  removeFromArmy, renameArmy,
 } from '../logic/army.js';
+import {
+  individualLevel, individualProgress, levelDamage, levelStat, sortByLevel,
+} from '../logic/levels.js';
 import { summonAction } from '../logic/summon.js';
 import { getArmy, getOwnedUnits, saveArmy } from '../persistence.js';
+import { LevelBadge, XpBar } from '../ui/LevelDisplay.jsx';
 import { TEXT, unitName } from '../ui/strings.js';
 
 const T = TEXT.civilization;
@@ -36,36 +39,67 @@ function Keywords({ species }) {
   ));
 }
 
-// technical.md 5.1 : une ligne par espèce — sprite, nom, keywords, coût, individus possédés.
-// Une espèce à 0 reste affichée, grisée.
-function SpeciesRow({ species, owned, onClick }) {
+// Bouton d'invocation d'une espèce (vers SummonScreen) : « Invoquer », « Réinvoquer » pour un
+// [Légendaire] mort, désactivé avec « Déjà à vos côtés » tant qu'il est vivant (rules.md 11.4).
+function SummonButton({ species, owned, onSummon }) {
+  const action = summonAction(species, owned);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-3 border-2 border-white/30 bg-black/40 px-3 py-2 text-left hover:border-white ${owned === 0 ? 'opacity-50 grayscale' : ''}`}
-    >
-      <span className="retro text-xs w-8 text-right">{owned}x</span>
-      <SpeciesSprite species={species} className="size-12" />
-      <div className="flex flex-col gap-2 text-xs">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="font-bold">{unitName(species)}</span>
-          <Badge className="text-[10px] mx-1.5">{TEXT.presenceTag(species.cost)}</Badge>
-        </div>
-        <div className="flex flex-wrap items-center gap-y-1">
-          <Keywords species={species} />
-        </div>
-      </div>
-    </button>
+    <Button size="sm" disabled={action === 'alreadyOwned'} onClick={onSummon}>
+      {TEXT.summonActions[action]}
+    </Button>
   );
 }
 
-// Stats complètes de units.md, dans l'ordre de la page de détail.
-function statRows(species) {
-  const damage = typeof species.damage === 'number' ? species.damage : T.hybridDamage(species.damage);
+// technical.md 5.1 : en-tête d'accordéon d'une espèce — clic pour ouvrir ou fermer la liste de
+// ses individus. `summary` : ce qui s'affiche sous le nom ; `action` : bouton à droite.
+// Une espèce sans individu reste affichée, grisée.
+function SpeciesAccordion({
+  species, owned, open, onToggle, summary, action, children,
+}) {
+  return (
+    <div className="border-2 border-white/30 bg-black/40">
+      <div className="flex items-center gap-3 px-3 py-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          disabled={owned === 0}
+          className={`flex flex-1 items-center gap-3 text-left ${owned === 0 ? 'opacity-50 grayscale' : 'hover:text-white/80'}`}
+        >
+          <span className="w-3 text-xs">{owned === 0 ? '' : (open ? '▾' : '▸')}</span>
+          <span className="retro text-xs w-8 text-right">{owned}x</span>
+          <SpeciesSprite species={species} className="size-12" />
+          <div className="flex flex-col gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-bold">{unitName(species)}</span>
+              <Badge className="text-[10px] mx-1.5">{TEXT.presenceTag(species.cost)}</Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-y-1">{summary}</div>
+          </div>
+        </button>
+        {action}
+      </div>
+      {open && owned > 0 && <div className="flex flex-col gap-1 border-t-2 border-white/20 p-2">{children}</div>}
+    </div>
+  );
+}
+
+// Une ligne d'individu : niveau, barre d'XP, puis ce que la section y ajoute (`children`).
+function IndividualLine({ unit, faction, children }) {
+  return (
+    <>
+      <LevelBadge level={individualLevel(unit.xp)} faction={faction} />
+      <XpBar progress={individualProgress(unit.xp)} faction={faction} className="flex-1" />
+      {children}
+    </>
+  );
+}
+
+// Stats complètes de units.md, au niveau de l'individu (rules.md 11.6 : PV et dégâts).
+function statRows(species, level) {
+  const damage = levelDamage(species.damage, level);
   return [
-    [T.stats.hp, species.maxHp],
-    [T.stats.damage, damage],
+    [T.stats.hp, levelStat(species.maxHp, level)],
+    [T.stats.damage, typeof damage === 'number' ? damage : T.hybridDamage(damage)],
     [T.stats.attackType, T.attackTypes[species.attackType]],
     [T.stats.size, T.size(species.size)],
     [T.stats.moveSpeed, T.moveSpeed(species.moveSpeed)],
@@ -75,23 +109,28 @@ function statRows(species) {
   ];
 }
 
-// technical.md 5.1 : page de détail d'une espèce (vue interne à l'écran). Le bouton d'invocation
-// mène à SummonScreen ; désactivé pour un [Légendaire] vivant (« Déjà à vos côtés », rules.md 11.4).
-function SpeciesDetail({ species, owned, inArmy, onBack, onSummon }) {
-  const action = summonAction(species, owned);
+// technical.md 5.1 : page de détail d'un individu (vue interne à l'écran) — stats à son niveau,
+// XP, présence dans l'armée, aptitudes, et bouton d'invocation de son espèce.
+function IndividualDetail({
+  unit, species, faction, owned, inArmy, onBack, onSummon,
+}) {
+  const level = individualLevel(unit.xp);
   return (
     <div className="flex flex-col gap-6 text-sm">
       <div className="flex items-center gap-6">
         <SpeciesSprite species={species} className="size-32" />
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-1 flex-col gap-3">
           <span className="retro text-sm">{unitName(species)}</span>
-          <div className="flex flex-wrap items-center gap-y-1"><Keywords species={species} /></div>
-          <span>{T.owned(owned)}</span>
-          <span>{T.inArmy(inArmy)}</span>
+          <div className="flex flex-wrap items-center gap-y-1">
+            <LevelBadge level={level} faction={faction} />
+            <Keywords species={species} />
+          </div>
+          <XpBar progress={individualProgress(unit.xp)} faction={faction} />
+          <span>{inArmy ? T.inArmyYes : T.inArmyNo}</span>
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1">
-        {statRows(species).map(([label, value]) => (
+        {statRows(species, level).map(([label, value]) => (
           <div key={label} className="contents">
             <dt className="text-white/60">{label}</dt>
             <dd>{value}</dd>
@@ -111,7 +150,7 @@ function SpeciesDetail({ species, owned, inArmy, onBack, onSummon }) {
       )}
       <div className="flex gap-4">
         <Button onClick={onBack}>{T.back}</Button>
-        <Button disabled={action === 'alreadyOwned'} onClick={onSummon}>{TEXT.summonActions[action]}</Button>
+        <SummonButton species={species} owned={owned} onSummon={onSummon} />
       </div>
     </div>
   );
@@ -154,109 +193,151 @@ function ArmyName({ name, onRename }) {
   );
 }
 
-// technical.md 5.1 / rules.md 11.2 : section Armée — nom, compteur « X / 500 PP », et une ligne
-// par espèce (individus dans l'armée / possédés) avec retrait et ajout un par un.
-function ArmySection({ roster, units, army, onChange }) {
-  const owned = countUnitsBySpecies(roster, units);
-  const inArmy = countUnitsBySpecies(roster, armyUnits(army, units));
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-4">
-        <ArmyName name={army.name} onRename={(name) => onChange(renameArmy(army, name))} />
-        <span className="retro text-xs">{T.armyCost(armyCost(army, units, roster), ARMY_PP_CAP)}</span>
-      </div>
-      {Object.entries(roster).map(([key, species]) => (
-        <div key={key} className="flex items-center gap-3 border-2 border-white/30 bg-black/40 px-3 py-2">
-          <SpeciesSprite species={species} className="size-10" />
-          <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-            <span className="font-bold">{unitName(species)}</span>
-            <Badge className="text-[10px] mx-1.5">{TEXT.presenceTag(species.cost)}</Badge>
-          </div>
-          <Button
-            size="sm"
-            title={T.removeUnit}
-            disabled={!canRemoveFromArmy(army, units, key)}
-            onClick={() => onChange(removeFromArmy(army, units, key))}
-          >
-            −
-          </Button>
-          <span className="retro text-xs w-14 text-center">{T.armyCount(inArmy[key], owned[key])}</span>
-          <Button
-            size="sm"
-            title={T.addUnit}
-            disabled={!canAddToArmy(army, units, roster, key)}
-            onClick={() => onChange(addToArmy(army, units, roster, key))}
-          >
-            +
-          </Button>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-// technical.md 5.1 : gestion de civilisation en deux sections — Unités (liste par espèce + page
-// de détail) et Armée (composition et renommage, sauvegardés à chaque changement).
-// `initialSpecies` : espèce dont la page de détail s'ouvre directement (retour de SummonScreen).
+// technical.md 5.1 : gestion de civilisation en deux sections, chacune un accordéon par espèce.
+// - Unités : individus un par un (clic -> page de détail de l'individu) ; une espèce à 0 garde
+//   son bouton Invoquer / Réinvoquer.
+// - Armée : nom, compteur « X / 500 PP » ; fermé, un résumé ; ouvert, une case « dans l'armée »
+//   par individu (rules.md 11.2), sauvegardée à chaque changement.
+// Individus triés par niveau puis XP décroissants. `initialSpecies` : accordéon ouvert au retour
+// de SummonScreen.
 export default function CivilizationScreen({
   playerFaction, initialSpecies = null, onBack, onOpenSummon,
 }) {
   const [section, setSection] = useState('units');
-  const [selectedKey, setSelectedKey] = useState(initialSpecies);
+  const [openKey, setOpenKey] = useState(initialSpecies);
+  const [selectedId, setSelectedId] = useState(null);
   const [army, setArmy] = useState(getArmy);
   const roster = ROSTERS[playerFaction];
   const units = getOwnedUnits() ?? [];
-  const owned = countUnitsBySpecies(roster, units);
-  const inArmy = countUnitsBySpecies(roster, armyUnits(army, units));
+  const armyIds = new Set(army?.unitIds ?? []);
+  const speciesUnits = (key) => sortByLevel(units.filter((unit) => unit.species === key));
 
   const changeArmy = (newArmy) => {
     saveArmy(newArmy);
     setArmy(newArmy);
   };
+  const toggle = (key) => setOpenKey((current) => (current === key ? null : key));
+  const changeSection = (key) => {
+    setSection(key);
+    setOpenKey(null);
+  };
 
+  const selected = units.find((unit) => unit.id === selectedId);
   let content;
-  if (selectedKey) {
+  if (selected) {
     content = (
-      <SpeciesDetail
-        species={roster[selectedKey]}
-        owned={owned[selectedKey]}
-        inArmy={inArmy[selectedKey]}
-        onBack={() => setSelectedKey(null)}
-        onSummon={() => onOpenSummon(selectedKey)}
+      <IndividualDetail
+        unit={selected}
+        species={roster[selected.species]}
+        faction={playerFaction}
+        owned={speciesUnits(selected.species).length}
+        inArmy={armyIds.has(selected.id)}
+        onBack={() => setSelectedId(null)}
+        onSummon={() => onOpenSummon(selected.species)}
       />
     );
   } else if (section === 'army') {
-    content = <ArmySection roster={roster} units={units} army={army} onChange={changeArmy} />;
+    content = (
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <ArmyName name={army.name} onRename={(name) => changeArmy(renameArmy(army, name))} />
+          <span className="retro text-xs">{T.armyCost(armyCost(army, units, roster), ARMY_PP_CAP)}</span>
+        </div>
+        {Object.entries(roster).map(([key, species]) => {
+          const members = speciesUnits(key);
+          const inArmy = members.filter((unit) => armyIds.has(unit.id)).length;
+          return (
+            <SpeciesAccordion
+              key={key}
+              species={species}
+              owned={members.length}
+              open={openKey === key}
+              onToggle={() => toggle(key)}
+              summary={<span>{T.armySummary(inArmy, members.length)}</span>}
+            >
+              {members.map((unit) => {
+                const checked = armyIds.has(unit.id);
+                const allowed = checked
+                  ? canRemoveFromArmy(army, units, unit.id)
+                  : canAddToArmy(army, units, roster, unit.id);
+                return (
+                  <label key={unit.id} className={`flex items-center gap-2 px-1 ${allowed ? 'cursor-pointer' : 'opacity-50'}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={!allowed}
+                      onChange={() => changeArmy(checked
+                        ? removeFromArmy(army, units, unit.id)
+                        : addToArmy(army, units, roster, unit.id))}
+                      className="size-4 accent-white"
+                    />
+                    <IndividualLine unit={unit} faction={playerFaction} />
+                  </label>
+                );
+              })}
+            </SpeciesAccordion>
+          );
+        })}
+      </section>
+    );
   } else {
     content = (
       <section className="flex flex-col gap-3">
-        {Object.entries(roster).map(([key, species]) => (
-          <SpeciesRow key={key} species={species} owned={owned[key]} onClick={() => setSelectedKey(key)} />
-        ))}
+        {Object.entries(roster).map(([key, species]) => {
+          const members = speciesUnits(key);
+          return (
+            <SpeciesAccordion
+              key={key}
+              species={species}
+              owned={members.length}
+              open={openKey === key}
+              onToggle={() => toggle(key)}
+              summary={<Keywords species={species} />}
+              action={members.length === 0 && (
+                <SummonButton species={species} owned={0} onSummon={() => onOpenSummon(key)} />
+              )}
+            >
+              {members.map((unit) => (
+                <button
+                  key={unit.id}
+                  type="button"
+                  onClick={() => setSelectedId(unit.id)}
+                  className="flex items-center gap-2 px-1 py-0.5 text-left hover:bg-white/10"
+                >
+                  <IndividualLine unit={unit} faction={playerFaction}>
+                    <span className="w-24 text-right text-[10px] text-white/60">
+                      {armyIds.has(unit.id) ? T.inArmyTag : ''}
+                    </span>
+                  </IndividualLine>
+                </button>
+              ))}
+            </SpeciesAccordion>
+          );
+        })}
       </section>
     );
   }
 
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 text-white">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-xl">
         <CardHeader>
           <CardTitle>{T.title}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {!selectedKey && (
+          {!selected && (
             <div className="flex gap-4">
               {[['units', T.units], ['army', T.army]].map(([key, label]) => (
-                <Button key={key} variant={section === key ? 'default' : 'secondary'} onClick={() => setSection(key)}>
+                <Button key={key} variant={section === key ? 'default' : 'secondary'} onClick={() => changeSection(key)}>
                   {label}
                 </Button>
               ))}
             </div>
           )}
-          {content}
+          <div className="max-h-[65vh] overflow-y-auto pr-1">{content}</div>
         </CardContent>
       </Card>
-      {!selectedKey && <Button onClick={onBack}>{T.back}</Button>}
+      {!selected && <Button onClick={onBack}>{T.back}</Button>}
     </div>
   );
 }

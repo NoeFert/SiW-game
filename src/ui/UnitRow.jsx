@@ -5,6 +5,7 @@ import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import {
   healthBarColor, woundedHpColor, cssColor,
 } from '../renderConstants.js';
+import { LevelBadge } from './LevelDisplay.jsx';
 import { TEXT, unitName } from './strings.js';
 
 // Fafnir a deux valeurs de dégâts (distance / corps-à-corps, units.md).
@@ -15,7 +16,11 @@ function formatDamage(damage) {
 // ui-battle-screen-decisions.md 2.2 : colonne 1 = copies + sprite (+ mini barre de vie si
 // blessé) ; colonne 2 = nom + coût, puis PV/ATK et keywords (retour à la ligne automatique).
 // forwardRef : sert de déclencheur au tooltip "budget insuffisant" (DeploymentList).
-const UnitRow = forwardRef(({ row, className, ...props }, ref) => {
+// Jeu normal : badge de niveau après le nom (ui-battle-screen-decisions.md 2.2, couleur de
+// `playerFaction`) ; PV et ATK de la ligne sont ceux du niveau. Rien en version clickbait.
+const UnitRow = forwardRef(({
+  row, playerFaction, className, ...props
+}, ref) => {
   const ratio = row.hp / row.maxHp;
   const keywords = row.keywords.length > 0 ? row.keywords : ['basic'];
   return (
@@ -50,6 +55,7 @@ const UnitRow = forwardRef(({ row, className, ...props }, ref) => {
       <div className="flex flex-col gap-2 min-w-0 text-xs">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="font-bold">{unitName(row.species)}</span>
+          {row.showLevel && <LevelBadge level={row.level} faction={playerFaction} />}
           <Badge data-tutorial="presence-tag" className="text-[10px] mx-1.5">{TEXT.presenceTag(row.cost)}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

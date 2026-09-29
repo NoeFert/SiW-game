@@ -103,7 +103,7 @@ describe('deployUnit — choix explicite de la copie (sidebar : lignes séparée
 
     expect(result.success).toBe(true);
     expect(result.unit.hp).toBe(ROSTER.grunt.maxHp);
-    expect(state.bySpecies.get(ROSTER.grunt).returning).toEqual([{ hp: 7 }]); // pas consommée
+    expect(state.bySpecies.get(ROSTER.grunt).returning).toEqual([{ hp: 7, level: 1, individualId: null }]); // pas consommée
   });
 
   test('copyChoice = PV précis déploie exactement la copie revenue de fuite correspondante', () => {

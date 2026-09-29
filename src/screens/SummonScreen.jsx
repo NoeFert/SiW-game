@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter,
-  AlertDialogHeader, AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/8bit/alert-dialog.jsx';
 import { Button } from '@/components/ui/8bit/button.jsx';
 import {
@@ -11,12 +11,12 @@ import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import { countUnitsBySpecies } from '../logic/ownedUnits.js';
 import {
-  canSummon, summon, summonAction, summonPrice,
+  canSummon, resummonPrice, summon, summonAction, summonPrice,
 } from '../logic/summon.js';
 import {
-  getOwnedUnits, getSpiritStones, saveOwnedUnits, saveSpiritStones,
+  getFallenLegendaryLevel, getOwnedUnits, getSpiritStones, saveOwnedUnits, saveSpiritStones,
 } from '../persistence.js';
-import SpiritStonesBalance from '../ui/SpiritStonesBalance.jsx';
+import SpiritStonesBalance, { SpiritStonesAmount } from '../ui/SpiritStonesBalance.jsx';
 import { TEXT, unitName } from '../ui/strings.js';
 
 const T = TEXT.summon;
@@ -24,22 +24,27 @@ const T = TEXT.summon;
 // technical.md 5.1 / rules.md 11.4 : une ligne par espèce de la faction, avec son prix et un
 // bouton « Invoquer » (« Réinvoquer » pour un [Légendaire] mort, « Déjà à vos côtés » tant qu'il
 // est vivant), désactivé si l'invocation est impossible. La réinvocation du [Légendaire] passe
-// par une boîte de confirmation ; l'annuler ne dépense rien.
+// par une boîte de confirmation où le joueur choisit le niveau gardé (de 1 à son niveau à sa
+// mort), avec le prix de chaque niveau ; l'annuler ne dépense rien.
 export default function SummonScreen({ playerFaction, onBack }) {
   const roster = ROSTERS[playerFaction];
   const [units, setUnits] = useState(() => getOwnedUnits() ?? []);
   const [spiritStones, setSpiritStones] = useState(getSpiritStones);
-  const [confirmKey, setConfirmKey] = useState(null); // [Légendaire] en attente de confirmation
+  const [confirm, setConfirm] = useState(null); // { key, level } : [Légendaire] à réinvoquer
+  const fallenLevel = getFallenLegendaryLevel() ?? 1;
   const owned = countUnitsBySpecies(roster, units);
 
-  const doSummon = (key) => {
-    const result = summon(roster, units, spiritStones, key);
+  const doSummon = (key, level = 1) => {
+    const result = summon(roster, units, spiritStones, key, level, fallenLevel);
     if (!result) return;
     saveOwnedUnits(result.units);
     saveSpiritStones(result.spiritStones);
     setUnits(result.units);
     setSpiritStones(result.spiritStones);
   };
+
+  const confirmSpecies = confirm && roster[confirm.key];
+  const levels = Array.from({ length: fallenLevel }, (_, i) => i + 1);
 
   return (
     <div className="relative h-screen w-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 text-white">
@@ -61,12 +66,12 @@ export default function SummonScreen({ playerFaction, onBack }) {
                 />
                 <div className="flex flex-1 flex-col gap-1 text-xs">
                   <span className="font-bold">{unitName(species)}</span>
-                  <span>{TEXT.spiritStones(summonPrice(species))}</span>
+                  <SpiritStonesAmount amount={summonPrice(species)} />
                 </div>
                 <Button
                   size="sm"
                   disabled={!canSummon(species, owned[key], spiritStones)}
-                  onClick={() => (action === 'resummon' ? setConfirmKey(key) : doSummon(key))}
+                  onClick={() => (action === 'resummon' ? setConfirm({ key, level: 1 }) : doSummon(key))}
                 >
                   {TEXT.summonActions[action]}
                 </Button>
@@ -77,16 +82,42 @@ export default function SummonScreen({ playerFaction, onBack }) {
       </Card>
       <Button onClick={onBack}>{TEXT.civilization.back}</Button>
 
-      <AlertDialog open={confirmKey !== null} onOpenChange={(open) => !open && setConfirmKey(null)}>
+      <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmKey && T.confirmResummon(unitName(roster[confirmKey]), summonPrice(roster[confirmKey]))}
+              {confirm && T.confirmResummon(
+                unitName(confirmSpecies),
+                confirm.level,
+                resummonPrice(confirmSpecies, confirm.level),
+              )}
             </AlertDialogTitle>
+            {confirm && fallenLevel > 1 && (
+              <AlertDialogDescription asChild>
+                <div className="flex flex-col gap-3">
+                  <span>{T.keptLevel}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {levels.map((level) => (
+                      <Button
+                        key={level}
+                        size="sm"
+                        variant={confirm.level === level ? 'default' : 'secondary'}
+                        disabled={!canSummon(confirmSpecies, 0, spiritStones, level, fallenLevel)}
+                        onClick={() => setConfirm({ ...confirm, level })}
+                      >
+                        {T.levelPrice(level, resummonPrice(confirmSpecies, level))}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{TEXT.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => doSummon(confirmKey)}>{TEXT.summonActions.resummon}</AlertDialogAction>
+            <AlertDialogAction onClick={() => doSummon(confirm.key, confirm.level)}>
+              {TEXT.summonActions.resummon}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

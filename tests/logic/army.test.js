@@ -1,7 +1,7 @@
 import { createUnit, countUnitsBySpecies } from '../../src/logic/ownedUnits.js';
 import {
   createArmy, armyUnits, ARMY_PP_CAP, armyCost, canAddToArmy, addToArmy, canRemoveFromArmy,
-  removeFromArmy, renameArmy,
+  removeFromArmy, renameArmy, removeDeadFromArmy,
 } from '../../src/logic/army.js';
 import { WYRMS_ROSTER } from '../../src/data/wyrmsRoster.js';
 
@@ -24,7 +24,7 @@ describe('armyUnits — individus de l\'armée (rules.md 11.2)', () => {
   });
 });
 
-describe('armée — coût, ajout et retrait (rules.md 11.2)', () => {
+describe('armée — coût, ajout et retrait individu par individu (rules.md 11.2)', () => {
   const roster = WYRMS_ROSTER;
   const lambtons = (n) => Array.from({ length: n }, () => createUnit('lambtonWorm'));
 
@@ -33,46 +33,56 @@ describe('armée — coût, ajout et retrait (rules.md 11.2)', () => {
     expect(armyCost(createArmy('A', units.slice(0, 3)), units, roster)).toBe(130);
   });
 
-  test('ajouter un individu d\'une espèce prend un individu possédé hors de l\'armée', () => {
-    const units = lambtons(3);
-    const army = addToArmy(createArmy('A', [units[0]]), units, roster, 'lambtonWorm');
-    expect(army.unitIds).toHaveLength(2);
-    expect(new Set(army.unitIds).size).toBe(2);
-    expect(armyCost(army, units, roster)).toBe(20);
+  test('le coût ne dépend pas du niveau (rules.md 11.6)', () => {
+    const units = [createUnit('lambtonWorm', 500)];
+    expect(armyCost(createArmy('A', units), units, roster)).toBe(10);
   });
 
-  test('ajout impossible s\'il ne reste aucun individu de l\'espèce hors de l\'armée', () => {
+  test('ajouter l\'individu coché, précisément', () => {
+    const units = lambtons(3);
+    const army = addToArmy(createArmy('A', [units[0]]), units, roster, units[2].id);
+    expect(army.unitIds).toEqual([units[0].id, units[2].id]);
+  });
+
+  test('ajout impossible d\'un individu déjà dans l\'armée ou non possédé', () => {
     const units = lambtons(2);
     const army = createArmy('A', units);
-    expect(canAddToArmy(army, units, roster, 'lambtonWorm')).toBe(false);
-    expect(canAddToArmy(army, units, roster, 'fafnir')).toBe(false);
-    expect(addToArmy(army, units, roster, 'lambtonWorm')).toBe(army);
+    expect(canAddToArmy(army, units, roster, units[0].id)).toBe(false);
+    expect(canAddToArmy(army, units, roster, 'inconnu')).toBe(false);
+    expect(addToArmy(army, units, roster, units[0].id)).toBe(army);
   });
 
   test('ajout possible jusqu\'à 500 PP pile, impossible au-delà', () => {
     const units = lambtons(51);
     const army = createArmy('A', units.slice(0, 49)); // 490 PP
-    const at500 = addToArmy(army, units, roster, 'lambtonWorm');
+    const at500 = addToArmy(army, units, roster, units[49].id);
     expect(armyCost(at500, units, roster)).toBe(ARMY_PP_CAP);
-    expect(canAddToArmy(at500, units, roster, 'lambtonWorm')).toBe(false);
+    expect(canAddToArmy(at500, units, roster, units[50].id)).toBe(false);
   });
 
-  test('retirer un individu d\'une espèce présente dans l\'armée', () => {
+  test('retirer l\'individu décoché, précisément', () => {
     const units = [...lambtons(2), createUnit('fafnir')];
-    const army = removeFromArmy(createArmy('A', units), units, 'fafnir');
-    expect(countUnitsBySpecies(roster, armyUnits(army, units))).toEqual({ lambtonWorm: 2, amphiptere: 0, fafnir: 0 });
+    const army = removeFromArmy(createArmy('A', units), units, units[1].id);
+    expect(army.unitIds).toEqual([units[0].id, units[2].id]);
+    expect(countUnitsBySpecies(roster, armyUnits(army, units))).toEqual({ lambtonWorm: 1, amphiptere: 0, fafnir: 1 });
   });
 
-  test('retrait impossible d\'une espèce absente de l\'armée', () => {
+  test('retrait impossible d\'un individu absent de l\'armée', () => {
     const units = lambtons(2);
-    expect(canRemoveFromArmy(createArmy('A', units), units, 'fafnir')).toBe(false);
+    expect(canRemoveFromArmy(createArmy('A', [units[0]]), units, units[1].id)).toBe(false);
   });
 
   test('retrait impossible du dernier individu de l\'armée (minimum 1)', () => {
     const units = lambtons(2);
     const army = createArmy('A', [units[0]]);
-    expect(canRemoveFromArmy(army, units, 'lambtonWorm')).toBe(false);
-    expect(removeFromArmy(army, units, 'lambtonWorm')).toBe(army);
+    expect(canRemoveFromArmy(army, units, units[0].id)).toBe(false);
+    expect(removeFromArmy(army, units, units[0].id)).toBe(army);
+  });
+
+  test('un individu mort est retiré de l\'armée', () => {
+    const units = lambtons(3);
+    const army = createArmy('A', units);
+    expect(removeDeadFromArmy(army, [units[0], units[2]]).unitIds).toEqual([units[0].id, units[2].id]);
   });
 });
 

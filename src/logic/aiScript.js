@@ -11,7 +11,7 @@ export function createAiScriptState() {
 // rules.md 7.2 : cibles stratégiques — renfort d'abord (ennemi engagé avec un allié à 50 % de
 // ses PV ou moins), sinon éradication (le ou les ennemis ayant le plus de PV actuels).
 function strategicTargets(enemies, allies) {
-  const isWeak = (unit) => unit.hp <= unit.species.maxHp / 2;
+  const isWeak = (unit) => unit.hp <= unit.maxHp / 2;
   const reinforcement = enemies.filter((enemy) => allies.some((ally) => isWeak(ally) && (
     (enemy.status === 'engaged' && enemy.target === ally)
     || (ally.status === 'engaged' && ally.target === enemy)

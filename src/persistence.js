@@ -1,11 +1,13 @@
-// technical.md 5.4 : exception ciblée à l'absence de persistance — seules ces cinq valeurs sont
+// technical.md 5.4 : exception ciblée à l'absence de persistance — seules ces sept valeurs sont
 // sauvegardées (roadmap-mvp.md) : de quoi reconstituer l'écran de départ au chargement et
-// afficher HomeScreen et CivilizationScreen.
+// afficher HomeScreen, CivilizationScreen et SummonScreen.
 const FACTION_KEY = 'siw.playerFaction';
 const FIRST_VICTORY_KEY = 'siw.firstBattleWon';
 const OWNED_UNITS_KEY = 'siw.ownedUnits';
 const ARMY_KEY = 'siw.army';
 const SPIRIT_STONES_KEY = 'siw.spiritStones';
+const PLAYER_XP_KEY = 'siw.playerXp';
+const FALLEN_LEGENDARY_LEVEL_KEY = 'siw.fallenLegendaryLevel';
 // Ancien format (décompte de copies par espèce), seulement effacé : pas de migration.
 const LEGACY_OWNED_COPIES_KEY = 'siw.ownedCopies';
 
@@ -25,10 +27,11 @@ export function markFirstBattleWon() {
   localStorage.setItem(FIRST_VICTORY_KEY, 'true');
 }
 
-// Liste des individus possédés, chacun { id, species } (rules.md 11.1). `null` si rien n'a
-// encore été sauvegardé.
+// Liste des individus possédés, chacun { id, species, xp } (rules.md 11.1). `null` si rien n'a
+// encore été sauvegardé. technical.md 5.4 : un individu sauvegardé sans `xp` compte pour 0.
 export function getOwnedUnits() {
-  return JSON.parse(localStorage.getItem(OWNED_UNITS_KEY));
+  const units = JSON.parse(localStorage.getItem(OWNED_UNITS_KEY));
+  return units && units.map((unit) => ({ ...unit, xp: unit.xp ?? 0 }));
 }
 
 export function saveOwnedUnits(units) {
@@ -53,6 +56,25 @@ export function saveSpiritStones(amount) {
   localStorage.setItem(SPIRIT_STONES_KEY, String(amount));
 }
 
+// XP du joueur, entier (rules.md 11.5) ; 0 si rien n'a encore été sauvegardé.
+export function getPlayerXp() {
+  return Number(localStorage.getItem(PLAYER_XP_KEY) ?? 0);
+}
+
+export function savePlayerXp(xp) {
+  localStorage.setItem(PLAYER_XP_KEY, String(xp));
+}
+
+// Niveau du [Légendaire] à sa dernière mort (rules.md 11.4), `null` s'il n'est jamais mort.
+export function getFallenLegendaryLevel() {
+  const level = localStorage.getItem(FALLEN_LEGENDARY_LEVEL_KEY);
+  return level === null ? null : Number(level);
+}
+
+export function saveFallenLegendaryLevel(level) {
+  localStorage.setItem(FALLEN_LEGENDARY_LEVEL_KEY, String(level));
+}
+
 // technical.md 5.4 : une sauvegarde avec une faction mais sans liste d'individus est à l'ancien
 // format — considérée comme absente.
 export function isLegacySave() {
@@ -60,8 +82,10 @@ export function isLegacySave() {
 }
 
 // Efface toutes les valeurs persistées, comme si l'application n'avait jamais été lancée
-// (raccourci "restart game" du menu devs, et sauvegarde à l'ancien format).
+// (raccourci "restart game" du menu devs, profils de test, et sauvegarde à l'ancien format).
 export function clearProgress() {
-  [FACTION_KEY, FIRST_VICTORY_KEY, OWNED_UNITS_KEY, ARMY_KEY, SPIRIT_STONES_KEY, LEGACY_OWNED_COPIES_KEY]
-    .forEach((key) => localStorage.removeItem(key));
+  [
+    FACTION_KEY, FIRST_VICTORY_KEY, OWNED_UNITS_KEY, ARMY_KEY, SPIRIT_STONES_KEY, PLAYER_XP_KEY,
+    FALLEN_LEGENDARY_LEVEL_KEY, LEGACY_OWNED_COPIES_KEY,
+  ].forEach((key) => localStorage.removeItem(key));
 }

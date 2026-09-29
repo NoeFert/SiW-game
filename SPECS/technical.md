@@ -24,7 +24,7 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 - La **couche Phaser** (Scenes, Sprites, input sur le champ de bataille) est une couche fine par-dessus : elle lit l'état produit par la logique de jeu et l'affiche, elle transmet les clics du joueur sur le terrain vers la logique de jeu, mais ne contient elle-même aucune règle de jeu
 - La **couche React** (sidebar de déploiement, boutons, HUD, écrans de fin de bataille) suit le même principe : elle lit l'état produit par la logique de jeu et affiche des composants shadcn/8bitcn génériques, sans contenir de règle de jeu elle-même
 
-- La **logique méta** (individus possédés, armée, Spirit Stones, invocation — `rules.md` section 11) suit la même séparation : ses règles vivent dans `src/logic/` en JavaScript pur, un fichier par domaine — `ownedUnits.js` (individus possédés, dotation, pertes), `army.js` (armée), `summon.js` (invocation), `levels.js` (niveaux du joueur et des individus) —, jamais dans les composants React. `persistence.js` se contente de lire et d'écrire le localStorage, sans aucune règle de jeu
+- La **logique méta** (individus possédés, armée, Spirit Stones, invocation — `rules.md` section 11) suit la même séparation : ses règles vivent dans `src/logic/` en JavaScript pur, un fichier par domaine — `ownedUnits.js` (individus possédés, dotation, pertes), `army.js` (armée), `summon.js` (invocation), `levels.js` (niveaux du joueur et des individus), `victory.js` (ce que change une victoire : pertes, XP, armée de départ) —, jamais dans les composants React. `persistence.js` se contente de lire et d'écrire le localStorage, sans aucune règle de jeu
 
 **Pourquoi :** ça permet de tester toute la logique de combat/mouvement avec des tests automatisés rapides, sans avoir besoin de lancer le jeu dans un navigateur — essentiel pour la stratégie de tests ci-dessous. Ça garde aussi la porte ouverte à changer le moteur de rendu ou le framework d'UI plus tard sans toucher aux règles du jeu.
 
@@ -58,6 +58,7 @@ src/
     army.js        #   armée
     summon.js      #   invocation
     levels.js      #   niveaux du joueur et des individus
+    victory.js     #   conséquences d'une victoire (pertes, XP, armée)
   data/            # Configuration statique (rosters, scripts IA)
     wyrmsRoster.js
     undeadRoster.js
