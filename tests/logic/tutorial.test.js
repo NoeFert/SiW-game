@@ -218,6 +218,7 @@ describe('données des tutoriels et des batailles (src/data/)', () => {
         flippedBackground: false,
       }],
       tutorial: STARTER_TUTORIAL,
+      reward: 50, // rules.md 11.7
     });
   });
 

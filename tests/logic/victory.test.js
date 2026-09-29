@@ -67,3 +67,14 @@ describe('resolveVictory — batailles suivantes (rules.md 11.5)', () => {
     expect(after.fallenLegendaryLevel).toBe(2);
   });
 });
+
+describe('resolveVictory — récompense en Spirit Stones (rules.md 11.7)', () => {
+  test('la récompense s\'ajoute au solde, avec la récompense de niveau', () => {
+    const save = {
+      units, army: createArmy('A', units), playerXp: 450, spiritStones: 5, fallenLegendaryLevel: null,
+    };
+    const { save: after, report } = resolveVictory(save, [], WYRMS_ROSTER, { firstBattle: false, reward: 60 });
+    expect(report.spiritStonesGained).toBe(60);
+    expect(after.spiritStones).toBe(5 + 60 + 100);
+  });
+});

@@ -18,7 +18,16 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 - Solde de **Spirit Stones** affiché en haut à droite (nom provisoire, libellé dans `strings.js`)
 - **Niveau du joueur** et barre d'XP, près du solde (`rules.md` 11.5)
 - Trois boutons : **Partir en guerre**, **Gestion de civilisation**, **Invocation**
-- **Partir en guerre** : présent dans le MVP, mais son contenu (batailles après la bataille 01) sera spécifié dans un second passage de roadmap. Une armée reconstituée sera nécessaire pour avancer dans ces batailles
+- **Partir en guerre** : ouvre l'écran « Partir en guerre » (voir ci-dessous)
+
+### Partir en guerre (`rules.md` 11.7)
+- **Trois batailles en séquence** (« La passe », « Les crevasses », « La citadelle », noms provisoires) : chacune se débloque en gagnant la précédente ; une bataille gagnée reste **rejouable**, avec une récompense réduite
+- **Écran « Partir en guerre »** : l'armée qui partira (nom, X / 500 PP), une ligne par bataille (zones, état verrouillée / disponible / gagnée, récompense), bouton « Combattre » (désactivé si l'armée est vide)
+- **Deux zones par bataille** (provisoire) : champ → « Le mur » ; « Le mur » → « Les trois couloirs » ; « Les trois couloirs » → « Le fort ». Scripts de l'IA provisoires : ceux de la bataille-clickbait. Zones et scripts définitifs : plus tard
+- **Victoire** dès la fin du script de la dernière zone (comme la bataille-clickbait) ; commandes complètes et abandon possibles, pas de tutoriel
+- **Défaite, abandon ou match nul** : les individus tués sont **perdus quand même** ; aucune XP ni récompense ; écran de défaite avec les pertes, « Réessayer » et « Retour à l'accueil »
+- **Filet de sécurité** : un joueur sans individu ni assez de Spirit Stones reçoit de quoi invoquer une unité basique
+- **Fin du contenu** : les trois batailles gagnées, un message annonce la suite ; tout reste rejouable
 
 ### Unités possédées : individus avec niveau, regroupés par espèce
 - Le joueur possède une **liste d'individus** `{ id, species, xp }` (pas de nom, pas de PV propres, pas de trait) ; le niveau se déduit de l'XP ; les stats sont celles de l'espèce (`units.md`), augmentées selon le niveau (`rules.md` 11.6)
@@ -47,8 +56,8 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 - **Armée de départ** : créée automatiquement à l'arrivée sur l'accueil après la victoire de la bataille 01, avec **tous les survivants** (les dotations de départ totalisent au plus 430 PP, donc tiennent toujours sous 500), et un nom par défaut
 
 ### Monnaie : Spirit Stones
-- Somme de départ donnée au joueur (montant et moment à définir)
-- Récompense à la victoire de la bataille 01 (montant, et somme fixe ou liée aux pertes, à définir), puis des batailles de « Partir en guerre »
+- Somme de départ donnée au joueur au choix de la faction (0, provisoire)
+- Récompense à chaque victoire : bataille 01 : 50 ; « Partir en guerre » : 60 / 80 / 100 à la première victoire, 25 % au rejeu (provisoire)
 
 ### Écran Invocation (nouveau)
 - Achat d'un individu d'une **espèce déjà connue** (roster de la faction du joueur) — pas de gacha
@@ -59,7 +68,7 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 - **Prix = coût en PP de l'espèce × k**, avec un multiplicateur à part éventuel pour le [Légendaire] (valeurs à définir)
 
 ### Persistance (localStorage)
-- Sont conservés : la faction choisie, la victoire de la bataille 01, la **liste des individus possédés** (avec leur XP), l'**armée** (nom + identifiants), le **solde de Spirit Stones**, l'**XP du joueur** et le **niveau du Légendaire à sa mort** (pour la réinvocation). La liste d'individus remplace l'ancien décompte de copies par espèce
+- Sont conservés : la faction choisie, la victoire de la bataille 01, la **liste des individus possédés** (avec leur XP), l'**armée** (nom + identifiants), le **solde de Spirit Stones**, l'**XP du joueur**, le **niveau du Légendaire à sa mort** (pour la réinvocation) et la **liste des batailles de « Partir en guerre » gagnées**. La liste d'individus remplace l'ancien décompte de copies par espèce
 - Pas de système de sauvegarde généralisé : ni historique de batailles, ni état d'une bataille en cours
 
 ### Outil de développement
@@ -80,7 +89,10 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 9. Gestion de civilisation, section Armée : accordéons par espèce, case « dans l'armée » par individu
 10. Bataille : déploiement d'individus précis avec leurs stats de niveau, tour par espèce et niveau, coups fatals attribués ; à la victoire, XP des individus et du joueur (affichée sur l'écran de victoire), récompenses de niveau
 11. Écran Invocation : réinvocation du Légendaire avec choix du niveau gardé
-12. Second passage de roadmap : contenu de « Partir en guerre », récompenses, valeurs chiffrées de l'économie
+12. Second passage de roadmap : contenu de « Partir en guerre » **(fait : `rules.md` 11.7)** ; valeurs chiffrées de l'économie à revoir après playtest
+13. « Partir en guerre » — données et logique (logique pure + tests Jest) : définition des trois batailles (zones et scripts provisoires), déblocage en séquence, récompenses (pleine / réduite), pertes en défaite, filet de sécurité ; sauvegarde des batailles gagnées
+14. « Partir en guerre » — écrans : `WarScreen`, bataille avec l'armée, écran de défaite enrichi (pertes, « Retour à l'accueil »), bouton de l'accueil activé
+15. Playtest et chiffrage de l'économie (somme de départ, k, récompenses, récompense de niveau)
 
 ---
 
@@ -114,13 +126,13 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 | Niveau du joueur | XP à la victoire (100 + bonus selon les PP survivants ; 100 fixes au tutoriel) ; sans maximum ; rapporte des Spirit Stones. Emplacements d'armée et plafond de PP liés au niveau : hors MVP |
 | Armée | Une seule armée (preset d'identifiants), renommable, 500 PP max, 1 unité min ; créée automatiquement avec tous les survivants de la bataille 01, nommée « Armée 1 » ; composée individu par individu (accordéons) |
 | Invocation | Achat d'espèces connues sans plafond ; Légendaire unique, réinvocable seulement s'il est mort ; même action pour rachat et réinvocation ; prix = coût PP × k ; à la réinvocation, niveau gardé au choix, +25 % du prix par niveau |
-| Monnaie | Spirit Stones (nom provisoire) : somme de départ + récompenses de victoire ; solde affiché en haut à droite de l'accueil |
-| Partir en guerre | Dans le MVP, développé après la gestion et l'invocation ; contenu à spécifier |
+| Monnaie | Spirit Stones (nom provisoire) : somme de départ + récompenses de victoire (réduites au rejeu) + récompenses de niveau ; solde affiché en haut à droite de l'accueil |
+| Partir en guerre | Trois batailles en séquence, deux zones chacune, rejouables ; pertes définitives même en défaite ; filet de sécurité contre le blocage |
 
 ## Points encore ouverts
 
-- **Économie** : somme de départ en Spirit Stones (montant ; 0 provisoire, donné au choix de la faction), récompense de la bataille 01 (montant, fixe ou liée aux pertes), coefficient de prix k et multiplicateur éventuel du Légendaire (provisoirement k = 1, sans multiplicateur)
-- **Partir en guerre** : nombre de batailles, terrains, scripts IA, récompenses, déblocage, et ce qui se passe à la défaite (pertes persistées ou non)
+- **Économie** (valeurs provisoires, à chiffrer après playtest) : somme de départ (0), k (1), multiplicateur du Légendaire (×1), récompenses de victoire (50 ; 60 / 80 / 100 ; 25 % au rejeu)
+- **Partir en guerre** : zones et scripts de l'IA définitifs des trois batailles (provisoirement ceux de la bataille-clickbait)
 - **Récompense de niveau du joueur** : 50 × nouveau niveau en Spirit Stones, provisoire, à revoir avec k
 
 ---
@@ -128,8 +140,8 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 ## Ce que ce fichier remplace dans roadmap.md
 
 - « Écran de gestion de civilisation (lecture seule) » et « Toute action sur l'écran de gestion de civilisation » (exclu) → la civilisation permet désormais de composer et renommer l'armée
-- « Persistance ciblée » (trois valeurs) et « Progression sauvegardée complète » (exclu) → la sauvegarde contient aussi les individus (avec leur XP), l'armée, le solde, l'XP du joueur et le niveau du Légendaire à sa mort
+- « Persistance ciblée » (trois valeurs) et « Progression sauvegardée complète » (exclu) → la sauvegarde contient aussi les individus (avec leur XP), l'armée, le solde, l'XP du joueur, le niveau du Légendaire à sa mort et les batailles de « Partir en guerre » gagnées
 - « XP » et « amélioration d'unités » dans « Progression sauvegardée complète » (exclu), et « amélioration de stats » dans « Personnalisation » (exclu) → les niveaux du joueur et des individus sont inclus (`rules.md` 11.5 et 11.6) ; noms et achat de keywords restent exclus
 - « Gacha / monnaie d'invocation » (exclu) → la monnaie et l'invocation d'espèces connues sont incluses ; seul le gacha reste exclu
-- « Plusieurs niveaux/batailles enchaînés » (exclu) → « Partir en guerre » est dans le MVP, contenu à spécifier
+- « Plusieurs niveaux/batailles enchaînés » (exclu) → « Partir en guerre » est dans le MVP : trois batailles en séquence (`rules.md` 11.7)
 - Décisions « Quantité de copies par unité », « Après la victoire » et « Gestion de civilisation » → voir « Décisions tranchées » ci-dessus

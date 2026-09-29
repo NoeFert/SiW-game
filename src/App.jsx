@@ -7,24 +7,39 @@ import DefeatScreen from './screens/DefeatScreen.jsx';
 import HomeScreen from './screens/HomeScreen.jsx';
 import CivilizationScreen from './screens/CivilizationScreen.jsx';
 import SummonScreen from './screens/SummonScreen.jsx';
+import WarScreen from './screens/WarScreen.jsx';
 import DevMenu from './dev/DevMenu.jsx';
 import { TEST_PROFILES, loadTestProfile } from './dev/testProfiles.js';
 import { ROSTERS } from './data/rosters.js';
-import { FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID } from './data/battles.js';
+import {
+  BATTLES, FIRST_BATTLE_ID, CLICKBAIT_BATTLE_ID, WAR_BATTLE_IDS,
+} from './data/battles.js';
+import { armyUnits } from './logic/army.js';
 import { getCasualtyReport } from './logic/deployment.js';
 import { createStartingUnits } from './logic/ownedUnits.js';
 import { STARTING_SPIRIT_STONES } from './logic/summon.js';
 import { resolveVictory } from './logic/victory.js';
+import { resolveWarDefeat, safetyNetSpiritStones, victoryReward } from './logic/war.js';
 import {
   getSavedFaction, savePlayerFaction, hasWonFirstBattle, markFirstBattleWon, getOwnedUnits,
   saveOwnedUnits, getArmy, saveArmy, getSpiritStones, saveSpiritStones, getPlayerXp, savePlayerXp,
-  getFallenLegendaryLevel, saveFallenLegendaryLevel, isLegacySave, clearProgress,
+  getFallenLegendaryLevel, saveFallenLegendaryLevel, getWonWarBattles, saveWonWarBattles,
+  isLegacySave, clearProgress,
 } from './persistence.js';
 import { TEXT } from './ui/strings.js';
 
-// technical.md 5.1 : pour le Rendu 1, seule la version clickbait (le POC) est jouable. Le bouton
-// MVP (jeu normal) est grisé et le jeu démarre toujours sur l'intro. Passer à false pour rouvrir.
-const MVP_LOCKED = true;
+// technical.md 5.2 : pour le Rendu 1, seule la version clickbait (le POC) était jouable ; le MVP
+// est rouvert depuis. Passer à true regriserait le bouton MVP et démarrerait toujours sur l'intro.
+const MVP_LOCKED = false;
+
+// rules.md 11.7 : filet de sécurité, appliqué à chaque arrivée sur l'accueil — un joueur sans
+// individu ni de quoi invoquer une unité basique voit son solde porté à son prix.
+function applySafetyNet() {
+  const units = getOwnedUnits() ?? [];
+  const spiritStones = getSpiritStones();
+  const safe = safetyNetSpiritStones(ROSTERS[getSavedFaction()], units, spiritStones);
+  if (safe !== spiritStones) saveSpiritStones(safe);
+}
 
 // technical.md 5.2 : l'écran de départ se déduit de l'état persistant, pas d'un routeur.
 // Une sauvegarde à l'ancien format (technical.md 5.4) est effacée : l'app repart de l'intro.
@@ -33,6 +48,7 @@ function initialScreen() {
   if (isLegacySave()) clearProgress();
   if (!getSavedFaction()) return 'intro';
   if (!hasWonFirstBattle()) return 'battle';
+  applySafetyNet();
   return 'home';
 }
 
@@ -44,19 +60,28 @@ export default function App() {
   const [mode, setMode] = useState('game');
   const [screen, setScreen] = useState(initialScreen);
   const [battleAttempt, setBattleAttempt] = useState(0); // change de clé = BattleScreen tout neuf
+  // Bataille du jeu normal en cours : la bataille 01, ou une de « Partir en guerre » (rules.md 11.7).
+  const [battleId, setBattleId] = useState(FIRST_BATTLE_ID);
   const [clickbaitFaction, setClickbaitFaction] = useState(null);
   const [victoryReport, setVictoryReport] = useState(null); // bilan de victoire (clickbait)
   const [victoryProgress, setVictoryProgress] = useState(null); // XP et niveaux (jeu normal)
-  // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil (null) ou depuis la page de détail
-  // d'une espèce (sa clé de roster) ; « Retour » ramène à l'écran d'origine.
+  const [defeatLosses, setDefeatLosses] = useState(null); // pertes d'une défaite de guerre
+  // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil (null) ou depuis la gestion de
+  // civilisation (clé de roster de l'espèce) ; « Retour » ramène à l'écran d'origine.
   const [summonFrom, setSummonFrom] = useState(null);
   const [saveVersion, setSaveVersion] = useState(0); // menu devs : recharge l'écran après un profil
   const isClickbait = mode === 'clickbait';
+  const isWarBattle = !isClickbait && WAR_BATTLE_IDS.includes(battleId);
   const playerFaction = isClickbait ? clickbaitFaction : getSavedFaction();
 
   const startBattle = useCallback(() => {
     setBattleAttempt((n) => n + 1);
     setScreen('battle');
+  }, []);
+
+  const goHome = useCallback(() => {
+    applySafetyNet();
+    setScreen('home');
   }, []);
 
   // rules.md 11.1/11.3 : au choix de la faction, dotation de départ et somme de départ.
@@ -67,21 +92,29 @@ export default function App() {
       savePlayerFaction(faction);
       saveOwnedUnits(createStartingUnits(ROSTERS[faction]));
       saveSpiritStones(STARTING_SPIRIT_STONES);
+      setBattleId(FIRST_BATTLE_ID);
     }
     startBattle();
   }, [isClickbait, startBattle]);
 
-  // technical.md 5.4 : pertes et XP ne sont comptées qu'à la victoire — une tentative ratée ne
-  // sauvegarde rien, ses pertes sont donc oubliées au "Réessayer". La victoire (resolveVictory,
-  // rules.md 11) retire les morts, donne l'XP aux individus et au joueur, crée l'armée de départ
-  // avec tous les survivants. Rien n'est sauvegardé en mode clickbait : on y affiche à la place
-  // le bilan des unités en vie/perdues.
+  // rules.md 11.7 : lance une bataille de « Partir en guerre » avec l'armée.
+  const startWarBattle = useCallback((id) => {
+    setBattleId(id);
+    startBattle();
+  }, [startBattle]);
+
+  // technical.md 5.4 : dans la bataille 01, pertes et XP ne sont comptées qu'à la victoire — une
+  // tentative ratée ne sauvegarde rien. La victoire (resolveVictory, rules.md 11) retire les
+  // morts, donne l'XP et la récompense (réduite au rejeu, 11.7), crée l'armée de départ après la
+  // bataille 01, retient les batailles de guerre gagnées. Rien n'est sauvegardé en mode
+  // clickbait : on y affiche à la place le bilan des unités en vie/perdues.
   const handleVictory = useCallback((battle) => {
     const unitsOnField = battle.units.filter((u) => u.isOnField);
     const roster = ROSTERS[playerFaction];
     if (isClickbait) {
       setVictoryReport(getCasualtyReport(roster, battle.playerDeployment, 'player', unitsOnField));
     } else {
+      const wonIds = getWonWarBattles();
       const { save, report } = resolveVictory(
         {
           units: getOwnedUnits(),
@@ -92,36 +125,56 @@ export default function App() {
         },
         battle.units,
         roster,
-        { firstBattle: !hasWonFirstBattle(), armyName: TEXT.defaultArmyName },
+        {
+          firstBattle: battleId === FIRST_BATTLE_ID,
+          armyName: TEXT.defaultArmyName,
+          reward: victoryReward(BATTLES[battleId].reward, wonIds.includes(battleId)),
+        },
       );
       saveOwnedUnits(save.units);
       saveArmy(save.army);
       savePlayerXp(save.playerXp);
       saveSpiritStones(save.spiritStones);
       if (save.fallenLegendaryLevel !== null) saveFallenLegendaryLevel(save.fallenLegendaryLevel);
-      markFirstBattleWon();
+      if (battleId === FIRST_BATTLE_ID) markFirstBattleWon();
+      else if (!wonIds.includes(battleId)) saveWonWarBattles([...wonIds, battleId]);
       setVictoryReport(null);
       setVictoryProgress(report);
     }
     setScreen('victory');
-  }, [isClickbait, playerFaction]);
+  }, [isClickbait, playerFaction, battleId]);
 
   // rules.md 8.1 : un match nul n'est pas une victoire — même suite qu'une défaite (réessayer),
-  // mais annoncé comme tel.
-  const handleDefeat = useCallback((outcome) => setScreen(outcome === 'draw' ? 'draw' : 'defeat'), []);
+  // mais annoncé comme tel. rules.md 11.7 : dans « Partir en guerre », les individus tués sont
+  // perdus quand même (défaite, abandon ou match nul).
+  const handleDefeat = useCallback((outcome, battle) => {
+    if (isWarBattle) {
+      const { save, lost } = resolveWarDefeat(
+        { units: getOwnedUnits(), army: getArmy(), fallenLegendaryLevel: getFallenLegendaryLevel() },
+        battle.units,
+        ROSTERS[playerFaction],
+      );
+      saveOwnedUnits(save.units);
+      saveArmy(save.army);
+      if (save.fallenLegendaryLevel !== null) saveFallenLegendaryLevel(save.fallenLegendaryLevel);
+      setDefeatLosses(lost);
+    } else {
+      setDefeatLosses(null);
+    }
+    setScreen(outcome === 'draw' ? 'draw' : 'defeat');
+  }, [isWarBattle, playerFaction]);
 
   // Après une victoire : accueil dans le jeu normal, nouveau choix de faction en clickbait.
-  const continueAfterVictory = useCallback(
-    () => setScreen(isClickbait ? 'factionChoice' : 'home'),
-    [isClickbait],
-  );
-
-  const goHome = useCallback(() => setScreen('home'), []);
+  const continueAfterVictory = useCallback(() => {
+    if (isClickbait) setScreen('factionChoice');
+    else goHome();
+  }, [isClickbait, goHome]);
 
   // Repart comme au tout premier lancement (menu devs).
   const restartGame = useCallback(() => {
     clearProgress();
     setMode('game');
+    setBattleId(FIRST_BATTLE_ID);
     setScreen('intro');
   }, []);
 
@@ -142,10 +195,18 @@ export default function App() {
           loadTestProfile(profile);
           setSaveVersion((v) => v + 1);
           setMode('game');
-          setScreen('home');
+          goHome();
         },
       })),
   ];
+
+  // rules.md 2 : bataille 01 = tous les individus possédés ; « Partir en guerre » = l'armée ;
+  // version clickbait = copies de units.md (null).
+  const battleUnits = () => {
+    if (isClickbait) return null;
+    const owned = getOwnedUnits();
+    return isWarBattle ? armyUnits(getArmy(), owned) : owned;
+  };
 
   let content;
   if (screen === 'intro') {
@@ -163,10 +224,8 @@ export default function App() {
       <BattleScreen
         key={battleAttempt}
         playerFaction={playerFaction}
-        battleId={isClickbait ? CLICKBAIT_BATTLE_ID : FIRST_BATTLE_ID}
-        // rules.md 2 : bataille 01 du jeu normal = tous les individus possédés, avec leur niveau ;
-        // version clickbait = copies de units.md (null).
-        playerUnits={isClickbait ? null : getOwnedUnits()}
+        battleId={isClickbait ? CLICKBAIT_BATTLE_ID : battleId}
+        playerUnits={battleUnits()}
         onVictory={handleVictory}
         onDefeat={handleDefeat}
       />
@@ -181,7 +240,17 @@ export default function App() {
       />
     );
   } else if (screen === 'defeat' || screen === 'draw') {
-    content = <DefeatScreen isDraw={screen === 'draw'} onRetry={startBattle} />;
+    content = (
+      <DefeatScreen
+        isDraw={screen === 'draw'}
+        onRetry={startBattle}
+        lost={defeatLosses}
+        onHome={isWarBattle ? goHome : null}
+        canRetry={!isWarBattle || armyUnits(getArmy(), getOwnedUnits()).length > 0}
+      />
+    );
+  } else if (screen === 'war') {
+    content = <WarScreen playerFaction={playerFaction} onFight={startWarBattle} onBack={goHome} />;
   } else if (screen === 'civilization') {
     content = (
       <CivilizationScreen
@@ -198,13 +267,14 @@ export default function App() {
     content = (
       <SummonScreen
         playerFaction={playerFaction}
-        onBack={() => setScreen(summonFrom ? 'civilization' : 'home')}
+        onBack={() => (summonFrom ? setScreen('civilization') : goHome())}
       />
     );
   } else {
     content = (
       <HomeScreen
         playerFaction={playerFaction}
+        onOpenWar={() => setScreen('war')}
         onOpenCivilization={() => {
           setSummonFrom(null);
           setScreen('civilization');

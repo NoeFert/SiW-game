@@ -133,7 +133,7 @@ Les aptitudes spécifiques de chaque unité (déclencheur exact, effet, valeurs)
 
 - L'IA ne gère aucune ressource dynamiquement (pas d'achat, pas de progression) — son comportement est entièrement scripté.
 - Le script définit à l'avance, pour une bataille donnée : quelle unité est déployée et à quel instant précis depuis le début de la bataille. La case d'apparition n'est pas fixée à l'avance : elle est choisie au moment du déploiement selon la situation du terrain (voir 7.2).
-- La bataille 01 est scriptée (section 7.1). Les batailles de « Partir en guerre » (`roadmap-mvp.md`) le seront aussi ; leur nombre et leurs scripts restent à définir (section 10).
+- La bataille 01 est scriptée (section 7.1). Les trois batailles de « Partir en guerre » le sont aussi, zone par zone (scripts provisoires, section 11.7).
 - Une fois déployée, une unité IA se comporte exactement comme une unité du joueur non commandée : mouvement et combat autonomes selon les mêmes règles (sections 3 et 4).
 
 ### 7.1 Script de bataille v1
@@ -189,7 +189,7 @@ Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre scrip
   - **Phase 1** : terrain de la bataille 01 (section 1).
   - **Phase 2 — « Le mur »** (fond retourné) : un mur de rochers qui serpente (colonnes 14-17), percé d'un passage étroit d'une case (rangée 3 — une Légendaire 2×2 n'y passe pas) et d'un passage large de deux cases (rangées 10-11). Les tireurs ennemis tirent par-dessus le mur (pas de ligne de vue, section 4.5) ; les unités [Vol] le survolent.
   - **Phase 3 — « Le fort »** (provisoire, fond normal) : une ruine en fer à cheval côté joueur, salle intérieure de 4×4 cases, ouverte vers l'ennemi par une entrée de deux cases. Elle protège du corps-à-corps mais pas des tirs. C'est un cul-de-sac assumé : exception à la règle « pas de cul-de-sac » de la section 1, qui ne vaut que pour la bataille 01.
-  - En réserve (validé, pas encore utilisé) : **« Les trois couloirs »**, deux crêtes qui séparent trois couloirs, franchissables seulement en volant.
+  - **« Les trois couloirs »** (validé ; utilisé par les batailles 2 et 3 de « Partir en guerre », 11.7) : deux crêtes qui séparent trois couloirs, franchissables seulement en volant.
 - **Murs** : les rochers d'un mur se touchent par un côté. Une unité au sol ne coupe jamais le coin d'un rocher (section 3).
 - **Ce qui est conservé** : les morts restent perdus, les PV perdus ne reviennent pas. La réserve du joueur (copies jamais déployées, unités revenues de fuite) reste déployable dans la moitié gauche de la nouvelle zone, avec le même plafond de 150 points. Le cooldown des commandes continue.
 - **Script de la phase suivante** : ses instants sont comptés depuis le début de la phase.
@@ -236,11 +236,11 @@ Les stats précises de chaque unité (points de vie, dégâts, coût, vitesses, 
 
 Les valeurs de la bataille sont tranchées. Restent ouvertes, pour la couche méta (section 11) :
 - somme de départ en Spirit Stones : **0, provisoire**, donnée au choix de la faction (montant définitif au second passage de `roadmap-mvp.md`) ;
-- récompense de la victoire de la bataille 01 (montant, fixe ou liée aux pertes) ;
+- récompenses de victoire en Spirit Stones : bataille 01 : **50** ; « Partir en guerre » : **60 / 80 / 100** à la première victoire, **25 %** au rejeu — **provisoires** (11.7) ;
 - coefficient de prix k : **1, provisoire** ; multiplicateur du [Légendaire] : **aucun (×1), provisoire** (valeurs définitives au second passage de `roadmap-mvp.md`) ;
 - nom par défaut de l'armée de départ : **« Armée 1 »** (tranché) ;
 - récompense de niveau du joueur : **50 × le nouveau niveau** en Spirit Stones, **provisoire** (revue avec k au second passage de `roadmap-mvp.md`) ; les autres valeurs de niveau (XP, courbes, bonus de stats, prix des niveaux gardés) sont tranchées en 11.5, 11.6 et 11.4 ;
-- contenu de « Partir en guerre » (batailles, récompenses, conséquences d'une défaite).
+- zones et scripts de l'IA définitifs des batailles de « Partir en guerre » (**provisoires**, 11.7).
 
 ## 11. Couche méta (jeu normal, hors version clickbait)
 
@@ -249,7 +249,7 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 ### 11.1 Individus possédés
 - Le joueur possède une **liste d'individus**. Un individu a trois caractéristiques : un **identifiant unique**, son **espèce** et son **XP** (section 11.6). Ses stats sont celles de l'espèce (`units.md`), augmentées selon son niveau (11.6).
 - **Dotation de départ** : au choix de la faction, le joueur reçoit, pour chaque espèce de sa faction, autant d'individus que la colonne « Copies de départ » de `units.md` (ex : Wyrms : 12 Vers de Lambton, 8 Amphiptères, 1 Fafnir).
-- **Pertes** : à **chaque victoire** (bataille 01, puis batailles de « Partir en guerre »), chaque individu tué pendant la bataille est retiré de la liste (et de l'armée, 11.2). Après la bataille 01, une tentative perdue ou un match nul ne retire aucun individu ; pour les défaites de « Partir en guerre », la règle reste à définir (section 10).
+- **Pertes** : à **chaque victoire** (bataille 01, puis batailles de « Partir en guerre »), chaque individu tué pendant la bataille est retiré de la liste (et de l'armée, 11.2). Dans la **bataille 01**, une tentative perdue ou un match nul ne retire aucun individu. Dans **« Partir en guerre »**, les individus tués sont perdus **même en cas de défaite, d'abandon ou de match nul** (11.7).
 - **Dotation de départ et invocation** : tout nouvel individu est **niveau 1, 0 XP** (sauf réinvocation du [Légendaire] à un niveau gardé, 11.4).
 - Les individus sont **discernables** par leur niveau : l'interface les regroupe par espèce, puis les liste un par un (accordéons de la gestion de civilisation, 11.2 et `technical.md` 5.1) ou par niveau (tour de bataille, `ui-battle-screen-decisions.md` 2.2). Deux individus de même espèce et même niveau restent interchangeables.
 
@@ -271,6 +271,7 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 - Monnaie du jeu (nom provisoire). Le solde est un **nombre entier**, jamais négatif, affiché en haut à droite de l'écran d'accueil.
 - **Gains** : une somme de départ, puis une récompense à chaque victoire (bataille 01, puis batailles de « Partir en guerre »), et une récompense à chaque niveau du joueur (11.5). Montants : section 10.
 - **Défaite, abandon ou match nul** : aucune récompense.
+- **Filet de sécurité** : un joueur sans individu ni de quoi en invoquer un voit son solde porté au prix de l'unité basique (11.7).
 
 ### 11.4 Invocation
 - L'écran Invocation propose chaque espèce de la faction du joueur. Invoquer, c'est **payer son prix** et **ajouter un nouvel individu** de cette espèce à la liste (11.1).
@@ -303,3 +304,19 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 - **Aptitudes** : les aptitudes qui multiplient les dégâts (Attaque dévastatrice de Fafnir) s'appliquent aux dégâts du niveau ; la régénération de Soif de sang (Athos) reste de 40 PV, plafonnée aux PV max du niveau.
 - **Affichage** : sur l'écran de victoire du jeu normal, les individus qui ont gagné au moins un niveau (`technical.md` 5.3).
 - Les unités de l'IA et celles de la version clickbait sont toujours **niveau 1** (stats de `units.md`).
+
+### 11.7 Partir en guerre
+- **Trois batailles**, jouées **en séquence** : la bataille 1 est disponible dès la victoire de la bataille 01 ; la bataille N + 1 se débloque à la première victoire de la bataille N. Noms provisoires : **« La passe »**, **« Les crevasses »**, **« La citadelle »** (`strings.js`).
+- **Rejeu** : une bataille déjà gagnée reste jouable à volonté, avec une récompense réduite (voir Récompenses).
+- **Armée** : le joueur part avec **son armée** (section 2) ; bouton « Combattre » **désactivé si l'armée est vide** (message « Composez votre armée »).
+- **Zones** (section 7.3) : chaque bataille enchaîne **2 zones** (2 phases). Provisoire, en attendant les zones et scripts définitifs :
+  - bataille 1 : le champ (bataille 01) → « Le mur » ;
+  - bataille 2 : « Le mur » → « Les trois couloirs » ;
+  - bataille 3 : « Les trois couloirs » → « Le fort ».
+- **Scripts de l'IA** (provisoires) : ceux de la bataille-clickbait, par zone — champ : phase 1, « Le mur » et « Les trois couloirs » : phase 2, « Le fort » : phase 3 (section 7.3). Transition entre zones, conservation des morts, des PV et de la réserve : comme la bataille-clickbait (7.3).
+- **Commandes et abandon** : comme la bataille 01 — les trois ordres (Aller, Attaquer, Fuir), bouton Abandonner disponible ; pas de tutoriel.
+- **Victoire** : dès que l'IA a fini le script de la **dernière zone** et n'a plus aucune unité vivante sur le terrain, sans compte à rebours de 15 s (comme la bataille-clickbait, 7.3). Conséquences : pertes (11.1), XP (11.5, 11.6), récompense en Spirit Stones (ci-dessous).
+- **Défaite, abandon ou match nul** : les individus **tués pendant la bataille sont perdus quand même** (mort définitive, retirés de la liste et de l'armée), et le niveau du [Légendaire] mort est mémorisé (11.4). **Aucune** XP, **aucune** récompense. L'écran de défaite liste les unités perdues et propose **« Réessayer »** (même bataille, avec l'armée telle qu'elle reste) et **« Retour à l'accueil »** (pour réinvoquer et recomposer l'armée). Si l'armée est vide, « Réessayer » est désactivé.
+- **Récompenses** en Spirit Stones (provisoires, section 10) : bataille 01 : **50** ; batailles 1 / 2 / 3 : **60 / 80 / 100** à la **première** victoire, puis **25 %** de ce montant à chaque victoire suivante (arrondi à l'entier inférieur : 15 / 20 / 25).
+- **Filet de sécurité** : en arrivant sur l'accueil, si le joueur ne possède **plus aucun individu** et que son solde est **inférieur au prix de l'unité basique** de sa faction (11.4), son solde est **porté à ce prix** — il peut toujours invoquer une unité, la mettre dans son armée et repartir.
+- **Fin du contenu** : une fois les trois batailles gagnées, l'écran « Partir en guerre » affiche « D'autres terres à conquérir arrivent bientôt… » ; les trois batailles restent rejouables.

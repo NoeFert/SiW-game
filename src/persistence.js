@@ -1,6 +1,6 @@
-// technical.md 5.4 : exception ciblée à l'absence de persistance — seules ces sept valeurs sont
+// technical.md 5.4 : exception ciblée à l'absence de persistance — seules ces huit valeurs sont
 // sauvegardées (roadmap-mvp.md) : de quoi reconstituer l'écran de départ au chargement et
-// afficher HomeScreen, CivilizationScreen et SummonScreen.
+// afficher HomeScreen, CivilizationScreen, SummonScreen et WarScreen.
 const FACTION_KEY = 'siw.playerFaction';
 const FIRST_VICTORY_KEY = 'siw.firstBattleWon';
 const OWNED_UNITS_KEY = 'siw.ownedUnits';
@@ -8,6 +8,7 @@ const ARMY_KEY = 'siw.army';
 const SPIRIT_STONES_KEY = 'siw.spiritStones';
 const PLAYER_XP_KEY = 'siw.playerXp';
 const FALLEN_LEGENDARY_LEVEL_KEY = 'siw.fallenLegendaryLevel';
+const WON_WAR_BATTLES_KEY = 'siw.wonWarBattles';
 // Ancien format (décompte de copies par espèce), seulement effacé : pas de migration.
 const LEGACY_OWNED_COPIES_KEY = 'siw.ownedCopies';
 
@@ -75,6 +76,15 @@ export function saveFallenLegendaryLevel(level) {
   localStorage.setItem(FALLEN_LEGENDARY_LEVEL_KEY, String(level));
 }
 
+// Identifiants des batailles de « Partir en guerre » gagnées (rules.md 11.7) ; [] au départ.
+export function getWonWarBattles() {
+  return JSON.parse(localStorage.getItem(WON_WAR_BATTLES_KEY)) ?? [];
+}
+
+export function saveWonWarBattles(battleIds) {
+  localStorage.setItem(WON_WAR_BATTLES_KEY, JSON.stringify(battleIds));
+}
+
 // technical.md 5.4 : une sauvegarde avec une faction mais sans liste d'individus est à l'ancien
 // format — considérée comme absente.
 export function isLegacySave() {
@@ -86,6 +96,6 @@ export function isLegacySave() {
 export function clearProgress() {
   [
     FACTION_KEY, FIRST_VICTORY_KEY, OWNED_UNITS_KEY, ARMY_KEY, SPIRIT_STONES_KEY, PLAYER_XP_KEY,
-    FALLEN_LEGENDARY_LEVEL_KEY, LEGACY_OWNED_COPIES_KEY,
+    FALLEN_LEGENDARY_LEVEL_KEY, WON_WAR_BATTLES_KEY, LEGACY_OWNED_COPIES_KEY,
   ].forEach((key) => localStorage.removeItem(key));
 }

@@ -56,7 +56,9 @@ export default function BattleScreen({
         return;
       }
       if (outcome === 'enemyVictory' || outcome === 'draw') {
-        onDefeat(outcome); // 'draw' : match nul (rules.md 8.1), annoncé comme tel
+        // 'draw' : match nul (rules.md 8.1), annoncé comme tel ; la bataille sert aux pertes
+        // d'une défaite de « Partir en guerre » (rules.md 11.7).
+        onDefeat(outcome, interactionState.battle);
         return;
       }
       frameId = requestAnimationFrame(checkOutcome);

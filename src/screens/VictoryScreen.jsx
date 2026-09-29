@@ -2,10 +2,12 @@ import { Button } from '@/components/ui/8bit/button.jsx';
 import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import { LevelBadge } from '../ui/LevelDisplay.jsx';
+import { SpiritStonesAmount } from '../ui/SpiritStonesBalance.jsx';
 import { TEXT, unitName } from '../ui/strings.js';
 
 // Une ligne du bilan : "8x [sprite] Ver de Lambton". Les unités perdues sont grisées.
-function ReportList({ title, rows, count, lost }) {
+// Aussi utilisé par DefeatScreen (pertes d'une défaite de « Partir en guerre »).
+export function ReportList({ title, rows, count, lost }) {
   return (
     <section className="flex flex-col gap-3 w-80">
       <h2 className="retro text-xs">{title}</h2>
@@ -34,7 +36,10 @@ function ProgressReport({ progress, playerFaction }) {
   const roster = ROSTERS[playerFaction];
   return (
     <>
-      <p className="retro text-sm">{TEXT.levels.xpGained(progress.xpGained)}</p>
+      <div className="retro flex flex-col items-center gap-3 text-sm">
+        <span>{TEXT.levels.xpGained(progress.xpGained)}</span>
+        {progress.spiritStonesGained > 0 && <SpiritStonesAmount amount={progress.spiritStonesGained} />}
+      </div>
       {progress.levelUps.length > 0 && (
         <section className="flex flex-col gap-3 w-96">
           <h2 className="retro text-xs">{TEXT.levels.levelUps}</h2>

@@ -24,7 +24,7 @@ Les technologies choisies, pourquoi, et la stratégie de tests. Ce fichier couvr
 - La **couche Phaser** (Scenes, Sprites, input sur le champ de bataille) est une couche fine par-dessus : elle lit l'état produit par la logique de jeu et l'affiche, elle transmet les clics du joueur sur le terrain vers la logique de jeu, mais ne contient elle-même aucune règle de jeu
 - La **couche React** (sidebar de déploiement, boutons, HUD, écrans de fin de bataille) suit le même principe : elle lit l'état produit par la logique de jeu et affiche des composants shadcn/8bitcn génériques, sans contenir de règle de jeu elle-même
 
-- La **logique méta** (individus possédés, armée, Spirit Stones, invocation — `rules.md` section 11) suit la même séparation : ses règles vivent dans `src/logic/` en JavaScript pur, un fichier par domaine — `ownedUnits.js` (individus possédés, dotation, pertes), `army.js` (armée), `summon.js` (invocation), `levels.js` (niveaux du joueur et des individus), `victory.js` (ce que change une victoire : pertes, XP, armée de départ) —, jamais dans les composants React. `persistence.js` se contente de lire et d'écrire le localStorage, sans aucune règle de jeu
+- La **logique méta** (individus possédés, armée, Spirit Stones, invocation — `rules.md` section 11) suit la même séparation : ses règles vivent dans `src/logic/` en JavaScript pur, un fichier par domaine — `ownedUnits.js` (individus possédés, dotation, pertes), `army.js` (armée), `summon.js` (invocation), `levels.js` (niveaux du joueur et des individus), `victory.js` (ce que change une victoire : pertes, XP, récompense, armée de départ), `war.js` (« Partir en guerre » : déblocage, récompenses, défaite, filet de sécurité) —, jamais dans les composants React. `persistence.js` se contente de lire et d'écrire le localStorage, sans aucune règle de jeu
 
 **Pourquoi :** ça permet de tester toute la logique de combat/mouvement avec des tests automatisés rapides, sans avoir besoin de lancer le jeu dans un navigateur — essentiel pour la stratégie de tests ci-dessous. Ça garde aussi la porte ouverte à changer le moteur de rendu ou le framework d'UI plus tard sans toucher aux règles du jeu.
 
@@ -59,6 +59,7 @@ src/
     summon.js      #   invocation
     levels.js      #   niveaux du joueur et des individus
     victory.js     #   conséquences d'une victoire (pertes, XP, armée)
+    war.js         #   « Partir en guerre »
   data/            # Configuration statique (rosters, scripts IA)
     wyrmsRoster.js
     undeadRoster.js
@@ -66,7 +67,7 @@ src/
   scenes/          # Couche Phaser (rendu du champ de bataille, input sur le terrain)
     BattleScene.js
   ui/              # Couche React (sidebar, boutons, HUD, écrans)
-    screens/       # Les 8 écrans du jeu (voir section 5)
+    screens/       # Les 9 écrans du jeu (voir section 5)
       IntroScreen.jsx
       FactionChoiceScreen.jsx
       BattleScreen.jsx
@@ -75,6 +76,7 @@ src/
       HomeScreen.jsx
       CivilizationScreen.jsx
       SummonScreen.jsx
+      WarScreen.jsx
     CommandTower.jsx
     DeploymentList.jsx
     CommandBar.jsx
@@ -144,7 +146,7 @@ tests/
 
 ## 5. Écrans et navigation
 
-Le jeu v1 est composé de **huit écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les sept autres sont du React pur.
+Le jeu v1 est composé de **neuf écrans distincts**. Un seul d'entre eux (l'écran de bataille) contient le canevas Phaser ; les huit autres sont du React pur.
 
 ### 5.1 Liste des écrans
 
@@ -152,14 +154,15 @@ Le jeu v1 est composé de **huit écrans distincts**. Un seul d'entre eux (l'éc
 1. **FactionChoiceScreen** — écran de choix de faction (Souveraine des Wyrms ou Souverain des Morts-Vivants). Affiché **une seule fois**, au tout début d'une partie (pas avant chaque bataille, même une fois que plusieurs batailles existeront en v2+).
 2. **BattleScreen** — l'écran de bataille actuel : tour de commandement React à gauche (pause, abandon, déploiement, commandes) + canevas Phaser (champ de bataille) à droite.
 3. **VictoryScreen** — écran de récompense affiché après une victoire. **Squelette minimal pour la v1** (voir 5.3). La victoire rapporte des Spirit Stones (`rules.md` 11.3) ; montant et affichage de cette récompense à définir (`roadmap-mvp.md`). Dans le jeu normal, il affiche l'**XP gagnée par le joueur** (`rules.md` 11.5).
-4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé). Sert aussi après un match nul (`rules.md` 8.1), avec le titre « Match nul » au lieu de « Défaite » : même suite, aucun vainqueur.
-5. **HomeScreen** — écran d'accueil, point central du jeu. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Affiche la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), le **solde de Spirit Stones** en haut à droite (`rules.md` 11.3), le **niveau du joueur et sa barre d'XP** près du solde (`rules.md` 11.5), et trois boutons : **Partir en guerre** (désactivé tant que son contenu n'est pas spécifié, `roadmap-mvp.md`), **Gestion de civilisation** (`CivilizationScreen`) et **Invocation** (`SummonScreen`).
+4. **DefeatScreen** — écran affiché après une défaite, avec un bouton **"Réessayer"** qui relance la même bataille (la faction déjà choisie reste conservée, aucun nouveau choix de faction demandé). Sert aussi après un match nul (`rules.md` 8.1), avec le titre « Match nul » au lieu de « Défaite » : même suite, aucun vainqueur. **Après une bataille de « Partir en guerre »** (`rules.md` 11.7) : il liste aussi les unités perdues (au format du bilan de la version clickbait, 5.6) et ajoute un bouton **« Retour à l'accueil »** ; « Réessayer » relance la bataille avec l'armée telle qu'elle reste, et est désactivé si l'armée est vide.
+5. **HomeScreen** — écran d'accueil, point central du jeu. **Accessible uniquement après avoir remporté la première bataille** (traitée comme la bataille tutoriel). Affiche la faction choisie par le joueur (ex : "Vous jouez la Souveraine des Wyrms."), le **solde de Spirit Stones** en haut à droite (`rules.md` 11.3), le **niveau du joueur et sa barre d'XP** près du solde (`rules.md` 11.5), et trois boutons : **Partir en guerre** (`WarScreen`), **Gestion de civilisation** (`CivilizationScreen`) et **Invocation** (`SummonScreen`). À l'arrivée sur l'accueil s'applique le filet de sécurité de `rules.md` 11.7.
 6. **CivilizationScreen** — écran de gestion de civilisation, accessible depuis `HomeScreen`, en deux sections :
    - **Unités** : un **accordéon par espèce** du roster de la faction du joueur. En-tête : sprite, nom, keywords, coût en PP, nombre d'individus possédés ; une espèce à 0 reste affichée, grisée, avec son bouton « Invoquer » / « Réinvoquer » vers `SummonScreen`. Ouvert : un individu par ligne (niveau, barre d'XP, présent dans l'armée ou non). Un clic sur un individu ouvre la **page de détail de l'individu** (vue interne à l'écran, pas un écran à part) : grand sprite, nom de l'espèce, keywords, niveau et barre d'XP, présence dans l'armée, stats complètes **à son niveau** (`rules.md` 11.6), texte des aptitudes, bouton « Invoquer » / « Réinvoquer » de son espèce vers `SummonScreen`.
    - **Armée** : nom modifiable, compteur « X / 500 PP », et un **accordéon par espèce** — fermé, un résumé seul (« 7 / 9 dans l'armée ») ; ouvert, un individu par ligne (niveau, barre d'XP) avec une case « dans l'armée » à cocher / décocher (`rules.md` 11.2).
    - Dans un accordéon ouvert (Unités comme Armée), les individus sont triés par **niveau décroissant, puis XP décroissante** : les vétérans en haut.
    - Au niveau 5 (maximum, `rules.md` 11.6), la barre d'XP d'un individu est pleine et affiche **« MAX »** au lieu de « X / Y XP » (provisoire, voir la Suite de `roadmap-mvp.md`).
 7. **SummonScreen** — écran d'invocation, accessible depuis `HomeScreen` et depuis la page de détail d'une espèce. Une ligne par espèce de la faction du joueur, avec son prix en Spirit Stones et un bouton « Invoquer » (« Réinvoquer » pour un [Légendaire] mort, désactivé avec « Déjà à vos côtés » tant qu'il est vivant, désactivé aussi si le solde est insuffisant) — `rules.md` 11.4. La boîte de confirmation de « Réinvoquer » propose le **niveau gardé** (de 1 au niveau du [Légendaire] à sa mort) et affiche le prix correspondant. Solde affiché comme sur `HomeScreen`.
+8. **WarScreen** — écran « Partir en guerre », accessible depuis `HomeScreen` (`rules.md` 11.7). En haut, l'armée qui partira (nom, « X / 500 PP ») ; puis une ligne par bataille, dans l'ordre : nom, zones traversées, état (**verrouillée**, **disponible**, **gagnée**) et récompense en Spirit Stones de la prochaine victoire (pleine ou réduite) ; un bouton **« Combattre »** par bataille débloquée, désactivé si l'armée est vide (« Composez votre armée »). Une fois les trois batailles gagnées, message « D'autres terres à conquérir arrivent bientôt… ». Bouton « Retour » vers l'accueil.
 
 ### 5.2 Enchaînement (v1)
 
@@ -176,17 +179,18 @@ IntroScreen → FactionChoiceScreen (une fois)
         │                                              │
         ▼                                              │
    HomeScreen ◄────────────────────────────────────────┘ (après la victoire)
-     ├──► CivilizationScreen (Unités / détail d'une espèce / Armée) ──► retour HomeScreen
+     ├──► CivilizationScreen (Unités / détail d'un individu / Armée) ──► retour HomeScreen
      │         └── « Invoquer » depuis le détail ──► SummonScreen
      ├──► SummonScreen ──► retour HomeScreen
-     └──► « Partir en guerre » (désactivé, contenu à spécifier)
+     └──► WarScreen (« Partir en guerre ») ──► BattleScreen ──► VictoryScreen / DefeatScreen ──► retour HomeScreen (ou « Réessayer »)
 ```
 
 « Réessayer » sur `DefeatScreen` relance `BattleScreen`.
 
-- **Rendu 1 (POC) :** seule la version clickbait (5.6) est jouable. Sur `IntroScreen`, le bouton du jeu normal s'appelle « MVP » et il est grisé ; l'application démarre toujours sur `IntroScreen`, quelle que soit la sauvegarde (`MVP_LOCKED` dans `App.jsx`, à passer à `false` pour rouvrir le MVP). La règle ci-dessous s'applique une fois le MVP rouvert.
+- **Rendu 1 (POC) :** seule la version clickbait (5.6) était jouable : le bouton « MVP » d'`IntroScreen` était grisé et l'application démarrait toujours sur `IntroScreen` (`MVP_LOCKED` dans `App.jsx`). **Depuis, le MVP est rouvert** (`MVP_LOCKED = false`) : la règle ci-dessous s'applique.
 - Au chargement de l'application, l'état persistant (localStorage, voir 5.4) est lu : s'il n'y a pas encore de faction choisie, `IntroScreen` s'affiche, puis `FactionChoiceScreen` ; si une faction est déjà choisie mais la première bataille pas encore gagnée, l'app va directement à `BattleScreen` ; si la première bataille est déjà gagnée, l'app va directement à `HomeScreen`.
-- Une défaite ne fait perdre ni la faction choisie ni aucune autre donnée persistée — seul un nouvel essai de la même bataille est proposé, et aucune perte d'unité d'une tentative ratée n'est comptabilisée (voir 5.4).
+- **Bataille 01** : une défaite ne fait perdre ni la faction choisie ni aucune autre donnée persistée — seul un nouvel essai de la même bataille est proposé, et aucune perte d'unité d'une tentative ratée n'est comptabilisée (voir 5.4).
+- **« Partir en guerre »** : une défaite, un abandon ou un match nul font perdre définitivement les individus tués (`rules.md` 11.7) ; rien d'autre n'est perdu.
 
 ### 5.3 Squelette de VictoryScreen et DefeatScreen pour la v1
 - Les deux écrans sont volontairement minimaux : un titre (Victoire / Défaite ou Match nul), et un seul bouton d'action (Continuer vers l'accueil / Réessayer)
@@ -198,14 +202,15 @@ IntroScreen → FactionChoiceScreen (une fois)
 
 ### 5.4 Navigation et état persistant
 - **Gestion de la navigation entre écrans : état React simple** (ex : un state `currentScreen` géré dans le composant racine `App.jsx`), pas de librairie de routing (React Router ou équivalent) pour la v1 — le jeu est une session continue dans un seul onglet, sans besoin d'URLs distinctes par écran. Une vraie solution de routing pourra être introduite en v2+ si la sélection de niveau (plusieurs batailles) le justifie.
-- **Persistance via localStorage** : sept valeurs sont sauvegardées (`roadmap-mvp.md`) —
+- **Persistance via localStorage** : huit valeurs sont sauvegardées (`roadmap-mvp.md`) —
   1. la faction choisie par le joueur
   2. un indicateur booléen "première bataille (tutoriel) gagnée"
-  3. la **liste des individus possédés**, chacun `{ id, species, xp }` (ex : `[{ id: 'u1', species: 'lambtonWorm', xp: 0 }, …]`, `rules.md` 11.1 et 11.6 ; le niveau se calcule à partir de l'XP, il n'est pas sauvegardé) : créée avec la dotation de départ au choix de la faction, mise à jour à chaque victoire (individus tués retirés, XP gagnée) et à chaque invocation — jamais lors d'une tentative ratée (voir 5.2). Elle remplace l'ancien décompte de copies par espèce
+  3. la **liste des individus possédés**, chacun `{ id, species, xp }` (ex : `[{ id: 'u1', species: 'lambtonWorm', xp: 0 }, …]`, `rules.md` 11.1 et 11.6 ; le niveau se calcule à partir de l'XP, il n'est pas sauvegardé) : créée avec la dotation de départ au choix de la faction, mise à jour à chaque victoire (individus tués retirés, XP gagnée), à chaque défaite de « Partir en guerre » (individus tués retirés, `rules.md` 11.7) et à chaque invocation — jamais lors d'une tentative ratée de la bataille 01 (voir 5.2). Elle remplace l'ancien décompte de copies par espèce
   4. l'**armée** : `{ name, unitIds }` (`rules.md` 11.2)
   5. le **solde de Spirit Stones** (entier, `rules.md` 11.3)
   6. l'**XP du joueur** (entier, `rules.md` 11.5 ; le niveau se calcule à partir de l'XP)
-  7. le **niveau du [Légendaire] à sa mort** (entier, ou absent s'il n'est jamais mort ; `rules.md` 11.4), mis à jour à chaque mort du [Légendaire] à la victoire
+  7. le **niveau du [Légendaire] à sa mort** (entier, ou absent s'il n'est jamais mort ; `rules.md` 11.4), mis à jour à chaque mort du [Légendaire] comptabilisée (victoire, ou défaite de « Partir en guerre »)
+  8. la **liste des batailles de « Partir en guerre » gagnées** (identifiants, ex : `['war1', 'war2']` ; `rules.md` 11.7) : sert au déblocage de la bataille suivante et à la récompense réduite au rejeu
 - **Identifiant d'un individu** : généré par `crypto.randomUUID()` à sa création (dotation de départ ou invocation). Jamais dérivé de la taille de la liste, qui réutiliserait l'identifiant d'un individu mort ; aucun compteur n'est sauvegardé.
 - Aucun champ de personnalisation n'est ajouté aux individus : l'identifiant suffit pour que les armées référencent des individus, et pour accueillir la personnalisation plus tard sans migration de sauvegarde.
 - C'est une exception ciblée à l'absence de persistance, pas un système de sauvegarde généralisé. Ces valeurs suffisent à reconstituer l'écran de départ correct au chargement de l'application (voir 5.2) et à afficher `HomeScreen`, `CivilizationScreen` et `SummonScreen`.

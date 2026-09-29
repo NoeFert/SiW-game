@@ -7,9 +7,11 @@ import { TEXT } from '../ui/strings.js';
 
 // technical.md 5.1 : écran d'accueil, point central du jeu, accessible uniquement après la
 // première victoire. Solde de Spirit Stones en haut à droite (rules.md 11.3), niveau du joueur
-// et sa barre d'XP juste en dessous (rules.md 11.5), et trois boutons. « Partir en guerre » est
-// désactivé tant que son contenu n'est pas spécifié (roadmap-mvp.md).
-export default function HomeScreen({ playerFaction, onOpenCivilization, onOpenSummon }) {
+// et sa barre d'XP juste en dessous (rules.md 11.5), et trois boutons : « Partir en guerre »
+// (WarScreen), gestion de civilisation et invocation.
+export default function HomeScreen({
+  playerFaction, onOpenWar, onOpenCivilization, onOpenSummon,
+}) {
   const progress = playerProgress(getPlayerXp());
   return (
     <div className="relative h-screen w-screen flex flex-col items-center justify-center gap-10 bg-neutral-900 text-white">
@@ -25,7 +27,7 @@ export default function HomeScreen({ playerFaction, onOpenCivilization, onOpenSu
       </div>
       <p>{TEXT.playingAs[playerFaction]}</p>
       <div className="flex flex-col gap-6">
-        <Button disabled>{TEXT.home.goToWar}</Button>
+        <Button onClick={onOpenWar}>{TEXT.home.goToWar}</Button>
         <Button onClick={onOpenCivilization}>{TEXT.home.civilization}</Button>
         <Button onClick={onOpenSummon}>{TEXT.home.summon}</Button>
       </div>

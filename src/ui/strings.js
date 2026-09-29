@@ -97,6 +97,26 @@ export const TEXT = {
     keptLevel: 'Niveau gardé :',
     levelPrice: (level, price) => `niv ${level} — ${price}`,
   },
+  // « Partir en guerre » (rules.md 11.7). Noms des batailles provisoires.
+  war: {
+    title: 'Partir en guerre',
+    battleNames: { war1: 'La passe', war2: 'Les crevasses', war3: 'La citadelle' },
+    zoneNames: {
+      field: 'Le champ', wall: 'Le mur', lanes: 'Les trois couloirs', fort: 'Le fort',
+    },
+    states: { locked: 'Verrouillée', available: 'Disponible', won: 'Gagnée' },
+    armyLine: (name, cost, cap) => `${name} — ${cost} / ${cap} PP`,
+    fight: 'Combattre',
+    emptyArmy: 'Composez votre armée',
+    completed: "D'autres terres à conquérir arrivent bientôt…",
+    back: 'Retour',
+  },
+  defeat: {
+    title: 'Défaite',
+    draw: 'Match nul',
+    retry: 'Réessayer',
+    home: "Retour à l'accueil",
+  },
   // rules.md 11.4 : libellé du bouton d'invocation (clé = résultat de summonAction).
   summonActions: {
     summon: 'Invoquer',
