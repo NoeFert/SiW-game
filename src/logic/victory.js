@@ -5,6 +5,7 @@ import {
   FIRST_BATTLE_PLAYER_XP, applyVictoryToUnits, individualXpGains, levelUps, playerLevelReward,
   victoryPlayerXp,
 } from './levels.js';
+import { fallenLegendaryLevelAfter } from './ownedUnits.js';
 
 // `save` : { units, army, playerXp, spiritStones, fallenLegendaryLevel } avant la bataille.
 // `battleUnits` : toutes les unités de la bataille (battle.units).
@@ -17,12 +18,9 @@ export function resolveVictory(save, battleUnits, roster, { firstBattle, armyNam
   // rules.md 11.1 / 11.6 : morts retirés, XP des survivants déployés.
   const units = applyVictoryToUnits(save.units, xpGains);
 
-  // rules.md 11.4 : niveau du [Légendaire] à sa mort, écrasé à chaque nouvelle mort.
-  let { fallenLegendaryLevel } = save;
-  for (const [id, level] of xpGains.dead) {
-    const unit = save.units.find((u) => u.id === id);
-    if (unit && roster[unit.species].keywords.includes('legendary')) fallenLegendaryLevel = level;
-  }
+  const fallenLegendaryLevel = fallenLegendaryLevelAfter(
+    roster, save.units, xpGains.dead, save.fallenLegendaryLevel,
+  );
 
   // rules.md 11.5 : XP du joueur (100 fixes pour la bataille 01).
   const xpGained = firstBattle

@@ -46,7 +46,7 @@ const WAR_ZONES = {
 
 // rules.md 11.7 : une bataille de « Partir en guerre » — deux zones, victoire dès la fin du script
 // de la dernière zone, commandes complètes et abandon, pas de tutoriel. `zones` : clés de
-// WAR_ZONES (affichées sur WarScreen) ; `reward` : Spirit Stones de la première victoire.
+// WAR_ZONES ; `reward` : Spirit Stones de la première victoire.
 function warBattle(zones, reward) {
   return {
     phases: zones.map((zone) => WAR_ZONES[zone]),

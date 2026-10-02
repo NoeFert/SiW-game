@@ -5,7 +5,6 @@ import {
 } from '@/components/ui/8bit/alert-dialog.jsx';
 import { Button } from '@/components/ui/8bit/button.jsx';
 import { ROSTERS } from '../data/rosters.js';
-import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import { countUnitsBySpecies } from '../logic/ownedUnits.js';
 import {
   canSummon, resummonPrice, summon, summonAction, summonPrice,
@@ -14,6 +13,7 @@ import {
   getFallenLegendaryLevel, getOwnedUnits, getSpiritStones, saveOwnedUnits, saveSpiritStones,
 } from '../persistence.js';
 import ScreenLayout from '../ui/ScreenLayout.jsx';
+import { SpeciesCountRow } from '../ui/SpeciesSprite.jsx';
 import SpiritStonesBalance, { SpiritStonesAmount } from '../ui/SpiritStonesBalance.jsx';
 import { TEXT, unitName } from '../ui/strings.js';
 
@@ -51,13 +51,7 @@ export default function SummonScreen({ playerFaction, onBack }) {
         {Object.entries(roster).map(([key, species]) => {
           const action = summonAction(species, owned[key]);
           return (
-            <div key={key} className="flex items-center gap-3 border-2 border-white/30 bg-black/40 px-3 py-2">
-              <span className="retro text-xs w-8 text-right">{owned[key]}x</span>
-              <img
-                src={spritePath(SPECIES_SPRITES[species.name].key)}
-                alt=""
-                className="pixelated size-12 object-contain"
-              />
+            <SpeciesCountRow key={key} count={owned[key]} species={species} spriteClassName="size-12">
               <div className="flex flex-1 flex-col gap-1 text-xs">
                 <span className="font-bold">{unitName(species)}</span>
                 <SpiritStonesAmount amount={summonPrice(species)} />
@@ -69,7 +63,7 @@ export default function SummonScreen({ playerFaction, onBack }) {
               >
                 {TEXT.summonActions[action]}
               </Button>
-            </div>
+            </SpeciesCountRow>
           );
         })}
       </div>

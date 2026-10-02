@@ -56,10 +56,6 @@ export const TEXT = {
     wyrms: 'Souveraine des Wyrms',
     undead: 'Souverain des Morts-Vivants',
   },
-  playingAs: {
-    wyrms: 'Vous jouez la Souveraine des Wyrms.',
-    undead: 'Vous jouez le Souverain des Morts-Vivants.',
-  },
   home: {
     goToWar: 'Partir en guerre',
     army: 'Armées',
@@ -68,7 +64,6 @@ export const TEXT = {
   civilization: {
     inArmyYes: "Dans l'armée",
     inArmyNo: "Hors de l'armée",
-    inArmyTag: "dans l'armée",
     stats: {
       hp: 'PV',
       damage: 'Dégâts',

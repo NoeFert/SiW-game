@@ -1,6 +1,6 @@
 // Couche méta du jeu normal (rules.md 11.3 et 11.4) : Spirit Stones et invocation. Logique pure,
 // sans Phaser ni localStorage (la sauvegarde vit dans persistence.js).
-import { createUnit } from './ownedUnits.js';
+import { createUnit, isLegendary } from './ownedUnits.js';
 import { individualXpForLevel } from './levels.js';
 
 // rules.md 10 : somme de départ en Spirit Stones, donnée au choix de la faction. Provisoire (0)
@@ -17,12 +17,12 @@ export const LEGENDARY_PRICE_MULTIPLIER = 1;
 // 'summon' (Invoquer), 'resummon' (Réinvoquer : [Légendaire] mort) ou 'alreadyOwned'
 // ([Légendaire] vivant, « Déjà à vos côtés »).
 export function summonAction(species, ownedCount) {
-  if (!species.keywords.includes('legendary')) return 'summon';
+  if (!isLegendary(species)) return 'summon';
   return ownedCount > 0 ? 'alreadyOwned' : 'resummon';
 }
 
 export function summonPrice(species) {
-  const multiplier = species.keywords.includes('legendary') ? LEGENDARY_PRICE_MULTIPLIER : 1;
+  const multiplier = isLegendary(species) ? LEGENDARY_PRICE_MULTIPLIER : 1;
   return species.cost * SUMMON_PRICE_FACTOR * multiplier;
 }
 

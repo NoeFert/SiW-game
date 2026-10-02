@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/8bit/button.jsx';
 import { ROSTERS } from '../data/rosters.js';
-import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import { LevelBadge } from '../ui/LevelDisplay.jsx';
+import { SpeciesCountRow } from '../ui/SpeciesSprite.jsx';
 import { SpiritStonesAmount } from '../ui/SpiritStonesBalance.jsx';
 import { TEXT, unitName } from '../ui/strings.js';
 
@@ -12,18 +12,14 @@ export function ReportList({ title, rows, count, lost }) {
     <section className="flex flex-col gap-3 w-80">
       <h2 className="retro text-xs">{title}</h2>
       {rows.map((row) => (
-        <div
+        <SpeciesCountRow
           key={row.species.name}
-          className={`flex items-center gap-3 border-2 border-white/30 bg-black/40 px-3 py-2 ${lost ? 'opacity-60 grayscale' : ''}`}
+          count={count(row)}
+          species={row.species}
+          className={lost ? 'opacity-60 grayscale' : ''}
         >
-          <span className="retro text-xs w-8 text-right">{count(row)}x</span>
-          <img
-            src={spritePath(SPECIES_SPRITES[row.species.name].key)}
-            alt=""
-            className="pixelated size-10 object-contain"
-          />
           <span className="text-sm">{unitName(row.species)}</span>
-        </div>
+        </SpeciesCountRow>
       ))}
     </section>
   );
@@ -44,16 +40,10 @@ function ProgressReport({ progress, playerFaction }) {
         <section className="flex flex-col gap-3 w-96">
           <h2 className="retro text-xs">{TEXT.levels.levelUps}</h2>
           {progress.levelUps.map(({ species, from, to, count }) => (
-            <div key={`${species}-${from}-${to}`} className="flex items-center gap-3 border-2 border-white/30 bg-black/40 px-3 py-2">
-              <span className="retro text-xs w-8 text-right">{count}x</span>
-              <img
-                src={spritePath(SPECIES_SPRITES[roster[species].name].key)}
-                alt=""
-                className="pixelated size-10 object-contain"
-              />
+            <SpeciesCountRow key={`${species}-${from}-${to}`} count={count} species={roster[species]}>
               <span className="flex-1 text-sm">{unitName(roster[species])}</span>
               <LevelBadge level={to} faction={playerFaction} label={TEXT.levels.levelUp(from, to)} />
-            </div>
+            </SpeciesCountRow>
           ))}
         </section>
       )}

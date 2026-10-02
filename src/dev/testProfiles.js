@@ -27,9 +27,8 @@ const TEST_WYRM = {
 
 // Même progression que test-wyrm, côté Morts-Vivants.
 const TEST_UNDEAD = {
+  ...TEST_WYRM,
   faction: 'undead',
-  spiritStones: 10000,
-  playerXp: 1700, // niveau 3, 200 / 1 500 dans le niveau
   // 4 New-reborn Skeletons et 1 Necromant Initiate perdus pendant la bataille 01 : 14 / 7 / 1
   // survivants (369 PP).
   unitXp: {
@@ -37,7 +36,6 @@ const TEST_UNDEAD = {
     necromantInitiate: [70, 30, 0, 0, 0, 0, 0],
     athos: [350],
   },
-  fallenLegendaryLevel: null,
 };
 
 export const TEST_PROFILES = {

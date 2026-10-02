@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import '@/components/ui/8bit/styles/pixel-ui.css';
 import { SOVEREIGN_SPRITES, spritePath } from '../data/sprites.js';
 import { playerProgress } from '../logic/levels.js';
 import { getPlayerXp, getSpiritStones, saveSpiritStones } from '../persistence.js';

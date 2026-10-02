@@ -15,6 +15,21 @@ export function createStartingUnits(roster) {
   );
 }
 
+export function isLegendary(species) {
+  return species.keywords.includes('legendary');
+}
+
+// rules.md 11.4 : niveau du [Légendaire] à sa mort, écrasé à chaque nouvelle mort. `dead` :
+// Map identifiant → niveau des individus tués (individualXpGains, levels.js).
+export function fallenLegendaryLevelAfter(roster, units, dead, previous) {
+  let level = previous;
+  for (const [id, deadLevel] of dead) {
+    const unit = units.find((u) => u.id === id);
+    if (unit && isLegendary(roster[unit.species])) level = deadLevel;
+  }
+  return level;
+}
+
 // Nombre d'individus par clé de roster (ex : { lambtonWorm: 9, ... }), 0 pour une espèce absente.
 export function countUnitsBySpecies(roster, units) {
   const counts = Object.fromEntries(Object.keys(roster).map((key) => [key, 0]));

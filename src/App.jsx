@@ -62,9 +62,9 @@ export default function App() {
   const [victoryReport, setVictoryReport] = useState(null); // bilan de victoire (clickbait)
   const [victoryProgress, setVictoryProgress] = useState(null); // XP et niveaux (jeu normal)
   const [defeatLosses, setDefeatLosses] = useState(null); // pertes d'une défaite de guerre
-  // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil (null) ou depuis l'écran des unités
-  // (clé de roster de l'espèce) ; « Retour » ramène à l'écran d'origine.
-  const [summonFrom, setSummonFrom] = useState(null);
+  // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil ou depuis l'écran des unités ;
+  // « Retour » ramène à l'écran d'origine ('home' ou 'units').
+  const [summonBack, setSummonBack] = useState('home');
   const [saveVersion, setSaveVersion] = useState(0); // menu devs : recharge l'écran après un profil
   const isClickbait = mode === 'clickbait';
   const isWarBattle = !isClickbait && WAR_BATTLE_IDS.includes(battleId);
@@ -270,8 +270,8 @@ export default function App() {
         playerFaction={playerFaction}
         section={screen}
         onBack={goHome}
-        onOpenSummon={(speciesKey) => {
-          setSummonFrom(speciesKey);
+        onOpenSummon={() => {
+          setSummonBack('units');
           setScreen('summon');
         }}
       />
@@ -280,7 +280,7 @@ export default function App() {
     content = (
       <SummonScreen
         playerFaction={playerFaction}
-        onBack={() => (summonFrom ? setScreen('units') : goHome())}
+        onBack={() => (summonBack === 'units' ? setScreen('units') : goHome())}
       />
     );
   } else {
@@ -288,16 +288,10 @@ export default function App() {
       <HomeScreen
         playerFaction={playerFaction}
         onOpenWar={() => setScreen('war')}
-        onOpenUnits={() => {
-          setSummonFrom(null);
-          setScreen('units');
-        }}
-        onOpenArmy={() => {
-          setSummonFrom(null);
-          setScreen('army');
-        }}
+        onOpenUnits={() => setScreen('units')}
+        onOpenArmy={() => setScreen('army')}
         onOpenSummon={() => {
-          setSummonFrom(null);
+          setSummonBack('home');
           setScreen('summon');
         }}
       />

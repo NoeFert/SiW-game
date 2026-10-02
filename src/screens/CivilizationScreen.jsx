@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/8bit/badge.jsx';
 import { Button } from '@/components/ui/8bit/button.jsx';
 import { ROSTERS } from '../data/rosters.js';
-import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import {
   ARMY_NAME_MAX_LENGTH, ARMY_PP_CAP, addToArmy, armyCost, canAddToArmy, canRemoveFromArmy,
   removeFromArmy, renameArmy,
@@ -10,23 +9,15 @@ import {
 import {
   individualLevel, individualProgress, levelDamage, levelStat, sortByLevel,
 } from '../logic/levels.js';
+import { isLegendary } from '../logic/ownedUnits.js';
 import { summonAction } from '../logic/summon.js';
 import { getArmy, getOwnedUnits, saveArmy } from '../persistence.js';
 import { LevelBadge, XpBar } from '../ui/LevelDisplay.jsx';
 import ScreenLayout from '../ui/ScreenLayout.jsx';
+import SpeciesSprite from '../ui/SpeciesSprite.jsx';
 import { TEXT, keywordLabels, unitName } from '../ui/strings.js';
 
 const T = TEXT.civilization;
-
-function SpeciesSprite({ species, className }) {
-  return (
-    <img
-      src={spritePath(SPECIES_SPRITES[species.name].key)}
-      alt=""
-      className={`pixelated object-contain ${className}`}
-    />
-  );
-}
 
 function Keywords({ species }) {
   return keywordLabels(species).map((label) => (
@@ -36,24 +27,11 @@ function Keywords({ species }) {
   ));
 }
 
-// Bouton d'invocation d'une espèce (vers SummonScreen) : « Invoquer », « Réinvoquer » pour un
-// [Légendaire] mort, désactivé avec « Déjà à vos côtés » tant qu'il est vivant (rules.md 11.4).
-function SummonButton({
-  species, owned, onSummon, className,
-}) {
-  const action = summonAction(species, owned);
-  return (
-    <Button size="sm" disabled={action === 'alreadyOwned'} onClick={onSummon} className={className}>
-      {TEXT.summonActions[action]}
-    </Button>
-  );
-}
-
 // technical.md 5.1 : en-tête d'accordéon d'une espèce — clic pour ouvrir ou fermer la liste de
-// ses individus. `summary` : ce qui s'affiche sous le nom ; `action` : bouton à droite.
-// Une espèce sans individu reste affichée, grisée.
+// ses individus. `summary` : ce qui s'affiche sous le nom. Une espèce sans individu reste
+// affichée, grisée.
 function SpeciesAccordion({
-  species, owned, open, onToggle, summary, action, children,
+  species, owned, open, onToggle, summary, children,
 }) {
   return (
     <div className="border-2 border-white/30 bg-black/40">
@@ -75,20 +53,18 @@ function SpeciesAccordion({
             <div className="flex flex-wrap items-center gap-y-1">{summary}</div>
           </div>
         </button>
-        {action}
       </div>
       {open && owned > 0 && <div className="flex flex-col gap-1 border-t-2 border-white/20 p-2">{children}</div>}
     </div>
   );
 }
 
-// Une ligne d'individu : niveau, barre d'XP, puis ce que la section y ajoute (`children`).
-function IndividualLine({ unit, faction, children }) {
+// Une ligne d'individu : niveau, barre d'XP.
+function IndividualLine({ unit, faction }) {
   return (
     <>
       <LevelBadge level={individualLevel(unit.xp)} faction={faction} />
       <XpBar progress={individualProgress(unit.xp)} faction={faction} className="flex-1" />
-      {children}
     </>
   );
 }
@@ -109,7 +85,6 @@ const LEGENDARY_CORNERS = [
   ['bottom-right', 'bottom-0 right-0'],
 ];
 
-const isLegendary = (species) => species.keywords.includes('legendary');
 const legendaryClass = (species) => (isLegendary(species) ? 'pixel-card-gold' : '');
 
 function LegendaryCorners({ species }) {
@@ -153,7 +128,9 @@ function EmptySpeciesTile({ species, onSummon }) {
       <LegendaryCorners species={species} />
       <SpeciesSprite species={species} className="size-14 opacity-50 grayscale" />
       <span className="text-center leading-tight text-white/50">{unitName(species)}</span>
-      <SummonButton species={species} owned={0} onSummon={onSummon} className="px-1 text-[10px]" />
+      <Button size="sm" onClick={onSummon} className="px-1 text-[10px]">
+        {TEXT.summonActions[summonAction(species, 0)]}
+      </Button>
     </div>
   );
 }
@@ -269,7 +246,7 @@ export default function CivilizationScreen({
   const [selectedId, setSelectedId] = useState(null);
   const [army, setArmy] = useState(getArmy);
   const roster = ROSTERS[playerFaction];
-  const units = getOwnedUnits() ?? [];
+  const [units] = useState(() => getOwnedUnits() ?? []);
   const armyIds = new Set(army?.unitIds ?? []);
   const speciesUnits = (key) => sortByLevel(units.filter((unit) => unit.species === key));
 
@@ -309,7 +286,7 @@ export default function CivilizationScreen({
               onToggle={() => toggle(key)}
               summary={<span>{T.armySummary(inArmy, members.length)}</span>}
             >
-              {members.map((unit) => {
+              {openKey === key && members.map((unit) => {
                 const checked = armyIds.has(unit.id);
                 const allowed = checked
                   ? canRemoveFromArmy(army, units, unit.id)
@@ -340,7 +317,7 @@ export default function CivilizationScreen({
         {Object.entries(roster).flatMap(([key, species]) => {
           const members = speciesUnits(key);
           if (members.length === 0) {
-            return [<EmptySpeciesTile key={key} species={species} onSummon={() => onOpenSummon(key)} />];
+            return [<EmptySpeciesTile key={key} species={species} onSummon={onOpenSummon} />];
           }
           return members.map((unit) => (
             <UnitTile

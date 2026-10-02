@@ -1,7 +1,8 @@
 // Couche méta du jeu normal (rules.md 11.7) : « Partir en guerre ». Logique pure, sans Phaser ni
 // localStorage (la sauvegarde vit dans persistence.js).
 import { removeDeadFromArmy } from './army.js';
-import { applyVictoryToUnits, individualXpGains } from './levels.js';
+import { individualXpGains } from './levels.js';
+import { countUnitsBySpecies, fallenLegendaryLevelAfter } from './ownedUnits.js';
 
 // rules.md 11.7 : au rejeu, 25 % de la récompense de la première victoire (provisoire).
 export const REPLAY_REWARD_PERCENT = 25;
@@ -27,11 +28,9 @@ export function victoryReward(fullReward, alreadyWon) {
 // Unités perdues par espèce, dans l'ordre du roster, au format du bilan des pertes
 // (technical.md 5.6) : [{ species, lost }], espèces sans perte omises.
 export function lossReport(roster, units, dead) {
+  const lost = countUnitsBySpecies(roster, units.filter((unit) => dead.has(unit.id)));
   return Object.entries(roster)
-    .map(([key, species]) => ({
-      species,
-      lost: units.filter((unit) => unit.species === key && dead.has(unit.id)).length,
-    }))
+    .map(([key, species]) => ({ species, lost: lost[key] }))
     .filter((row) => row.lost > 0);
 }
 
@@ -41,12 +40,10 @@ export function lossReport(roster, units, dead) {
 // `save` : { units, army, fallenLegendaryLevel }. Renvoie la nouvelle sauvegarde et le bilan.
 export function resolveWarDefeat(save, battleUnits, roster) {
   const { dead } = individualXpGains(battleUnits);
-  const units = applyVictoryToUnits(save.units, { gains: new Map(), dead });
-  let { fallenLegendaryLevel } = save;
-  for (const [id, level] of dead) {
-    const unit = save.units.find((u) => u.id === id);
-    if (unit && roster[unit.species].keywords.includes('legendary')) fallenLegendaryLevel = level;
-  }
+  const units = save.units.filter((unit) => !dead.has(unit.id));
+  const fallenLegendaryLevel = fallenLegendaryLevelAfter(
+    roster, save.units, dead, save.fallenLegendaryLevel,
+  );
   return {
     save: { units, army: removeDeadFromArmy(save.army, units), fallenLegendaryLevel },
     lost: lossReport(roster, save.units, dead),

@@ -5,9 +5,9 @@ import { TEXT } from './strings.js';
 // GRAPHICS.md « Niveaux » : badge et barre d'XP dans la couleur signature de la faction du joueur.
 // `label` : texte du badge (« niv 3 » par défaut ; « Niveau 3 » pour le joueur).
 export function LevelBadge({
-  level, faction, label = TEXT.levels.badge(level), className = '',
+  level, faction, label = TEXT.levels.badge(level),
 }) {
-  return <Badge variant={faction} className={`text-[10px] mx-1.5 ${className}`}>{label}</Badge>;
+  return <Badge variant={faction} className="text-[10px] mx-1.5">{label}</Badge>;
 }
 
 // `progress` : { xpInLevel, xpForLevel, isMax } (voir levels.js). Au niveau maximum d'un
