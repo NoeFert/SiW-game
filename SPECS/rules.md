@@ -33,6 +33,7 @@ Ce fichier couvre le **scope v1** : le moteur de bataille (sections 1 à 9) et l
 - **Sans ennemi sur le terrain**, une unité sans commande reste sur place jusqu'à l'arrivée d'un ennemi.
 - Une unité se déplace vers l'ennemi le plus proche par défaut, en contournant les obstacles et les autres unités qui bloquent le passage.
 - **Égalité de distance :** si plusieurs ennemis sont à la même distance, l'unité choisit celui qui a **le moins de PV actuels**. En cas de nouvelle égalité, le premier déployé.
+- **Ennemi inatteignable :** pour une unité au sol, « l'ennemi le plus proche » ne compte d'abord que les ennemis qu'elle peut atteindre en contournant les obstacles du terrain : une case adjacente libre pour le corps-à-corps, une case d'où il est à portée pour une unité à distance. Les autres unités, qui bougent, ne rendent jamais un ennemi inatteignable. S'il ne reste **que des ennemis inatteignables**, l'unité se dirige quand même vers le plus proche d'entre eux et s'en approche au plus près possible, pour être sur place dès qu'il devient atteignable. Les unités [Vol] ne sont pas concernées.
 - Chaque unité a sa propre vitesse de déplacement (voir `units.md` pour les valeurs du roster).
 - **Unités occupant 4 cases (2×2) :** se déplacent comme un bloc rigide — un déplacement n'est valide que si les 4 cases de destination sont toutes libres. Si le passage est trop étroit (couloir d'une seule case de large), l'unité attend ou contourne, exactement comme une unité normale face à un obstacle.
 - **Unités [Vol] :** ignorent les obstacles terrestres dans leur pathfinding — un obstacle qui bloquerait une unité au sol n'a aucun effet sur leur trajectoire. Cette règle ne s'applique qu'aux obstacles de terrain : les autres unités continuent de bloquer le passage normalement (deux unités ne peuvent jamais occuper la même case, voir section 1). Une unité [Vol] peut s'arrêter au-dessus d'un obstacle. Le déploiement, lui, se fait toujours sur une case libre, même pour une unité [Vol] (section 2).
@@ -106,7 +107,7 @@ Deux familles de pause, indépendantes et combinables. Le temps de bataille ne s
 - **Pause principale** : interrupteur activé et désactivé par le joueur (bouton ⏸ / ▶, raccourci barre Espace). Pendant cette pause, le joueur peut encore déployer et donner une commande.
 - **Pause d'interaction** : automatique pendant un glisser-déposer de déploiement (section 2), pendant la sélection d'une commande (dès l'ouverture de la barre, section 5) et pendant la confirmation d'abandon (section 8.2 ; une commande en cours de sélection est alors annulée). Elle se termine d'elle-même à la fin ou à l'annulation du geste.
 - **Gel du tutoriel** (`technical.md` 5.5) : pendant une étape qui demande ou explique quelque chose, la bataille est figée comme pendant une pause, et seule l'action demandée est possible.
-- Pendant toute pause, **tous les compteurs sont gelés** : timers d'attaque, mouvements, cooldown des commandes, script de l'IA (section 7) et compte à rebours de 15 secondes (section 8.2). Les animations des unités sont gelées elles aussi.
+- Pendant toute pause, **tous les compteurs sont gelés** : timers d'attaque, mouvements, cooldown des commandes et script de l'IA (section 7). Les animations des unités sont gelées elles aussi.
 - Le cooldown étant gelé, **une seule commande est possible par pause principale**.
 - Le déploiement reste possible **plusieurs fois** pendant une pause principale, dans la limite du plafond de points de présence (section 2).
 - Après un déploiement ou une commande effectués pendant la pause principale, le jeu **reste en pause** jusqu'à ce que le joueur la relance.
@@ -180,7 +181,7 @@ Les unités d'une même vague (même instant du script) entrent ensemble. S'il y
 2. **Éradication** : sinon, le ou les ennemis qui ont le plus de PV actuels.
 
 ### 7.3 Bataille en plusieurs phases (bataille-clickbait)
-Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. La bataille de la version clickbait (`technical.md` 5.6) en a trois. La bataille 01 du MVP en aura plusieurs elle aussi, en reprenant ces zones (`roadmap.md`) — nombre de phases, scripts de chaque phase et condition de victoire (section 8.1) encore à définir ; en attendant, la bataille 01 actuelle n'a qu'une phase.
+Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre script IA et sa propre zone. La bataille de la version clickbait (`technical.md` 5.6) en a trois. Les batailles de « Partir en guerre » en ont deux (11.7). La bataille 01 du jeu normal n'a qu'**une phase** (sections 1 et 7.1).
 
 - **Fin d'une phase** : quand l'IA a déployé tout le script de la phase **et** qu'elle n'a plus aucune unité sur le terrain. Ce n'est pas une victoire : s'il reste une phase, la bataille continue.
 - **Transition** : tout est figé (aucune action possible, compteurs gelés) pendant que l'armée du joueur présente sur le terrain part vers la droite, puis entre par la gauche dans la zone suivante. Chaque unité arrive sur la case libre la plus à gauche de sa rangée (ou de la rangée libre la plus proche), les unités les plus avancées en premier. Les commandes en cours sont annulées. Seule exception : le bouton Abandonner reste utilisable pendant la transition (section 8.2).
@@ -193,7 +194,7 @@ Une bataille peut enchaîner plusieurs **phases**, chacune avec son propre scrip
 - **Murs** : les rochers d'un mur se touchent par un côté. Une unité au sol ne coupe jamais le coin d'un rocher (section 3).
 - **Ce qui est conservé** : les morts restent perdus, les PV perdus ne reviennent pas. La réserve du joueur (copies jamais déployées, unités revenues de fuite) reste déployable dans la moitié gauche de la nouvelle zone, avec le même plafond de 150 points. Le cooldown des commandes continue.
 - **Script de la phase suivante** : ses instants sont comptés depuis le début de la phase.
-- **Victoire de la bataille-clickbait** : dès que l'IA est à la fin du script de la **dernière** phase et qu'elle n'a plus aucune unité vivante sur le terrain — sans le compte à rebours de 15 secondes de la section 8.2, même s'il lui reste des copies en réserve. Si le joueur est éliminé au même instant, c'est un match nul (section 8.1). La défaite du joueur, elle, suit les règles habituelles (section 8).
+- **Victoire de la bataille-clickbait** : dès que l'IA est à la fin du script de la **dernière** phase et qu'elle n'a plus aucune unité vivante sur le terrain, même s'il lui reste des copies en réserve (règle commune à toutes les batailles, section 8.1). Si le joueur est éliminé au même instant, c'est un match nul (section 8.1).
 
 **Scripts provisoires des phases 1 à 3** (à ajuster), instants comptés depuis le début de chaque phase.
 
@@ -211,18 +212,16 @@ Phase 3 (une nuée d'abord — le fort la retient —, puis des tireurs — le f
 
 ## 8. Fin de bataille
 
-### 8.1 Victoire immédiate
-- Si toutes les unités du camp adverse sont mortes (aucune copie restante en réserve, aucune unité vivante sur le terrain), victoire immédiate pour l'autre camp.
-- **Cas d'égalité (draw) :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — les deux camps perdent leur dernière unité au même frame, sans copie restante en réserve d'aucun côté. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire : un match nul ne rapporte aucune récompense (section 11.3). Un match nul n'est pas une victoire : la bataille tutoriel n'est pas validée, le joueur voit un écran « Match nul » et peut réessayer, comme après une défaite (voir `technical.md` 5.1).
-- **Réserves de l'IA :** dans la bataille 01, l'IA dispose des copies de `units.md` ; une fois son script terminé et son terrain vide, il lui reste donc des réserves qu'elle ne redéploie jamais, et la section 8.2 s'applique (victoire du joueur après 15 s). La bataille-clickbait fait exception : victoire immédiate dès la fin du script de la dernière phase (section 7.3).
+Pas de compte à rebours (l'ancien délai de 15 s quand un terrain se vide est supprimé, pour les deux camps et dans toutes les batailles). Un terrain vide avec des réserves ne met jamais fin à la bataille : elle continue tant que ni la victoire, ni la défaite, ni le match nul ci-dessous n'est atteint.
 
-### 8.2 Terrain vide avec réserves restantes
-- Si un camp n'a **aucune unité actuellement déployée** sur le terrain (toutes mortes ou en fuite) mais possède encore des **copies non utilisées en réserve**, ce camp reçoit un avertissement avec un **compte à rebours de 15 secondes**.
-- Le compte à rebours ne concerne qu'un camp qui a déjà eu au moins une unité sur le terrain. En début de bataille, le joueur n'a aucun délai pour son premier déploiement.
-- Pendant ce délai, le camp concerné doit redéployer au moins une unité pour continuer la bataille.
-- Si le compte à rebours expire sans redéploiement, ou si le joueur choisit explicitement d'abandonner (bouton Abandonner, disponible à tout moment de la bataille, tutoriel compris, avec confirmation), c'est une **défaite automatique** pour ce camp — mais ses unités survivantes en réserve ne sont **pas exterminées** (elles restent disponibles pour la suite, contrairement à une unité tuée au combat qui est perdue définitivement, voir section 4.4).
-- Cette règle s'applique symétriquement au joueur et à l'IA.
-- **Expiration simultanée :** si les comptes à rebours des deux camps expirent au même instant, c'est une **défaite du joueur** (pas un match nul).
+### 8.1 Victoire, défaite et match nul
+- **Victoire du joueur** (toutes les batailles : bataille 01, bataille-clickbait, « Partir en guerre ») : dès que l'IA a déployé tout le script de sa **dernière** phase (une seule phase pour la bataille 01) **et** qu'elle n'a plus aucune unité vivante sur le terrain, même s'il lui reste des copies en réserve (elle ne les redéploie jamais).
+- **Défaite du joueur** : quand il n'a plus **aucune unité**, ni sur le terrain ni en réserve (toutes ses copies sont mortes), ou quand il abandonne (section 8.2).
+- **Match nul :** la résolution simultanée des dégâts (section 4.1) rend possible une élimination mutuelle au même instant — le joueur perd sa dernière unité au moment où la condition de victoire est remplie. Dans ce cas, la bataille se termine sur un **match nul**, sans vainqueur. Aucune règle de départage n'est nécessaire : un match nul ne rapporte aucune récompense (section 11.3). Un match nul n'est pas une victoire : la bataille tutoriel n'est pas validée, le joueur voit un écran « Match nul » et peut réessayer, comme après une défaite (voir `technical.md` 5.1).
+- Un joueur dont le terrain est vide mais qui a encore des unités en réserve n'a **aucun délai** : il redéploie quand il veut, pendant que l'IA continue son script.
+
+### 8.2 Abandon
+- Le joueur peut abandonner à tout moment de la bataille (bouton Abandonner, tutoriel compris, avec confirmation) : c'est une **défaite** — mais ses unités survivantes en réserve ne sont **pas exterminées** (elles restent disponibles pour la suite, contrairement à une unité tuée au combat qui est perdue définitivement, voir section 4.4).
 
 ## 9. Roster
 
@@ -260,7 +259,7 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 - L'**armée** est une liste d'identifiants d'individus possédés, avec un **nom**.
 - Le joueur n'a **qu'une armée**. Les emplacements supplémentaires sont hors scope (`roadmap-mvp.md`).
 - **Plafond** : la somme des coûts en points de présence de ses individus ne dépasse jamais **500**. Ce plafond est distinct du plafond simultané de 150 points sur le terrain (section 2).
-- **Minimum** : l'armée contient au moins **1 individu**.
+- **Minimum** : le joueur ne peut pas retirer lui-même le **dernier individu** de l'armée. L'armée peut en revanche être **vidée par les morts** (11.1) : « Combattre » est alors désactivé (11.7) jusqu'à ce que le joueur y ajoute un individu. Il n'y a pas d'ajout automatique.
 - **Composition** : le joueur ajoute ou retire des individus **un par un**, en cochant ou décochant l'individu choisi dans l'accordéon de son espèce (`technical.md` 5.1). Un ajout qui ferait dépasser 500 est impossible, tout comme le retrait du dernier individu de l'armée. Le coût d'un individu est celui de son espèce, quel que soit son niveau (11.6).
 - **Renommage** : le joueur peut renommer l'armée à tout moment depuis la gestion de civilisation.
   - Le nom fait de **1 à 20 caractères**, sans filtre (accents, chiffres, emojis acceptés).
@@ -312,15 +311,16 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 - **Trois batailles**, jouées **en séquence** : la bataille 1 est disponible dès la victoire de la bataille 01 ; la bataille N + 1 se débloque à la première victoire de la bataille N. Noms provisoires : **« La passe »**, **« Les crevasses »**, **« La citadelle »** (`strings.js`).
 - **Map** : les batailles sont les premiers emplacements de la **map 1**, un parcours de **10 emplacements** (`src/data/warMaps.js`). Les emplacements 4 à 10 n'ont pas encore de bataille : ils sont affichés **verrouillés** (« À venir ») et ne se débloquent pas (leurs zones, scripts et récompenses restent à définir). Pas d'autre map ni de changement de map pour l'instant.
 - **Rejeu** : une bataille déjà gagnée reste jouable à volonté, avec une récompense réduite (voir Récompenses).
-- **Armée** : le joueur part avec **son armée** (section 2) ; bouton « Combattre » **désactivé si l'armée est vide** (message « Composez votre armée »).
+- **Armée** : le joueur part avec **son armée** (11.2) ; bouton « Combattre » **désactivé si l'armée est vide** (message « Composez votre armée »).
 - **Zones** (section 7.3) : chaque bataille enchaîne **2 zones** (2 phases). Provisoire, en attendant les zones et scripts définitifs :
   - bataille 1 : le champ (bataille 01) → « Le mur » ;
   - bataille 2 : « Le mur » → « Les trois couloirs » ;
   - bataille 3 : « Les trois couloirs » → « Le fort ».
 - **Scripts de l'IA** (provisoires) : ceux de la bataille-clickbait, par zone — champ : phase 1, « Le mur » et « Les trois couloirs » : phase 2, « Le fort » : phase 3 (section 7.3). Transition entre zones, conservation des morts, des PV et de la réserve : comme la bataille-clickbait (7.3).
 - **Commandes et abandon** : comme la bataille 01 — les trois ordres (Aller, Attaquer, Fuir), bouton Abandonner disponible ; pas de tutoriel.
-- **Victoire** : dès que l'IA a fini le script de la **dernière zone** et n'a plus aucune unité vivante sur le terrain, sans compte à rebours de 15 s (comme la bataille-clickbait, 7.3). Conséquences : pertes (11.1), XP (11.5, 11.6), récompense en Spirit Stones (ci-dessous).
+- **Victoire** : dès que l'IA a fini le script de la **dernière zone** et n'a plus aucune unité vivante sur le terrain (section 8.1). Conséquences : pertes (11.1), XP (11.5, 11.6), récompense en Spirit Stones (ci-dessous).
 - **Défaite, abandon ou match nul** : les individus **tués pendant la bataille sont perdus quand même** (mort définitive, retirés de la liste et de l'armée), et le niveau du [Légendaire] mort est mémorisé (11.4). **Aucune** XP, **aucune** récompense. L'écran de défaite liste les unités perdues et propose **« Réessayer »** (même bataille, avec l'armée telle qu'elle reste) et **« Retour à l'accueil »** (pour réinvoquer et recomposer l'armée). Si l'armée est vide, « Réessayer » est désactivé.
+- **Page rechargée ou fermée pendant une bataille** (tout le jeu normal) : la bataille est annulée, comme si elle n'avait jamais eu lieu. Aucune perte, aucune XP, aucune récompense : l'état d'une bataille en cours n'est pas sauvegardé (`technical.md` 5.4). Faille assumée pour le MVP.
 - **Récompenses** en Spirit Stones (provisoires, section 10) : bataille 01 : **50** ; batailles 1 / 2 / 3 : **60 / 80 / 100** à la **première** victoire, puis **25 %** de ce montant à chaque victoire suivante (arrondi à l'entier inférieur : 15 / 20 / 25).
 - **Fin du contenu** : une fois les trois batailles gagnées, l'écran « Partir en guerre » affiche « D'autres terres à conquérir arrivent bientôt… » ; les trois batailles restent rejouables.
 

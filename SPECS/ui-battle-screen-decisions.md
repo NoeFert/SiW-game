@@ -216,7 +216,7 @@ Clic sur [COMMANDES] → la barre s'ouvre
 ### Règles de la pause principale
 
 - **Bouton unique ⏸ / ▶** : un interrupteur, **pas un menu modal**, car le joueur doit pouvoir agir sur le terrain et la tour pendant la pause.
-- **Tous les compteurs sont gelés** : cooldown des commandes, timers d'attaque, script de l'IA, compte à rebours de 15 s.
+- **Tous les compteurs sont gelés** : cooldown des commandes, timers d'attaque, script de l'IA.
 - Le cooldown étant gelé, le joueur ne peut donner **qu'une seule commande** par pause.
 - **Intention :** laisser aux joueurs plus lents le temps de réfléchir et d'élaborer leur stratégie si le combat va trop vite, pour éviter un stress constant et l'abandon du jeu par frustration.
 
@@ -276,4 +276,3 @@ Reste ouvert (rendu uniquement, sans effet sur les règles) :
 - **Champ de bataille** :
   - unité en fuite ;
   - unité engagée au corps-à-corps.
-- **Compte à rebours de 15 s** (terrain vide avec réserves) : où et comment il s'affiche.

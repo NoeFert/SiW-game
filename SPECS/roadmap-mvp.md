@@ -33,12 +33,12 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 - Le joueur possède une **liste d'individus** `{ id, species, xp }` (pas de nom, pas de PV propres, pas de trait) ; le niveau se déduit de l'XP ; les stats sont celles de l'espèce (`units.md`), augmentées selon le niveau (`rules.md` 11.6)
 - L'interface regroupe les individus **par espèce** (accordéons), puis les montre un par un : ils sont discernables par leur niveau
 - Un individu tué en bataille est retiré de la liste (mort définitive) et de toutes les armées qui le contiennent
-- Les « copies disponibles » de `units.md` deviennent la **dotation de départ** du joueur (niveau 1), plus un maximum de possession
+- Les « copies disponibles » de `units.md` deviennent la **dotation de départ** du joueur (niveau 1) et ne sont plus un maximum de possession
 
 ### Niveaux (joueur et individus)
 - **Joueur** (`rules.md` 11.5) : XP à chaque victoire (100 + bonus selon les PP survivants de l'armée ; 100 fixes pour la bataille 01), courbe 500 × niveau, sans maximum. Chaque niveau rapporte des Spirit Stones (50 × nouveau niveau, provisoire)
 - **Individus** (`rules.md` 11.6) : XP à la victoire seulement, bataille 01 comprise (+10 par survivant déployé, + coût en PP de chaque ennemi achevé), courbe 50 × niveau, niveau 5 maximum. +10 % de PV et de dégâts par niveau ; coût en PP inchangé
-- **Écran de victoire** (jeu normal seulement, rien ne change dans la version clickbait) : XP gagnée par le joueur et individus qui ont monté de niveau
+- **Écran de victoire** (jeu normal seulement, rien ne change dans la version clickbait) : XP gagnée par le joueur, individus qui ont monté de niveau, Spirit Stones gagnées (« +X ») et unités perdues (comme le bilan du clickbait) — `technical.md` 5.3
 - **Bataille** : la tour de déploiement affiche une ligne par espèce **et par niveau** (`ui-battle-screen-decisions.md` 2.2)
 
 ### Gestion de civilisation — section Unités

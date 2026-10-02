@@ -88,7 +88,7 @@ Les composants React gardent leur API shadcn/8bitcn, mais leur cadre est un spri
 
 **Tags d'une unité** (page de détail, tour de bataille) : son type d'attaque — « Corps-à-corps », « Tirs », ou les deux pour Fafnir (hybride) — puis ses keywords (« Légendaire », « Vol »). Plus de tag « basique ».
 
-**Accents selon la faction du joueur** : dorés (variantes Gold du pack) pour la Souveraine des Wyrms, violets pour le Souverain des Morts-Vivants et les écrans d'avant le choix de faction. Concerne le survol du bouton principal, le séparateur et le survol du menu de l'accueil, et la barre de la Spirit Fountain (pas de barre Gold dans le pack : remplissage doré recoloré, le même que l'XP des Wyrms). L'icône des Spirit Stones (gemme noire) est la même pour les deux factions.
+**Accents selon la faction du joueur** : dorés (variantes Gold du pack) pour la Souveraine des Wyrms, violets pour le Souverain des Morts-Vivants et les écrans d'avant le choix de faction. Concerne le survol du bouton principal, ainsi que le séparateur et le survol du menu de l'accueil. L'icône des Spirit Stones (gemme noire) est la même pour les deux factions.
 
 | Composant | Sprite | Comportement |
 |---|---|---|

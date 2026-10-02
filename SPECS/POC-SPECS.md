@@ -36,7 +36,7 @@ La première zone apprend à jouer ; passer à la zone suivante est une petite r
 3. Visible à la fin : cette perte figure dans le bilan des pertes.
 
 **Défaite (sanction ultime) :**
-1. Le joueur n'a plus aucune unité sur le terrain ni en réserve, **ou** il n'a plus d'unité sur le terrain et ne redéploie pas avant la fin du compte à rebours de 15 s.
+1. Le joueur n'a plus aucune unité sur le terrain ni en réserve (pas de compte à rebours, `rules.md` 8).
 2. Visible : écran de défaite avec « Réessayer », qui **relance toute la bataille depuis la zone 1**.
 
 ## Règles incluses dans le POC
@@ -54,9 +54,9 @@ La première zone apprend à jouer ; passer à la zone suivante est une petite r
 | 7. IA — principes généraux | Incluse | Script à l'instant absolu, aucune ressource dynamique, comportement autonome identique au joueur, plafond vivant de 150. |
 | 7.1 Script de la bataille 01 | **Simplifiée** | Sert de base au script de la phase 1 (vagues resserrées, sans Légendaire, voir 7.3). |
 | 7.2 Entrée par le bord droit | Incluse | Rangée choisie selon la cible stratégique (renfort, puis éradication), vagues sur des rangées voisines. |
-| 7.3 Bataille en plusieurs phases | Incluse | Trois zones (champ, « Le mur », « Le fort ») et leurs scripts, transition figée, conservation des morts, des PV et de la réserve, victoire à la fin de la phase 3 sans compte à rebours. |
+| 7.3 Bataille en plusieurs phases | Incluse | Trois zones (champ, « Le mur », « Le fort ») et leurs scripts, transition figée, conservation des morts, des PV et de la réserve, victoire à la fin de la phase 3. |
 | 8.1 Victoire immédiate | **Simplifiée** | Victoire selon 7.3 ; défaite si le joueur n'a plus d'unité sur le terrain ni en réserve ; match nul en cas d'élimination mutuelle au même instant. |
-| 8.2 Terrain vide avec réserves | **Simplifiée** | Compte à rebours de 15 s et défaite à son expiration. |
+| 8. Pas de compte à rebours | Incluse | Un terrain vide avec des réserves ne met pas fin à la bataille (le compte à rebours de 15 s, présent au Rendu 1, est supprimé). |
 | 9. Roster | Incluse en entier | Deux factions au choix, l'IA joue l'autre ; 3 unités par faction avec les stats et copies de `units.md`. |
 
 Tutoriel : **tutoriel clickbait** (`CLICKBAIT_TUTORIAL`, `technical.md` 5.5) — déployer (bataille figée), combat autonome, points de présence (autonome, 6 s), puis battre en retraite 6 s après le début de la phase 2 (ouvrir la barre de commandes, puis ordonner Fuir à une unité ; bataille figée).
@@ -71,11 +71,11 @@ Tutoriel : **tutoriel clickbait** (`CLICKBAIT_TUTORIAL`, `technical.md` 5.5) —
 | 5.1 Diminution du cooldown avec le niveau du joueur | Suite (déjà hors v1) |
 | 5.2 Pause d'interaction pendant la confirmation d'abandon | MVP (suit le bouton Abandonner) |
 | 6.2 Aptitudes à usage limité | Suite (aucune unité v1 n'en a) |
-| 7.1 Bataille 01 en tant que bataille à part entière (en plusieurs phases, `roadmap.md`) | MVP |
-| 7.3 Zone de réserve « Les trois couloirs » | Suite |
-| 8.1 Réserves de l'IA dans la bataille 01 (victoire après 15 s) | MVP |
+| 7.1 Bataille 01 en tant que bataille à part entière (une seule phase) | MVP |
+| 7.3 Zone « Les trois couloirs » | MVP (batailles 2 et 3 de « Partir en guerre », `rules.md` 11.7) |
 | 8.2 **Bouton Abandonner** (avec confirmation) | MVP |
-| 10. Valeurs à définir | Sans objet (section vide) |
+| 10. Valeurs à définir | MVP (valeurs provisoires de la couche méta) |
+| 11. Couche méta | MVP (rien n'est sauvegardé dans le POC) |
 
 Hors `RULES.md`, également absents du POC (voir `roadmap.md`) : tutoriel de départ complet (`STARTER_TUTORIAL`), écran d'accueil, écran de gestion de civilisation, toute sauvegarde (rien n'est persisté).
 
@@ -104,5 +104,5 @@ Hors `RULES.md`, également absents du POC (voir `roadmap.md`) : tutoriel de dé
 - Le POC démontre qu'une unité tuée ne revient jamais et apparaît dans le bilan des pertes.
 - Le POC démontre la pause (terrain désaturé, compteurs gelés), pendant laquelle on peut encore déployer et faire fuir.
 - Le POC démontre le passage de zone comme récompense, sans écran intermédiaire.
-- Le POC démontre la défaite (plus d'unités, ou compte à rebours de 15 s expiré) et relance depuis la zone 1 avec « Réessayer ».
+- Le POC démontre la défaite (plus aucune unité) et relance depuis la zone 1 avec « Réessayer ».
 - Le POC ne montre ni Aller, ni Attaquer, ni Abandonner, ni aucune sauvegarde.
