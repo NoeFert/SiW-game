@@ -70,6 +70,15 @@ Rien n'est ajouté sur le terrain : les unités en bataille ne montrent pas leur
 - **Barres de vie** au-dessus des unités : vert, puis jaune sous 50 %, rouge sous 25 %.
 - **Aptitudes** : « COUP CRITIQUE ! » et tremblement d'écran (Fafnir), « Raté ! » et badge 💫 (paralysie d'Athos), « +40 » en vert (Soif de sang).
 
+## Partir en guerre
+
+La **map 1** est une carte en **arbre de compétences** (sprites SkillTree du pack, à 2×) : **10 losanges** (SkillSlotSharp) sur une grille de 5 × 4 cases espacées de 96 px, reliés de pointe à pointe par des connecteurs droits. Le tracé monte **en lacets** vers la droite : 3 emplacements en bas à gauche, un virage, retour vers la gauche, puis la montée jusqu'au sommet en haut à droite (`src/data/warMaps.js`). Un **panneau à droite** de la map montre l'emplacement sélectionné : nom (« À venir » sans bataille), état, récompense, « Combattre ».
+
+- **Couleur du souverain adverse** : violet (Purple) quand le joueur joue les Wyrms, jaune (Yellow) quand il joue les Morts-Vivants.
+- **États** : disponible = losange vide ; gagnée = losange plein (SkillSlotSharpPlaceholder) ; verrouillée = losange et connecteur d'arrivée gris (Grey), panneau à moitié transparent.
+- **Sélection** : le sélecteur (SelectorSharp, à 3× pour entourer le losange) marque l'emplacement affiché dans le panneau ; gris sur un emplacement verrouillé.
+- Les zones traversées par chaque bataille ne sont pas affichées.
+
 ## Interface
 
 Les composants React gardent leur API shadcn/8bitcn, mais leur cadre est un sprite du pack **Pixel UI & HUD**, découpé en 9-slice (`border-image`) et affiché à **2×** sans lissage (`src/components/ui/8bit/styles/pixel-ui.css`). Le pack complet reste dans `asset-packs/` (local, ignoré par git, hors build) ; seuls les fichiers utilisés sont copiés dans `assets/ui/`.

@@ -23,7 +23,7 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 
 ### Partir en guerre (`rules.md` 11.7)
 - **Trois batailles en séquence** (« La passe », « Les crevasses », « La citadelle », noms provisoires) : chacune se débloque en gagnant la précédente ; une bataille gagnée reste **rejouable**, avec une récompense réduite
-- **Écran « Partir en guerre »** : l'armée qui partira (nom, X / 500 PP), une ligne par bataille (zones, état verrouillée / disponible / gagnée, récompense), bouton « Combattre » (désactivé si l'armée est vide)
+- **Écran « Partir en guerre »** : l'armée qui partira (nom, X / 500 PP), la map 1 en arbre de compétences : 10 emplacements en lacets, 3 batailles jouables et 7 verrouillées « À venir » ; un clic sur un losange affiche dans un panneau son nom, son état (verrouillée / disponible / gagnée) et sa récompense, bouton « Combattre » (désactivé si l'armée est vide)
 - **Deux zones par bataille** (provisoire) : champ → « Le mur » ; « Le mur » → « Les trois couloirs » ; « Les trois couloirs » → « Le fort ». Scripts de l'IA provisoires : ceux de la bataille-clickbait. Zones et scripts définitifs : plus tard
 - **Victoire** dès la fin du script de la dernière zone (comme la bataille-clickbait) ; commandes complètes et abandon possibles, pas de tutoriel
 - **Défaite, abandon ou match nul** : les individus tués sont **perdus quand même** ; aucune XP ni récompense ; écran de défaite avec les pertes, « Réessayer » et « Retour à l'accueil »

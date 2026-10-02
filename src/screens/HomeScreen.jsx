@@ -24,7 +24,7 @@ function MenuItem({ onClick, children }) {
 // barre d'XP et son niveau (rules.md 11.5) ; solde de Spirit Stones en haut à droite (rules.md
 // 11.3) ; menu de quatre entrées alignées à droite — « Partir en guerre » (WarScreen), les unités
 // (entrée au nom de la faction) et « Armées » (CivilizationScreen), invocation — et la Spirit
-// Fountain (rules.md 11.8).
+// Fountain alignée à gauche (rules.md 11.8).
 export default function HomeScreen({
   playerFaction, onOpenWar, onOpenUnits, onOpenArmy, onOpenSummon,
 }) {
@@ -60,7 +60,9 @@ export default function HomeScreen({
         <MenuItem onClick={onOpenArmy}>{TEXT.home.army}</MenuItem>
         <MenuItem onClick={onOpenSummon}>{TEXT.home.summon}</MenuItem>
       </nav>
-      <SpiritFountain playerLevel={progress.level} onHarvest={collect} />
+      <div className="absolute left-12 top-1/2 -translate-y-1/2">
+        <SpiritFountain playerLevel={progress.level} onHarvest={collect} />
+      </div>
     </div>
   );
 }

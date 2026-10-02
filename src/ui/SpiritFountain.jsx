@@ -33,7 +33,6 @@ export default function SpiritFountain({ playerLevel, onHarvest }) {
   return (
     <button type="button" onClick={harvest} disabled={content === 0} className="retro text-white enabled:cursor-pointer enabled:hover:brightness-125 disabled:opacity-50">
       <span className="flex w-52 flex-col gap-2">
-        <span className="retro text-xs">{TEXT.fountain.name}</span>
         <img src={spritePath('stone-statue')} alt="" className="pixelated mx-auto h-57.5 w-36" />
         <span className="flex items-center justify-center gap-2 text-xs">
           <SpiritStoneIcon />

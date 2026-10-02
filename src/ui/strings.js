@@ -108,9 +108,7 @@ export const TEXT = {
   war: {
     title: 'Partir en guerre',
     battleNames: { war1: 'La passe', war2: 'Les crevasses', war3: 'La citadelle' },
-    zoneNames: {
-      field: 'Le champ', wall: 'Le mur', lanes: 'Les trois couloirs', fort: 'Le fort',
-    },
+    upcoming: 'À venir', // emplacement de la map sans bataille définie (rules.md 11.7)
     states: { locked: 'Verrouillée', available: 'Disponible', won: 'Gagnée' },
     armyLine: (name, cost, cap) => `${name} — ${cost} / ${cap} PP`,
     fight: 'Combattre',

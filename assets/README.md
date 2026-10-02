@@ -24,6 +24,7 @@ Sprites copied from the purchased "Pixel UI & HUD" pack (Dead Revolver, itch.io)
 - `bar-background.png`, `bar-foreground.png`, `bar-fill-{purple,undead,wyrms}.png` — value bars (RegularBarA): Spirit Fountain (purple), XP (Green; Orange recolored to gold for Wyrms)
 - `divider.png`, `divider-gold.png` — home menu underline (Decorators/Purple and Gold/DividerD; gold for a Wyrms player)
 - `portrait-frame.png` — sovereign portrait frame on the home screen (Black/Frame)
+- `war-slot-{yellow,purple,grey}.png`, `war-slot-won-{yellow,purple}.png`, `war-selector-{yellow,purple,grey}.png`, `war-connector-{vertical,horizontal}-{yellow,purple,grey}.png` — "Partir en guerre" map (SkillTree: SkillSlotSharp, SkillSlotSharpPlaceholder, SelectorSharp, ConnectorVertical/Horizontal)
 - `spirit-stone.png` — Spirit Stones icon (Black/Jewel_Spin, 9 frames of 11×11)
 
 ## backgrounds/
