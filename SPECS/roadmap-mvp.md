@@ -18,7 +18,7 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 - Solde de **Spirit Stones** affiché en haut à droite (nom provisoire, libellé dans `strings.js`)
 - **Niveau du joueur** et barre d'XP, en haut à gauche à côté du portrait du souverain (`rules.md` 11.5)
 - **Spirit Fountain** (`rules.md` 11.8) : produit 1 Spirit Stone par minute en temps réel, jusqu'à une capacité de 20 + 10 × niveau du joueur ; un clic récolte. Garantit qu'on peut toujours réinvoquer après avoir tout perdu
-- Quatre boutons : **Partir en guerre**, un bouton au **nom de la faction** (« Wyrms » / « Morts-Vivants », section Unités), **Armées** (section Armée), **Invocation**. Les deux sections de la gestion de civilisation sont des écrans séparés
+- Quatre entrées de menu, alignées à droite : **Partir en guerre**, un bouton au **nom de la faction** (« Wyrms » / « Morts-Vivants », section Unités), **Armées** (section Armée), **Invocation**. Les deux sections de la gestion de civilisation sont des écrans séparés
 - **Partir en guerre** : ouvre l'écran « Partir en guerre » (voir ci-dessous)
 
 ### Partir en guerre (`rules.md` 11.7)

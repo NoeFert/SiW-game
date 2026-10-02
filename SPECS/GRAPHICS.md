@@ -53,7 +53,7 @@ Icône : la **gemme violette animée** du pack Pixel UI & HUD (`assets/ui/spirit
 
 ## Spirit Fountain (accueil)
 
-Provisoire, **sans sprite de fontaine** : un bouton « Spirit Fountain » avec l'icône des Spirit Stones, le contenu « X / capacité » et une **barre de remplissage violette** (barre RegularBarA du pack, `assets/ui/bar-*.png`). À remplacer plus tard par un sprite de fontaine (`rules.md` 11.8).
+Un élément cliquable **sans cadre de bouton** (plus lumineux au survol, à moitié transparent quand la fontaine est vide) : le nom « Spirit Fountain », puis la **statue de pierre** (`assets/sprites/stone-statue.png`, 72 × 115 px, affichée à 2×), le contenu « X / capacité » avec l'icône des Spirit Stones, et une **barre de remplissage violette** (barre RegularBarA du pack, `assets/ui/bar-*.png`) (`rules.md` 11.8).
 
 ## Niveaux (joueur et individus)
 
@@ -80,5 +80,6 @@ Les composants React gardent leur API shadcn/8bitcn, mais leur cadre est un spri
 | Carte | PanelLarge noir (48 × 48) | Panneau noir à liseré gris ; le contenu passe en thème sombre. |
 | Badge | Bannières (64 × 15), hauteur fixe 30 px | Liseré blanc (par défaut), gris (secondaire), doré ou menthe (niveaux, faction du joueur). |
 | Barres (Spirit Fountain, XP) | RegularBarA | Violette pour la fontaine, couleur de la faction pour l'XP. |
+| Menu de l'accueil | DividerD violet (48 × 4) | Quatre entrées alignées à droite, sans cadre de bouton : texte rétro, violet clair au survol, souligné du séparateur étiré à la largeur du texte. |
 | Portrait du souverain (accueil) | Frame noir (32 × 32) | Cadre en creux autour du sprite du souverain. |
 

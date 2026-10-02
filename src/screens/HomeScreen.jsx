@@ -1,18 +1,29 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/8bit/button.jsx';
+import '@/components/ui/8bit/styles/pixel-ui.css';
 import { SOVEREIGN_SPRITES, spritePath } from '../data/sprites.js';
 import { playerProgress } from '../logic/levels.js';
 import { getPlayerXp, getSpiritStones, saveSpiritStones } from '../persistence.js';
-import { XpBar, xpText } from '../ui/LevelDisplay.jsx';
+import { XpBar } from '../ui/LevelDisplay.jsx';
 import SpiritFountain from '../ui/SpiritFountain.jsx';
 import SpiritStonesBalance from '../ui/SpiritStonesBalance.jsx';
 import { TEXT } from '../ui/strings.js';
 
+// GRAPHICS.md « Interface » : entrée de menu sans cadre de bouton, soulignée du séparateur violet.
+function MenuItem({ onClick, children }) {
+  return (
+    <button type="button" onClick={onClick} className="retro flex flex-col items-end gap-2 text-sm hover:text-violet-300">
+      {children}
+      <span aria-hidden className="pixel-divider w-full" />
+    </button>
+  );
+}
+
 // technical.md 5.1 : écran d'accueil, point central du jeu, accessible uniquement après la
 // première victoire. En haut à gauche, le portrait du souverain avec, à sa droite, son nom, sa
 // barre d'XP et son niveau (rules.md 11.5) ; solde de Spirit Stones en haut à droite (rules.md
-// 11.3) ; quatre boutons — « Partir en guerre » (WarScreen), les unités (bouton au nom de la
-// faction) et « Armées » (CivilizationScreen), invocation — et la Spirit Fountain (rules.md 11.8).
+// 11.3) ; menu de quatre entrées alignées à droite — « Partir en guerre » (WarScreen), les unités
+// (entrée au nom de la faction) et « Armées » (CivilizationScreen), invocation — et la Spirit
+// Fountain (rules.md 11.8).
 export default function HomeScreen({
   playerFaction, onOpenWar, onOpenUnits, onOpenArmy, onOpenSummon,
 }) {
@@ -40,16 +51,14 @@ export default function HomeScreen({
             label={TEXT.levels.player(progress.level)}
             className="retro"
           />
-          <span className="text-[10px] text-white/60">{xpText(progress)}</span>
         </div>
       </div>
-      <p>{TEXT.playingAs[playerFaction]}</p>
-      <div className="flex flex-col gap-6">
-        <Button onClick={onOpenWar}>{TEXT.home.goToWar}</Button>
-        <Button onClick={onOpenUnits}>{TEXT.factions[playerFaction]}</Button>
-        <Button onClick={onOpenArmy}>{TEXT.home.army}</Button>
-        <Button onClick={onOpenSummon}>{TEXT.home.summon}</Button>
-      </div>
+      <nav className="absolute right-12 top-1/2 flex -translate-y-1/2 flex-col items-end gap-8">
+        <MenuItem onClick={onOpenWar}>{TEXT.home.goToWar}</MenuItem>
+        <MenuItem onClick={onOpenUnits}>{TEXT.factions[playerFaction]}</MenuItem>
+        <MenuItem onClick={onOpenArmy}>{TEXT.home.army}</MenuItem>
+        <MenuItem onClick={onOpenSummon}>{TEXT.home.summon}</MenuItem>
+      </nav>
       <SpiritFountain playerLevel={progress.level} onHarvest={collect} />
     </div>
   );

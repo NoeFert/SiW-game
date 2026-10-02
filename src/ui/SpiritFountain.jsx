@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/8bit/button.jsx';
 import { fountainCapacity, fountainContent, harvestFountain } from '../logic/fountain.js';
 import { getFountainLastHarvest, saveFountainLastHarvest } from '../persistence.js';
+import { spritePath } from '../data/sprites.js';
 import PixelBar from './PixelBar.jsx';
 import { SpiritStoneIcon } from './SpiritStonesBalance.jsx';
 import { TEXT } from './strings.js';
 
-// rules.md 11.8 / GRAPHICS.md : Spirit Fountain de l'accueil, bouton provisoire sans sprite de
-// fontaine — contenu « X / capacité » et barre de remplissage, recalculés chaque seconde depuis
-// l'heure de la dernière récolte. Un clic récolte : `onHarvest(collected)` crédite le solde.
+// rules.md 11.8 / GRAPHICS.md : Spirit Fountain de l'accueil, cliquable mais sans cadre de bouton —
+// nom, statue de pierre (stone-statue, 2×), contenu « X / capacité » et barre de remplissage,
+// recalculés chaque seconde depuis l'heure de la dernière récolte. Un clic récolte :
+// `onHarvest(collected)` crédite le solde.
 export default function SpiritFountain({ playerLevel, onHarvest }) {
   const [now, setNow] = useState(Date.now);
   const [lastHarvest, setLastHarvest] = useState(getFountainLastHarvest);
@@ -30,15 +31,16 @@ export default function SpiritFountain({ playerLevel, onHarvest }) {
   };
 
   return (
-    <Button onClick={harvest} disabled={content === 0} className="h-auto py-3">
+    <button type="button" onClick={harvest} disabled={content === 0} className="retro text-white enabled:cursor-pointer enabled:hover:brightness-125 disabled:opacity-50">
       <span className="flex w-52 flex-col gap-2">
         <span className="retro text-xs">{TEXT.fountain.name}</span>
+        <img src={spritePath('stone-statue')} alt="" className="pixelated mx-auto h-57.5 w-36" />
         <span className="flex items-center justify-center gap-2 text-xs">
           <SpiritStoneIcon />
           {TEXT.fountain.content(content, capacity)}
         </span>
         <PixelBar ratio={content / capacity} className="w-full" />
       </span>
-    </Button>
+    </button>
   );
 }

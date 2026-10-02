@@ -7,6 +7,7 @@
 .pixel-bar,
 .pixel-bar-frame,
 .pixel-frame,
+.pixel-divider,
 .spirit-stone-icon {
   image-rendering: pixelated;
 }
@@ -98,6 +99,16 @@
   border-style: solid;
   border-width: 8px;
   border-image: url("/ui/portrait-frame.png") 4 fill / 8px stretch;
+}
+
+/* Séparateur (Decorators/Purple/DividerD, 48×4) : extrémités de 12 px gardées, milieu étiré. */
+.pixel-divider {
+  display: block;
+  height: 8px;
+  min-width: 96px;
+  border-style: solid;
+  border-width: 0 24px;
+  border-image: url("/ui/divider.png") 0 12 fill / 0 24px stretch;
 }
 
 /* Spirit Stone (Jewel_Spin, 9 images de 11×11) : gemme violette qui tourne. */

@@ -10,6 +10,7 @@ Place image files here using these exact names, referenced by the code:
 - `ampiptere.png` — Amphiptère (Wyrms, ranged)
 - `necromant.png` — Necromant Initiate (Undead, ranged)
 - `rocks.png` — Battlefield obstacle
+- `stone-statue.png` — Spirit Fountain (home screen)
 - `wyrm_sovereign.png` — Sovereign of the Wyrms (faction choice screen)
 - `undead_sovereign.png` — Sovereign of the Undead (faction choice screen)
 
@@ -21,6 +22,7 @@ Sprites copied from the purchased "Pixel UI & HUD" pack (Dead Revolver, itch.io)
 - `panel.png` — card panel (Black/PanelLarge)
 - `badge.png`, `badge-secondary.png`, `badge-wyrms.png`, `badge-undead.png` — badge banners
 - `bar-background.png`, `bar-foreground.png`, `bar-fill-{purple,undead,wyrms}.png` — value bars (RegularBarA): Spirit Fountain (purple), XP (Green; Orange recolored to gold for Wyrms)
+- `divider.png` — home menu underline (Decorators/Purple/DividerD)
 - `portrait-frame.png` — sovereign portrait frame on the home screen (Black/Frame)
 - `spirit-stone.png` — Spirit Stones icon (Purple/Jewel_Spin, 9 frames of 11×11)
 
