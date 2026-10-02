@@ -42,9 +42,8 @@ Brancher sur le moteur de bataille une première boucle méta : perdre des unit�
 - **Bataille** : la tour de déploiement affiche une ligne par espèce **et par niveau** (`ui-battle-screen-decisions.md` 2.2)
 
 ### Gestion de civilisation — section Unités
-- Liste : **un accordéon par espèce** du roster de la faction du joueur. En-tête : sprite, nom, keywords, coût en PP, nombre d'individus possédés. Une espèce à 0 (ex : Légendaire mort) reste affichée, grisée, avec son bouton « Invoquer » / « Réinvoquer » menant à l'écran Invocation
-- Accordéon ouvert : **un individu par ligne** (niveau, barre d'XP, présent dans l'armée ou non)
-- Clic sur un individu → **page de détail de l'individu** : grand sprite, nom de l'espèce, keywords, niveau et barre d'XP, présence dans l'armée, toutes les stats **à son niveau** (PV, dégâts, type d'attaque, taille, vitesses, portée, coût), texte des aptitudes, bouton « Invoquer » / « Réinvoquer » de son espèce menant à l'écran Invocation
+- Liste : une **grille de cases carrées**, une par individu (sprite, puis nom et niveau en couleur de la faction), espèce par espèce. Une espèce sans individu (ex : Légendaire mort) garde une case grisée avec son bouton « Invoquer » / « Réinvoquer » menant à l'écran Invocation
+- Clic sur un individu → **page de détail de l'individu** : grand sprite, nom de l'espèce, keywords, niveau et barre d'XP, présence dans l'armée, toutes les stats **à son niveau** (PV, dégâts, type d'attaque, taille, vitesses, portée, coût), texte des aptitudes (pas de bouton d'invocation)
 
 ### Gestion de civilisation — section Armée
 - **Une seule armée** dans le MVP (les emplacements supplémentaires sont verrouillés, voir Suite)

@@ -46,6 +46,10 @@
   border-width: 8px;
   border-image: url("/ui/panel.png") 4 fill / 8px stretch;
 }
+/* Variante dorée (Gold/PanelLarge) : case d'une espèce [Légendaire]. */
+.pixel-card-gold {
+  border-image-source: url("/ui/panel-gold.png");
+}
 
 /* Badges (bannières, 64×15) : hauteur fixe 30 px pour garder les pointes nettes. */
 .pixel-badge {

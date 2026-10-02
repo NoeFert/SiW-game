@@ -46,6 +46,24 @@ describe('resolveVictory — bataille 01 (rules.md 11)', () => {
   });
 });
 
+describe('resolveVictory — bataille 01 passée avec « Skip » (rules.md 11)', () => {
+  const save = {
+    units, army: null, playerXp: 0, spiritStones: 200, fallenLegendaryLevel: null,
+  };
+  const { save: after, report } = resolveVictory(save, [], WYRMS_ROSTER, { firstBattle: true, armyName: 'Armée 1', reward: 50 });
+
+  test('aucune perte, aucune XP d\'individu ; armée de départ avec toute la dotation', () => {
+    expect(after.units).toEqual(units);
+    expect(after.army).toEqual({ name: 'Armée 1', unitIds: ['w1', 'w2', 'w3', 'f'] });
+    expect(report.levelUps).toEqual([]);
+  });
+
+  test('joueur : 100 XP fixes et la récompense de la bataille 01', () => {
+    expect(after.playerXp).toBe(100);
+    expect(after.spiritStones).toBe(250);
+  });
+});
+
 describe('resolveVictory — batailles suivantes (rules.md 11.5)', () => {
   test('XP : 100 + 100 × PP survivants / PP de l\'armée ; morts retirés de l\'armée', () => {
     const army = createArmy('A', units); // 10 + 10 + 10 + 110 = 140 PP

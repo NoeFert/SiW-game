@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react';
 import { fountainCapacity, fountainContent, harvestFountain } from '../logic/fountain.js';
 import { getFountainLastHarvest, saveFountainLastHarvest } from '../persistence.js';
 import { spritePath } from '../data/sprites.js';
-import PixelBar from './PixelBar.jsx';
 import { SpiritStoneIcon } from './SpiritStonesBalance.jsx';
-import { TEXT } from './strings.js';
 
 // rules.md 11.8 / GRAPHICS.md : Spirit Fountain de l'accueil, cliquable mais sans cadre de bouton —
-// nom, statue de pierre (stone-statue, 2×), contenu « X / capacité » et barre de remplissage,
-// recalculés chaque seconde depuis l'heure de la dernière récolte. Un clic récolte :
+// statue de pierre (stone-statue, 2×) et contenu actuel avec l'icône des Spirit Stones, recalculé
+// chaque seconde depuis l'heure de la dernière récolte. Un clic récolte :
 // `onHarvest(collected)` crédite le solde.
 export default function SpiritFountain({ playerLevel, onHarvest }) {
   const [now, setNow] = useState(Date.now);
@@ -36,9 +34,8 @@ export default function SpiritFountain({ playerLevel, onHarvest }) {
         <img src={spritePath('stone-statue')} alt="" className="pixelated mx-auto h-57.5 w-36" />
         <span className="flex items-center justify-center gap-2 text-xs">
           <SpiritStoneIcon />
-          {TEXT.fountain.content(content, capacity)}
+          {content}
         </span>
-        <PixelBar ratio={content / capacity} className="w-full" />
       </span>
     </button>
   );

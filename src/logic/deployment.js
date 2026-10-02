@@ -90,6 +90,7 @@ export function getTowerRows(state, faction, unitsOnField) {
           damage: levelDamage(species.damage, level),
           cost: species.cost,
           keywords: species.keywords,
+          attackType: species.attackType,
           wounded: hp < maxHp,
           deployable: species.cost <= remainingBudget && !legendaryOnField,
         });

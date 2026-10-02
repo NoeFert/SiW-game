@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/8bit/badge.jsx';
 import { Button } from '@/components/ui/8bit/button.jsx';
-import {
-  Card, CardContent, CardHeader, CardTitle,
-} from '@/components/ui/8bit/card.jsx';
 import { ROSTERS } from '../data/rosters.js';
 import { SPECIES_SPRITES, spritePath } from '../data/sprites.js';
 import {
@@ -16,7 +13,8 @@ import {
 import { summonAction } from '../logic/summon.js';
 import { getArmy, getOwnedUnits, saveArmy } from '../persistence.js';
 import { LevelBadge, XpBar } from '../ui/LevelDisplay.jsx';
-import { TEXT, unitName } from '../ui/strings.js';
+import ScreenLayout from '../ui/ScreenLayout.jsx';
+import { TEXT, keywordLabels, unitName } from '../ui/strings.js';
 
 const T = TEXT.civilization;
 
@@ -31,20 +29,21 @@ function SpeciesSprite({ species, className }) {
 }
 
 function Keywords({ species }) {
-  const keywords = species.keywords.length > 0 ? species.keywords : ['basic'];
-  return keywords.map((keyword) => (
-    <Badge key={keyword} variant="secondary" font="normal" className="text-[10px] mx-1.5">
-      {TEXT.keywords[keyword]}
+  return keywordLabels(species).map((label) => (
+    <Badge key={label} variant="secondary" font="normal" className="text-[10px] mx-1.5">
+      {label}
     </Badge>
   ));
 }
 
 // Bouton d'invocation d'une espèce (vers SummonScreen) : « Invoquer », « Réinvoquer » pour un
 // [Légendaire] mort, désactivé avec « Déjà à vos côtés » tant qu'il est vivant (rules.md 11.4).
-function SummonButton({ species, owned, onSummon }) {
+function SummonButton({
+  species, owned, onSummon, className,
+}) {
   const action = summonAction(species, owned);
   return (
-    <Button size="sm" disabled={action === 'alreadyOwned'} onClick={onSummon}>
+    <Button size="sm" disabled={action === 'alreadyOwned'} onClick={onSummon} className={className}>
       {TEXT.summonActions[action]}
     </Button>
   );
@@ -94,6 +93,71 @@ function IndividualLine({ unit, faction, children }) {
   );
 }
 
+// GRAPHICS.md « Niveaux » : niveau d'un individu dans la couleur de la faction du joueur.
+// Classes littérales (Tailwind ne détecte pas les noms construits dynamiquement).
+const LEVEL_TEXT_CLASS = {
+  wyrms: 'text-faction-wyrms',
+  undead: 'text-faction-undead',
+};
+
+// GRAPHICS.md « Interface » : la case d'une espèce [Légendaire] a un panneau doré
+// (Gold/PanelLarge) et des coins dorés (Decorators/Gold/BorderC, 11×11 à 2×).
+const LEGENDARY_CORNERS = [
+  ['top-left', 'top-0 left-0'],
+  ['top-right', 'top-0 right-0'],
+  ['bottom-left', 'bottom-0 left-0'],
+  ['bottom-right', 'bottom-0 right-0'],
+];
+
+const isLegendary = (species) => species.keywords.includes('legendary');
+const legendaryClass = (species) => (isLegendary(species) ? 'pixel-card-gold' : '');
+
+function LegendaryCorners({ species }) {
+  if (!isLegendary(species)) return null;
+  return LEGENDARY_CORNERS.map(([corner, position]) => (
+    <img
+      key={corner}
+      src={`/ui/legendary-corner-${corner}.png`}
+      alt=""
+      className={`pixelated pointer-events-none absolute size-5.5 ${position}`}
+    />
+  ));
+}
+
+// Case carrée d'un individu (panneau PanelLarge) : sprite, puis nom et niveau. Clic -> page de
+// détail de l'individu.
+function UnitTile({
+  unit, species, faction, onSelect,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`pixel-card relative flex aspect-square flex-col items-center justify-center gap-2 text-[10px] hover:brightness-125 ${legendaryClass(species)}`}
+    >
+      <LegendaryCorners species={species} />
+      <SpeciesSprite species={species} className="size-14" />
+      <span className="flex flex-col items-center gap-1 text-center leading-tight">
+        <span>{unitName(species)}</span>
+        <span className={`retro ${LEVEL_TEXT_CLASS[faction]}`}>{TEXT.levels.badge(individualLevel(unit.xp))}</span>
+      </span>
+    </button>
+  );
+}
+
+// Case d'une espèce sans individu (ex : [Légendaire] mort) : grisée, avec son bouton Invoquer /
+// Réinvoquer (rules.md 11.4).
+function EmptySpeciesTile({ species, onSummon }) {
+  return (
+    <div className={`pixel-card relative flex aspect-square flex-col items-center justify-center gap-2 text-[10px] ${legendaryClass(species)}`}>
+      <LegendaryCorners species={species} />
+      <SpeciesSprite species={species} className="size-14 opacity-50 grayscale" />
+      <span className="text-center leading-tight text-white/50">{unitName(species)}</span>
+      <SummonButton species={species} owned={0} onSummon={onSummon} className="px-1 text-[10px]" />
+    </div>
+  );
+}
+
 // Stats complètes de units.md, au niveau de l'individu (rules.md 11.6 : PV et dégâts).
 function statRows(species, level) {
   const damage = levelDamage(species.damage, level);
@@ -110,13 +174,13 @@ function statRows(species, level) {
 }
 
 // technical.md 5.1 : page de détail d'un individu (vue interne à l'écran) — stats à son niveau,
-// XP, présence dans l'armée, aptitudes, et bouton d'invocation de son espèce.
+// XP, présence dans l'armée, aptitudes.
 function IndividualDetail({
-  unit, species, faction, owned, inArmy, onBack, onSummon,
+  unit, species, faction, inArmy,
 }) {
   const level = individualLevel(unit.xp);
   return (
-    <div className="flex flex-col gap-6 text-sm">
+    <div className="flex max-w-3xl flex-col gap-6 text-sm">
       <div className="flex items-center gap-6">
         <SpeciesSprite species={species} className="size-32" />
         <div className="flex flex-1 flex-col gap-3">
@@ -148,10 +212,6 @@ function IndividualDetail({
           ))}
         </section>
       )}
-      <div className="flex gap-4">
-        <Button onClick={onBack}>{T.back}</Button>
-        <SummonButton species={species} owned={owned} onSummon={onSummon} />
-      </div>
     </div>
   );
 }
@@ -194,17 +254,18 @@ function ArmyName({ name, onRename }) {
 }
 
 // technical.md 5.1 : gestion de civilisation, en deux écrans ouverts chacun par son bouton de
-// l'accueil (`section`), avec un accordéon par espèce :
-// - 'units' (titré du nom de la faction) : individus un par un (clic -> page de détail de
-//   l'individu) ; une espèce à 0 garde son bouton Invoquer / Réinvoquer.
-// - 'army' (« Armées ») : nom, compteur « X / 500 PP » ; fermé, un résumé ; ouvert, une case
-//   « dans l'armée » par individu (rules.md 11.2), sauvegardée à chaque changement.
-// Individus triés par niveau puis XP décroissants. `initialSpecies` : accordéon ouvert au retour
-// de SummonScreen.
+// l'accueil (`section`) :
+// - 'units' (titré du nom de la faction) : grille de cases carrées, une par individu (clic ->
+//   page de détail de l'individu) ; une espèce à 0 garde une case grisée avec son bouton
+//   Invoquer / Réinvoquer.
+// - 'army' (« Armées ») : nom, compteur « X / 500 PP », un accordéon par espèce ; fermé, un
+//   résumé ; ouvert, une case « dans l'armée » par individu (rules.md 11.2), sauvegardée à
+//   chaque changement.
+// Individus triés par niveau puis XP décroissants.
 export default function CivilizationScreen({
-  playerFaction, section, initialSpecies = null, onBack, onOpenSummon,
+  playerFaction, section, onBack, onOpenSummon,
 }) {
-  const [openKey, setOpenKey] = useState(initialSpecies);
+  const [openKey, setOpenKey] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [army, setArmy] = useState(getArmy);
   const roster = ROSTERS[playerFaction];
@@ -226,10 +287,7 @@ export default function CivilizationScreen({
         unit={selected}
         species={roster[selected.species]}
         faction={playerFaction}
-        owned={speciesUnits(selected.species).length}
         inArmy={armyIds.has(selected.id)}
-        onBack={() => setSelectedId(null)}
-        onSummon={() => onOpenSummon(selected.species)}
       />
     );
   } else if (section === 'army') {
@@ -278,53 +336,33 @@ export default function CivilizationScreen({
     );
   } else {
     content = (
-      <section className="flex flex-col gap-3">
-        {Object.entries(roster).map(([key, species]) => {
+      <section className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-3">
+        {Object.entries(roster).flatMap(([key, species]) => {
           const members = speciesUnits(key);
-          return (
-            <SpeciesAccordion
-              key={key}
+          if (members.length === 0) {
+            return [<EmptySpeciesTile key={key} species={species} onSummon={() => onOpenSummon(key)} />];
+          }
+          return members.map((unit) => (
+            <UnitTile
+              key={unit.id}
+              unit={unit}
               species={species}
-              owned={members.length}
-              open={openKey === key}
-              onToggle={() => toggle(key)}
-              summary={<Keywords species={species} />}
-              action={members.length === 0 && (
-                <SummonButton species={species} owned={0} onSummon={() => onOpenSummon(key)} />
-              )}
-            >
-              {members.map((unit) => (
-                <button
-                  key={unit.id}
-                  type="button"
-                  onClick={() => setSelectedId(unit.id)}
-                  className="flex items-center gap-2 px-1 py-0.5 text-left hover:bg-white/10"
-                >
-                  <IndividualLine unit={unit} faction={playerFaction}>
-                    <span className="w-24 text-right text-[10px] text-white/60">
-                      {armyIds.has(unit.id) ? T.inArmyTag : ''}
-                    </span>
-                  </IndividualLine>
-                </button>
-              ))}
-            </SpeciesAccordion>
-          );
+              faction={playerFaction}
+              onSelect={() => setSelectedId(unit.id)}
+            />
+          ));
         })}
       </section>
     );
   }
 
+  // Sur la page de détail, « Retour » ramène à la grille des unités.
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 text-white">
-      <Card className="w-full max-w-xl">
-        <CardHeader>
-          <CardTitle>{section === 'army' ? T.army : TEXT.factions[playerFaction]}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="max-h-[65vh] overflow-y-auto pr-1">{content}</div>
-        </CardContent>
-      </Card>
-      {!selected && <Button onClick={onBack}>{T.back}</Button>}
-    </div>
+    <ScreenLayout
+      title={section === 'army' ? T.army : TEXT.factions[playerFaction]}
+      onBack={selected ? () => setSelectedId(null) : onBack}
+    >
+      {content}
+    </ScreenLayout>
   );
 }

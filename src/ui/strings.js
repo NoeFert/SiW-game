@@ -66,7 +66,6 @@ export const TEXT = {
     summon: 'Invocation',
   },
   civilization: {
-    back: 'Retour',
     inArmyYes: "Dans l'armée",
     inArmyNo: "Hors de l'armée",
     inArmyTag: "dans l'armée",
@@ -99,11 +98,6 @@ export const TEXT = {
     keptLevel: 'Niveau gardé :',
     levelPrice: (level, price) => `niv ${level} — ${price}`,
   },
-  // Spirit Fountain de l'accueil (rules.md 11.8), nom provisoire.
-  fountain: {
-    name: 'Spirit Fountain',
-    content: (content, capacity) => `${content} / ${capacity}`,
-  },
   // « Partir en guerre » (rules.md 11.7). Noms des batailles provisoires.
   war: {
     title: 'Partir en guerre',
@@ -114,7 +108,6 @@ export const TEXT = {
     fight: 'Combattre',
     emptyArmy: 'Composez votre armée',
     completed: "D'autres terres à conquérir arrivent bientôt…",
-    back: 'Retour',
   },
   defeat: {
     title: 'Défaite',
@@ -151,6 +144,8 @@ export const TEXT = {
 
   commands: 'Commandes',
   cancel: 'Annuler',
+  back: 'Retour', // en-tête des écrans de la couche méta (ScreenLayout)
+  skip: 'Skip', // passer la bataille 01 (rules.md 11)
   orders: { move: 'Aller', attack: 'Attaquer', flee: 'Fuir' },
 
   pause: 'Pause (Espace)',
@@ -167,7 +162,8 @@ export const TEXT = {
     'Lambton Worm': 'Ver de Lambton',
   },
   keywords: {
-    basic: 'basique',
+    melee: 'Corps-à-corps',
+    ranged: 'Tirs',
     legendary: 'Légendaire',
     flying: 'Vol',
   },
@@ -180,4 +176,11 @@ function formatDecimal(n) {
 
 export function unitName(species) {
   return TEXT.unitNames[species.name] ?? species.name;
+}
+
+// Tags affichés d'une espèce (ou d'une ligne de la tour) : son type d'attaque — corps-à-corps,
+// tirs, ou les deux pour une attaque hybride (Fafnir) — puis ses keywords ([Légendaire], [Vol]).
+const ATTACK_TAGS = { melee: ['melee'], ranged: ['ranged'], hybrid: ['melee', 'ranged'] };
+export function keywordLabels({ attackType, keywords }) {
+  return [...ATTACK_TAGS[attackType], ...keywords].map((keyword) => TEXT.keywords[keyword]);
 }

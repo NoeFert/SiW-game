@@ -6,7 +6,7 @@ import {
   healthBarColor, woundedHpColor, cssColor,
 } from '../renderConstants.js';
 import { LevelBadge } from './LevelDisplay.jsx';
-import { TEXT, unitName } from './strings.js';
+import { TEXT, keywordLabels, unitName } from './strings.js';
 
 // Fafnir a deux valeurs de dégâts (distance / corps-à-corps, units.md).
 function formatDamage(damage) {
@@ -22,7 +22,6 @@ const UnitRow = forwardRef(({
   row, playerFaction, className, ...props
 }, ref) => {
   const ratio = row.hp / row.maxHp;
-  const keywords = row.keywords.length > 0 ? row.keywords : ['basic'];
   return (
     <div
       ref={ref}
@@ -63,9 +62,9 @@ const UnitRow = forwardRef(({
             ♥ <span style={row.wounded ? { color: cssColor(woundedHpColor(ratio)) } : undefined}>{row.hp}</span>/{row.maxHp}
           </span>
           <span>⚔ {formatDamage(row.damage)}</span>
-          {keywords.map((keyword) => (
-            <Badge key={keyword} variant="secondary" font="normal" className="text-[10px] mx-1.5">
-              {TEXT.keywords[keyword]}
+          {keywordLabels(row).map((label) => (
+            <Badge key={label} variant="secondary" font="normal" className="text-[10px] mx-1.5">
+              {label}
             </Badge>
           ))}
         </div>

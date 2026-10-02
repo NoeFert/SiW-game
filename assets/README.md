@@ -19,12 +19,13 @@ Sprites copied from the purchased "Pixel UI & HUD" pack (Dead Revolver, itch.io)
 `asset-packs/` (local only: gitignored and outside the Vite build). Used through
 `src/components/ui/8bit/styles/pixel-ui.css` (see `SPECS/GRAPHICS.md`, "Interface").
 - `button.png`, `button-pressed.png`, `button-highlighted-{white,purple,gold,red}.png` — ButtonA states (gold: Wyrms player)
-- `panel.png` — card panel (Black/PanelLarge)
+- `panel.png`, `panel-gold.png` — card / unit tile panel (Black and Gold/PanelLarge; gold for a legendary unit)
 - `badge.png`, `badge-secondary.png`, `badge-wyrms.png`, `badge-undead.png` — badge banners
 - `bar-background.png`, `bar-foreground.png`, `bar-fill-{purple,undead,wyrms}.png` — value bars (RegularBarA): Spirit Fountain (purple), XP (Green; Orange recolored to gold for Wyrms)
 - `divider.png`, `divider-gold.png` — home menu underline (Decorators/Purple and Gold/DividerD; gold for a Wyrms player)
 - `portrait-frame.png` — sovereign portrait frame on the home screen (Black/Frame)
 - `war-slot-{yellow,purple,grey}.png`, `war-slot-won-{yellow,purple}.png`, `war-selector-{yellow,purple,grey}.png`, `war-connector-{vertical,horizontal}-{yellow,purple,grey}.png` — "Partir en guerre" map (SkillTree: SkillSlotSharp, SkillSlotSharpPlaceholder, SelectorSharp, ConnectorVertical/Horizontal)
+- `legendary-corner-{top,bottom}-{left,right}.png` — gold corners on a legendary unit tile (Decorators/Gold/BorderC)
 - `spirit-stone.png` — Spirit Stones icon (Black/Jewel_Spin, 9 frames of 11×11)
 
 ## backgrounds/

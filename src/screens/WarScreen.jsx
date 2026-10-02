@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/8bit/badge.jsx';
 import { Button } from '@/components/ui/8bit/button.jsx';
-import {
-  Card, CardContent, CardHeader, CardTitle,
-} from '@/components/ui/8bit/card.jsx';
 import { BATTLES, WAR_BATTLE_IDS } from '../data/battles.js';
 import { ROSTERS } from '../data/rosters.js';
 import { WAR_MAP_1 } from '../data/warMaps.js';
 import { ARMY_PP_CAP, armyCost, armyUnits } from '../logic/army.js';
 import { isWarCompleted, victoryReward, warBattleState } from '../logic/war.js';
 import { getArmy, getOwnedUnits, getWonWarBattles } from '../persistence.js';
+import ScreenLayout from '../ui/ScreenLayout.jsx';
 import { SpiritStonesAmount } from '../ui/SpiritStonesBalance.jsx';
 import { TEXT } from '../ui/strings.js';
 
@@ -94,41 +92,37 @@ export default function WarScreen({ playerFaction, onFight, onBack }) {
   const current = nodes[selected];
 
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 text-white">
-      <Card className="w-full max-w-3xl">
-        <CardHeader>
-          <CardTitle>{T.title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <p className="retro text-xs">{T.armyLine(army.name, armyCost(army, units, roster), ARMY_PP_CAP)}</p>
-          {armyIsEmpty && <p className="text-xs text-red-400">{T.emptyArmy}</p>}
-          <div className="flex items-center justify-between gap-8">
-            <div
-              className="relative shrink-0"
-              style={{ width: SLOT + (WAR_MAP_1.cols - 1) * STEP, height: SLOT + (WAR_MAP_1.rows - 1) * STEP }}
-            >
-              {nodes.slice(1).map((node, i) => (
-                <Connector key={i} from={nodes[i]} to={node} color={node.state === 'locked' ? 'grey' : color} />
-              ))}
-              {nodes.map((node, i) => (
-                <Slot key={i} node={node} color={color} selected={i === selected} onSelect={() => setSelected(i)} />
-              ))}
-            </div>
-            <div className={`flex w-52 flex-col items-center gap-3 text-center text-xs ${current.state === 'locked' ? 'opacity-50' : ''}`}>
-              <span className="retro text-sm">{current.id ? T.battleNames[current.id] : T.upcoming}</span>
-              <Badge variant="secondary" font="normal" className="text-[10px]">{T.states[current.state]}</Badge>
-              {current.state !== 'locked' && (
-                <SpiritStonesAmount amount={victoryReward(BATTLES[current.id].reward, current.state === 'won')} />
-              )}
-              <Button size="sm" disabled={current.state === 'locked' || armyIsEmpty} onClick={() => onFight(current.id)}>
-                {T.fight}
-              </Button>
-            </div>
+    <ScreenLayout title={T.title} onBack={onBack}>
+      <div className="flex min-h-full flex-col gap-6">
+        <p className="retro text-xs">{T.armyLine(army.name, armyCost(army, units, roster), ARMY_PP_CAP)}</p>
+        {armyIsEmpty && <p className="text-xs text-red-400">{T.emptyArmy}</p>}
+        <div className="flex flex-1 items-center justify-center gap-16">
+          <div
+            className="relative shrink-0"
+            style={{ width: SLOT + (WAR_MAP_1.cols - 1) * STEP, height: SLOT + (WAR_MAP_1.rows - 1) * STEP }}
+          >
+            {nodes.slice(1).map((node, i) => (
+              <Connector key={i} from={nodes[i]} to={node} color={node.state === 'locked' ? 'grey' : color} />
+            ))}
+            {nodes.map((node, i) => (
+              <Slot key={i} node={node} color={color} selected={i === selected} onSelect={() => setSelected(i)} />
+            ))}
           </div>
-          {isWarCompleted(WAR_BATTLE_IDS, wonIds) && <p className="retro text-xs text-center">{T.completed}</p>}
-        </CardContent>
-      </Card>
-      <Button onClick={onBack}>{T.back}</Button>
-    </div>
+          <div className={`flex w-80 flex-col items-center gap-3 text-center text-xs ${current.state === 'locked' ? 'opacity-50' : ''}`}>
+            <div className="flex items-center gap-3">
+              <span className="retro text-sm whitespace-nowrap">{current.id ? T.battleNames[current.id] : T.upcoming}</span>
+              <Badge variant="secondary" font="normal" className="text-[10px]">{T.states[current.state]}</Badge>
+            </div>
+            {current.state !== 'locked' && (
+              <SpiritStonesAmount amount={victoryReward(BATTLES[current.id].reward, current.state === 'won')} />
+            )}
+            <Button size="sm" disabled={current.state === 'locked' || armyIsEmpty} onClick={() => onFight(current.id)}>
+              {T.fight}
+            </Button>
+          </div>
+        </div>
+        {isWarCompleted(WAR_BATTLE_IDS, wonIds) && <p className="retro text-xs text-center">{T.completed}</p>}
+      </div>
+    </ScreenLayout>
   );
 }

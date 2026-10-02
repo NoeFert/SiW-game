@@ -247,6 +247,8 @@ Les valeurs de la bataille sont tranchées. Restent ouvertes, pour la couche mé
 
 Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles ne s'applique à la version clickbait, où rien n'est sauvegardé.
 
+**Passer la bataille 01 (« Skip »)** : pendant la bataille 01 du jeu normal, un bouton **« Skip »** en haut à droite de l'écran permet de ne pas la jouer. Elle compte alors comme **gagnée sans combat** : **aucune perte** (la dotation de départ est intacte), aucune XP pour les individus, **armée de départ** avec toute la dotation (11.2), **100 XP** fixes pour le joueur (11.5) et la récompense de **50** Spirit Stones (11.7) — comme une victoire où rien ne s'est passé sur le terrain. Le joueur arrive directement sur l'accueil, sans écran de victoire. Pas de bouton « Skip » dans la version clickbait ni dans les batailles de « Partir en guerre ».
+
 ### 11.1 Individus possédés
 - Le joueur possède une **liste d'individus**. Un individu a trois caractéristiques : un **identifiant unique**, son **espèce** et son **XP** (section 11.6). Ses stats sont celles de l'espèce (`units.md`), augmentées selon son niveau (11.6).
 - **Dotation de départ** : au choix de la faction, le joueur reçoit, pour chaque espèce de sa faction, autant d'individus que la colonne « Copies de départ » de `units.md` (ex : Wyrms : 12 Vers de Lambton, 8 Amphiptères, 1 Fafnir).
@@ -308,6 +310,7 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 
 ### 11.7 Partir en guerre
 - **Trois batailles**, jouées **en séquence** : la bataille 1 est disponible dès la victoire de la bataille 01 ; la bataille N + 1 se débloque à la première victoire de la bataille N. Noms provisoires : **« La passe »**, **« Les crevasses »**, **« La citadelle »** (`strings.js`).
+- **Map** : les batailles sont les premiers emplacements de la **map 1**, un parcours de **10 emplacements** (`src/data/warMaps.js`). Les emplacements 4 à 10 n'ont pas encore de bataille : ils sont affichés **verrouillés** (« À venir ») et ne se débloquent pas (leurs zones, scripts et récompenses restent à définir). Pas d'autre map ni de changement de map pour l'instant.
 - **Rejeu** : une bataille déjà gagnée reste jouable à volonté, avec une récompense réduite (voir Récompenses).
 - **Armée** : le joueur part avec **son armée** (section 2) ; bouton « Combattre » **désactivé si l'armée est vide** (message « Composez votre armée »).
 - **Zones** (section 7.3) : chaque bataille enchaîne **2 zones** (2 phases). Provisoire, en attendant les zones et scripts définitifs :

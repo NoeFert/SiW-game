@@ -104,41 +104,55 @@ export default function App() {
   // morts, donne l'XP et la récompense (réduite au rejeu, 11.7), crée l'armée de départ après la
   // bataille 01, retient les batailles de guerre gagnées. Rien n'est sauvegardé en mode
   // clickbait : on y affiche à la place le bilan des unités en vie/perdues.
+  // `battleUnits` : unités de la bataille (battle.units) ; vide quand la bataille 01 est passée
+  // (rules.md 11 : skip). Renvoie le bilan de l'écran de victoire.
+  const saveGameVictory = useCallback((battleUnits) => {
+    const wonIds = getWonWarBattles();
+    const { save, report } = resolveVictory(
+      {
+        units: getOwnedUnits(),
+        army: getArmy(),
+        playerXp: getPlayerXp(),
+        spiritStones: getSpiritStones(),
+        fallenLegendaryLevel: getFallenLegendaryLevel(),
+      },
+      battleUnits,
+      ROSTERS[playerFaction],
+      {
+        firstBattle: battleId === FIRST_BATTLE_ID,
+        armyName: TEXT.defaultArmyName,
+        reward: victoryReward(BATTLES[battleId].reward, wonIds.includes(battleId)),
+      },
+    );
+    saveOwnedUnits(save.units);
+    saveArmy(save.army);
+    savePlayerXp(save.playerXp);
+    saveSpiritStones(save.spiritStones);
+    if (save.fallenLegendaryLevel !== null) saveFallenLegendaryLevel(save.fallenLegendaryLevel);
+    if (battleId === FIRST_BATTLE_ID) markFirstBattleWon();
+    else if (!wonIds.includes(battleId)) saveWonWarBattles([...wonIds, battleId]);
+    return report;
+  }, [playerFaction, battleId]);
+
   const handleVictory = useCallback((battle) => {
-    const unitsOnField = battle.units.filter((u) => u.isOnField);
-    const roster = ROSTERS[playerFaction];
     if (isClickbait) {
-      setVictoryReport(getCasualtyReport(roster, battle.playerDeployment, 'player', unitsOnField));
-    } else {
-      const wonIds = getWonWarBattles();
-      const { save, report } = resolveVictory(
-        {
-          units: getOwnedUnits(),
-          army: getArmy(),
-          playerXp: getPlayerXp(),
-          spiritStones: getSpiritStones(),
-          fallenLegendaryLevel: getFallenLegendaryLevel(),
-        },
-        battle.units,
-        roster,
-        {
-          firstBattle: battleId === FIRST_BATTLE_ID,
-          armyName: TEXT.defaultArmyName,
-          reward: victoryReward(BATTLES[battleId].reward, wonIds.includes(battleId)),
-        },
+      const unitsOnField = battle.units.filter((u) => u.isOnField);
+      setVictoryReport(
+        getCasualtyReport(ROSTERS[playerFaction], battle.playerDeployment, 'player', unitsOnField),
       );
-      saveOwnedUnits(save.units);
-      saveArmy(save.army);
-      savePlayerXp(save.playerXp);
-      saveSpiritStones(save.spiritStones);
-      if (save.fallenLegendaryLevel !== null) saveFallenLegendaryLevel(save.fallenLegendaryLevel);
-      if (battleId === FIRST_BATTLE_ID) markFirstBattleWon();
-      else if (!wonIds.includes(battleId)) saveWonWarBattles([...wonIds, battleId]);
+    } else {
       setVictoryReport(null);
-      setVictoryProgress(report);
+      setVictoryProgress(saveGameVictory(battle.units));
     }
     setScreen('victory');
-  }, [isClickbait, playerFaction, battleId]);
+  }, [isClickbait, playerFaction, saveGameVictory]);
+
+  // Bataille 01 passée avec « Skip » : comptée comme gagnée sans combat (aucune perte, armée de
+  // départ avec toute la dotation, récompense et XP fixe du joueur), puis retour direct à l'accueil.
+  const skipFirstBattle = useCallback(() => {
+    saveGameVictory([]);
+    goHome();
+  }, [saveGameVictory, goHome]);
 
   // rules.md 8.1 : un match nul n'est pas une victoire — même suite qu'une défaite (réessayer),
   // mais annoncé comme tel. rules.md 11.7 : dans « Partir en guerre », les individus tués sont
@@ -225,6 +239,7 @@ export default function App() {
         playerUnits={battleUnits()}
         onVictory={handleVictory}
         onDefeat={handleDefeat}
+        onSkip={!isClickbait && battleId === FIRST_BATTLE_ID ? skipFirstBattle : null}
       />
     );
   } else if (screen === 'victory') {
@@ -254,7 +269,6 @@ export default function App() {
         key={screen}
         playerFaction={playerFaction}
         section={screen}
-        initialSpecies={summonFrom}
         onBack={goHome}
         onOpenSummon={(speciesKey) => {
           setSummonFrom(speciesKey);

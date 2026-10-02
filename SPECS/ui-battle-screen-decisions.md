@@ -75,7 +75,7 @@ Titre « Vos unités », puis **un composant par ligne**, empilés verticalement
 ```
 ┌───────────────┬──────────────────────────────────┐
 │               │ Ver de Lambton   [10 PP]          │  ligne 1 : nom + tag de présence
-│  8x  [sprite] │ ♥ 40/40  ⚔ 8  [basique]           │  ligne 2 : PV + ATK + tags keyword
+│  8x  [sprite] │ ♥ 40/40  ⚔ 8  [Corps-à-corps]     │  ligne 2 : PV + ATK + tags keyword
 └───────────────┴──────────────────────────────────┘
    colonne 1              colonne 2
 ```
@@ -101,7 +101,7 @@ Titre « Vos unités », puis **un composant par ligne**, empilés verticalement
 ```
 ┌───────────────┬──────────────────────────────────┐
 │               │ Ver de Lambton   [10 PP]          │
-│  1x  [sprite] │ ♥ 25/40  ⚔ 8  [basique]           │
+│  1x  [sprite] │ ♥ 25/40  ⚔ 8  [Corps-à-corps]     │
 │      ▓▓▓▓░░   │                                   │
 └───────────────┴──────────────────────────────────┘
 ```
