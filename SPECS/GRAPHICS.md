@@ -49,7 +49,7 @@ Les obstacles de la grille utilisent un seul sprite de rocher, d'autres pourront
 
 ## Spirit Stones (monnaie)
 
-Icône : la **gemme violette animée** du pack Pixel UI & HUD (`assets/ui/spirit-stone.png`, 9 images de 11 × 11 px, affichée à 22 × 22 px). Elle accompagne partout le solde et les prix en Spirit Stones : en haut à droite de l'accueil, sur l'écran Invocation (`rules.md` 11.3 et 11.4).
+Icône : la **gemme noire animée** du pack Pixel UI & HUD (Black/Jewel_Spin, `assets/ui/spirit-stone.png`, 9 images de 11 × 11 px, affichée à 22 × 22 px). Elle accompagne partout le solde et les prix en Spirit Stones : en haut à droite de l'accueil, sur l'écran Invocation (`rules.md` 11.3 et 11.4).
 
 ## Spirit Fountain (accueil)
 
@@ -73,6 +73,8 @@ Rien n'est ajouté sur le terrain : les unités en bataille ne montrent pas leur
 ## Interface
 
 Les composants React gardent leur API shadcn/8bitcn, mais leur cadre est un sprite du pack **Pixel UI & HUD**, découpé en 9-slice (`border-image`) et affiché à **2×** sans lissage (`src/components/ui/8bit/styles/pixel-ui.css`). Le pack complet reste dans `asset-packs/` (local, ignoré par git, hors build) ; seuls les fichiers utilisés sont copiés dans `assets/ui/`.
+
+**Accents selon la faction du joueur** : dorés (variantes Gold du pack) pour la Souveraine des Wyrms, violets pour le Souverain des Morts-Vivants et les écrans d'avant le choix de faction. Concerne le survol du bouton principal, le séparateur et le survol du menu de l'accueil, et la barre de la Spirit Fountain (pas de barre Gold dans le pack : remplissage doré recoloré, le même que l'XP des Wyrms). L'icône des Spirit Stones (gemme noire) est la même pour les deux factions.
 
 | Composant | Sprite | Comportement |
 |---|---|---|

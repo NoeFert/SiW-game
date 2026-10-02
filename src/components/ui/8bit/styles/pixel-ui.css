@@ -1,5 +1,7 @@
 /* GRAPHICS.md « Interface » : sprites du pack Pixel UI & HUD (assets/ui/), affichés à 2× en
-   9-slice (border-image), sans lissage. Largeur de bordure = découpe × 2. */
+   9-slice (border-image), sans lissage. Largeur de bordure = découpe × 2.
+   Accents violets par défaut (Morts-Vivants, écrans d'avant le choix de faction), dorés quand
+   le joueur joue les Wyrms ([data-faction="wyrms"] posé à la racine par App.jsx). */
 
 .pixel-button,
 .pixel-card,
@@ -30,6 +32,9 @@
 }
 .pixel-button[data-variant="default"]:hover:not(:disabled) {
   border-image-source: url("/ui/button-highlighted-purple.png");
+}
+[data-faction="wyrms"] .pixel-button[data-variant="default"]:hover:not(:disabled) {
+  border-image-source: url("/ui/button-highlighted-gold.png");
 }
 .pixel-button:active:not(:disabled) {
   border-image-source: url("/ui/button-pressed.png");
@@ -63,8 +68,8 @@
 }
 
 /* Barre de valeur (RegularBarA, 16×8) : fond et cadre en 9-slice, remplissage 12×4 étiré,
-   en retrait de 2 px (4 px à l'écran). Remplissage violet par défaut, ou couleur de la
-   faction (data-faction) : menthe = barre verte du pack, doré = barre orange recolorée. */
+   en retrait de 2 px (4 px à l'écran). Remplissage violet par défaut (doré chez les Wyrms),
+   ou couleur de la faction (data-faction sur la barre, barres d'XP) : menthe = barre verte du pack, doré = barre orange recolorée. */
 .pixel-bar {
   position: relative;
   height: 16px;
@@ -80,6 +85,7 @@
   background: url("/ui/bar-fill-purple.png") 0 0 / 100% 100%;
   image-rendering: pixelated;
 }
+[data-faction="wyrms"] .pixel-bar-fill,
 .pixel-bar-fill[data-faction="wyrms"] {
   background-image: url("/ui/bar-fill-wyrms.png");
 }
@@ -110,8 +116,19 @@
   border-width: 0 24px;
   border-image: url("/ui/divider.png") 0 12 fill / 0 24px stretch;
 }
+[data-faction="wyrms"] .pixel-divider {
+  border-image-source: url("/ui/divider-gold.png");
+}
 
-/* Spirit Stone (Jewel_Spin, 9 images de 11×11) : gemme violette qui tourne. */
+/* Entrée du menu de l'accueil : violet clair au survol, doré chez les Wyrms. */
+.pixel-menu-item:hover {
+  color: #c4b5fd;
+}
+[data-faction="wyrms"] .pixel-menu-item:hover {
+  color: var(--faction-wyrms);
+}
+
+/* Spirit Stone (Black/Jewel_Spin, 9 images de 11×11) : gemme noire qui tourne. */
 .spirit-stone-icon {
   display: inline-block;
   flex: none;

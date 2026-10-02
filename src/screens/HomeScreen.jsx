@@ -8,10 +8,11 @@ import SpiritFountain from '../ui/SpiritFountain.jsx';
 import SpiritStonesBalance from '../ui/SpiritStonesBalance.jsx';
 import { TEXT } from '../ui/strings.js';
 
-// GRAPHICS.md « Interface » : entrée de menu sans cadre de bouton, soulignée du séparateur violet.
+// GRAPHICS.md « Interface » : entrée de menu sans cadre de bouton, soulignée du séparateur
+// (violet, doré pour les Wyrms).
 function MenuItem({ onClick, children }) {
   return (
-    <button type="button" onClick={onClick} className="retro flex flex-col items-end gap-2 text-sm hover:text-violet-300">
+    <button type="button" onClick={onClick} className="pixel-menu-item retro flex flex-col items-end gap-2 text-sm">
       {children}
       <span aria-hidden className="pixel-divider w-full" />
     </button>
