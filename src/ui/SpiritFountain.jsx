@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/8bit/button.jsx';
 import { fountainCapacity, fountainContent, harvestFountain } from '../logic/fountain.js';
 import { getFountainLastHarvest, saveFountainLastHarvest } from '../persistence.js';
+import PixelBar from './PixelBar.jsx';
 import { SpiritStoneIcon } from './SpiritStonesBalance.jsx';
 import { TEXT } from './strings.js';
 
-// rules.md 11.8 / GRAPHICS.md : Spirit Fountain de l'accueil, affichage provisoire sans asset —
-// contenu « X / capacité » et barre de remplissage, recalculés chaque seconde depuis l'heure de
-// la dernière récolte. Un clic récolte : `onHarvest(collected)` crédite le solde.
+// rules.md 11.8 / GRAPHICS.md : Spirit Fountain de l'accueil, bouton provisoire sans sprite de
+// fontaine — contenu « X / capacité » et barre de remplissage, recalculés chaque seconde depuis
+// l'heure de la dernière récolte. Un clic récolte : `onHarvest(collected)` crédite le solde.
 export default function SpiritFountain({ playerLevel, onHarvest }) {
   const [now, setNow] = useState(Date.now);
   const [lastHarvest, setLastHarvest] = useState(getFountainLastHarvest);
@@ -36,9 +37,7 @@ export default function SpiritFountain({ playerLevel, onHarvest }) {
           <SpiritStoneIcon />
           {TEXT.fountain.content(content, capacity)}
         </span>
-        <span className="h-2 w-full bg-black/70 border border-white/30">
-          <span className="block h-full bg-violet-500" style={{ width: `${(content / capacity) * 100}%` }} />
-        </span>
+        <PixelBar ratio={content / capacity} className="w-full" />
       </span>
     </Button>
   );

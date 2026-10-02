@@ -2,9 +2,9 @@
 
 ## Intention
 
-**Dark fantasy rétro.** Des souverains masqués et des monstres effrayamt dessinés en pixel art, sur un champ de bataille sombre et peu engageant. L'interface reprend le même esprit avec des composants 8 bits (thème 8bitcn, `TECHNICAL.md` section 1).
+**Dark fantasy rétro.** Des souverains masqués et des monstres effrayamt dessinés en pixel art, sur un champ de bataille sombre et peu engageant. L'interface reprend le même esprit : composants shadcn/8bitcn (`TECHNICAL.md` section 1) habillés avec les sprites du pack **Pixel UI & HUD** (section « Interface » ci-dessous).
 
-Tous les assets sont **dessinés à la main**.
+Tous les assets du jeu (unités, souverains, décor) sont **dessinés à la main** ; seuls les éléments d'interface viennent du pack acheté Pixel UI & HUD (Dead Revolver, itch.io).
 
 Principes :
 - **Silhouettes lisibles** sur un fond neutre et peu contrasté
@@ -49,17 +49,18 @@ Les obstacles de la grille utilisent un seul sprite de rocher, d'autres pourront
 
 ## Spirit Stones (monnaie)
 
-Icône provisoire : un **losange violet**, dessiné en CSS ou en SVG inline (pas d'asset pour l'instant). Il accompagne partout le solde et les prix en Spirit Stones : en haut à droite de l'accueil, sur l'écran Invocation (`rules.md` 11.3 et 11.4). À remplacer par un vrai sprite plus tard.
+Icône : la **gemme violette animée** du pack Pixel UI & HUD (`assets/ui/spirit-stone.png`, 9 images de 11 × 11 px, affichée à 22 × 22 px). Elle accompagne partout le solde et les prix en Spirit Stones : en haut à droite de l'accueil, sur l'écran Invocation (`rules.md` 11.3 et 11.4).
 
 ## Spirit Fountain (accueil)
 
-Provisoire, **sans asset** : un bouton 8bitcn « Spirit Fountain » avec l'icône des Spirit Stones (losange violet), le contenu « X / capacité » et une barre de remplissage violette. À remplacer plus tard par un sprite de fontaine (`rules.md` 11.8).
+Provisoire, **sans sprite de fontaine** : un bouton « Spirit Fountain » avec l'icône des Spirit Stones, le contenu « X / capacité » et une **barre de remplissage violette** (barre RegularBarA du pack, `assets/ui/bar-*.png`). À remplacer plus tard par un sprite de fontaine (`rules.md` 11.8).
 
 ## Niveaux (joueur et individus)
 
 Les niveaux (`rules.md` 11.5 et 11.6) reprennent la **couleur signature de la faction du joueur** (doré pour les Wyrms, menthe pour les Morts-Vivants) :
-- **badge « niv X »** (composant Badge 8bitcn) : accordéons et page de détail de la gestion de civilisation, lignes de la tour de bataille (`ui-battle-screen-decisions.md` 2.2), niveau du joueur sur l'accueil ;
-- **barre d'XP** : même couleur, sur fond sombre ; pleine avec « MAX » au niveau 5 d'un individu.
+- **badge « niv X »** (bannière du pack, dorée pour les Wyrms, menthe pour les Morts-Vivants) : accordéons et page de détail de la gestion de civilisation, lignes de la tour de bataille (`ui-battle-screen-decisions.md` 2.2) ;
+- **barre d'XP** : barre RegularBarA du pack, remplissage menthe (barre verte du pack) ou doré (barre orange recolorée, `assets/ui/bar-fill-wyrms.png`) ; pleine avec « MAX » au niveau 5 d'un individu ;
+- **accueil** : en haut à gauche, le portrait du souverain dans un cadre en creux (Frame du pack) ; à sa droite, son nom, la barre d'XP avec « Niveau X » à côté (sans badge), et « XP / XP du niveau » en dessous.
 
 Rien n'est ajouté sur le terrain : les unités en bataille ne montrent pas leur niveau.
 
@@ -68,3 +69,16 @@ Rien n'est ajouté sur le terrain : les unités en bataille ne montrent pas leur
 - **Pause** : terrain désaturé ; ce qui reste cliquable garde ses couleurs (`ui-battle-screen-decisions.md` section 3).
 - **Barres de vie** au-dessus des unités : vert, puis jaune sous 50 %, rouge sous 25 %.
 - **Aptitudes** : « COUP CRITIQUE ! » et tremblement d'écran (Fafnir), « Raté ! » et badge 💫 (paralysie d'Athos), « +40 » en vert (Soif de sang).
+
+## Interface
+
+Les composants React gardent leur API shadcn/8bitcn, mais leur cadre est un sprite du pack **Pixel UI & HUD**, découpé en 9-slice (`border-image`) et affiché à **2×** sans lissage (`src/components/ui/8bit/styles/pixel-ui.css`). Le pack complet reste dans `asset-packs/` (local, ignoré par git, hors build) ; seuls les fichiers utilisés sont copiés dans `assets/ui/`.
+
+| Composant | Sprite | Comportement |
+|---|---|---|
+| Bouton | ButtonA (34 × 18) | Repos : liseré gris (secondaire) ou blanc (principal), rouge pour « destructive ». Survol : liseré blanc, violet pour le bouton principal. Clic : enfoncé. |
+| Carte | PanelLarge noir (48 × 48) | Panneau noir à liseré gris ; le contenu passe en thème sombre. |
+| Badge | Bannières (64 × 15), hauteur fixe 30 px | Liseré blanc (par défaut), gris (secondaire), doré ou menthe (niveaux, faction du joueur). |
+| Barres (Spirit Fountain, XP) | RegularBarA | Violette pour la fontaine, couleur de la faction pour l'XP. |
+| Portrait du souverain (accueil) | Frame noir (32 × 32) | Cadre en creux autour du sprite du souverain. |
+

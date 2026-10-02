@@ -193,17 +193,17 @@ function ArmyName({ name, onRename }) {
   );
 }
 
-// technical.md 5.1 : gestion de civilisation en deux sections, chacune un accordéon par espèce.
-// - Unités : individus un par un (clic -> page de détail de l'individu) ; une espèce à 0 garde
-//   son bouton Invoquer / Réinvoquer.
-// - Armée : nom, compteur « X / 500 PP » ; fermé, un résumé ; ouvert, une case « dans l'armée »
-//   par individu (rules.md 11.2), sauvegardée à chaque changement.
+// technical.md 5.1 : gestion de civilisation, en deux écrans ouverts chacun par son bouton de
+// l'accueil (`section`), avec un accordéon par espèce :
+// - 'units' (titré du nom de la faction) : individus un par un (clic -> page de détail de
+//   l'individu) ; une espèce à 0 garde son bouton Invoquer / Réinvoquer.
+// - 'army' (« Armées ») : nom, compteur « X / 500 PP » ; fermé, un résumé ; ouvert, une case
+//   « dans l'armée » par individu (rules.md 11.2), sauvegardée à chaque changement.
 // Individus triés par niveau puis XP décroissants. `initialSpecies` : accordéon ouvert au retour
 // de SummonScreen.
 export default function CivilizationScreen({
-  playerFaction, initialSpecies = null, onBack, onOpenSummon,
+  playerFaction, section, initialSpecies = null, onBack, onOpenSummon,
 }) {
-  const [section, setSection] = useState('units');
   const [openKey, setOpenKey] = useState(initialSpecies);
   const [selectedId, setSelectedId] = useState(null);
   const [army, setArmy] = useState(getArmy);
@@ -217,10 +217,6 @@ export default function CivilizationScreen({
     setArmy(newArmy);
   };
   const toggle = (key) => setOpenKey((current) => (current === key ? null : key));
-  const changeSection = (key) => {
-    setSection(key);
-    setOpenKey(null);
-  };
 
   const selected = units.find((unit) => unit.id === selectedId);
   let content;
@@ -322,18 +318,9 @@ export default function CivilizationScreen({
     <div className="h-screen w-screen flex flex-col items-center justify-center gap-8 bg-neutral-900 text-white">
       <Card className="w-full max-w-xl">
         <CardHeader>
-          <CardTitle>{T.title}</CardTitle>
+          <CardTitle>{section === 'army' ? T.army : TEXT.factions[playerFaction]}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {!selected && (
-            <div className="flex gap-4">
-              {[['units', T.units], ['army', T.army]].map(([key, label]) => (
-                <Button key={key} variant={section === key ? 'default' : 'secondary'} onClick={() => changeSection(key)}>
-                  {label}
-                </Button>
-              ))}
-            </div>
-          )}
           <div className="max-h-[65vh] overflow-y-auto pr-1">{content}</div>
         </CardContent>
       </Card>

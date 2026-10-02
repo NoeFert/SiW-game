@@ -292,7 +292,7 @@ Détail du périmètre et des écrans : `roadmap-mvp.md`. Aucune de ces règles 
 - **Défaite, abandon ou match nul** : aucun XP.
 - **Courbe** : passer du niveau N au niveau N + 1 demande **500 × N XP** (500 XP du niveau 1 au 2, 1 000 du 2 au 3, etc. — 1 500 XP cumulés pour le niveau 3). **Pas de niveau maximum.**
 - **Récompense de niveau** : chaque niveau atteint rapporte **50 × le nouveau niveau** en Spirit Stones (100 au niveau 2, 150 au niveau 3). Si un gain d'XP fait franchir plusieurs niveaux, chacun est récompensé.
-- **Affichage** : niveau et barre d'XP (« XP dans le niveau / XP du niveau ») sur l'écran d'accueil, près du solde ; XP gagnée sur l'écran de victoire.
+- **Affichage** : niveau et barre d'XP (« XP dans le niveau / XP du niveau ») sur l'écran d'accueil, en haut à gauche à côté du portrait du souverain ; XP gagnée sur l'écran de victoire.
 - Hors MVP (`roadmap-mvp.md`, Suite) : déblocage d'emplacements d'armée et hausse ponctuelle du plafond de l'armée à certains niveaux.
 
 ### 11.6 Niveau des individus

@@ -62,8 +62,8 @@ export default function App() {
   const [victoryReport, setVictoryReport] = useState(null); // bilan de victoire (clickbait)
   const [victoryProgress, setVictoryProgress] = useState(null); // XP et niveaux (jeu normal)
   const [defeatLosses, setDefeatLosses] = useState(null); // pertes d'une défaite de guerre
-  // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil (null) ou depuis la gestion de
-  // civilisation (clé de roster de l'espèce) ; « Retour » ramène à l'écran d'origine.
+  // technical.md 5.2 : SummonScreen s'ouvre depuis l'accueil (null) ou depuis l'écran des unités
+  // (clé de roster de l'espèce) ; « Retour » ramène à l'écran d'origine.
   const [summonFrom, setSummonFrom] = useState(null);
   const [saveVersion, setSaveVersion] = useState(0); // menu devs : recharge l'écran après un profil
   const isClickbait = mode === 'clickbait';
@@ -184,7 +184,8 @@ export default function App() {
   const devActions = [
     { label: 'restart game', run: restartGame },
     { label: 'restart clickbait', run: startClickbait },
-    ...[['test-wyrm', TEST_PROFILES.testWyrm], ['test-wyrm-fallen', TEST_PROFILES.testWyrmFallen]]
+    ...[['test-wyrm', TEST_PROFILES.testWyrm], ['test-wyrm-fallen', TEST_PROFILES.testWyrmFallen],
+      ['test-undead', TEST_PROFILES.testUndead]]
       .map(([label, profile]) => ({
         label,
         run: () => {
@@ -247,10 +248,12 @@ export default function App() {
     );
   } else if (screen === 'war') {
     content = <WarScreen playerFaction={playerFaction} onFight={startWarBattle} onBack={goHome} />;
-  } else if (screen === 'civilization') {
+  } else if (screen === 'units' || screen === 'army') {
     content = (
       <CivilizationScreen
+        key={screen}
         playerFaction={playerFaction}
+        section={screen}
         initialSpecies={summonFrom}
         onBack={goHome}
         onOpenSummon={(speciesKey) => {
@@ -263,7 +266,7 @@ export default function App() {
     content = (
       <SummonScreen
         playerFaction={playerFaction}
-        onBack={() => (summonFrom ? setScreen('civilization') : goHome())}
+        onBack={() => (summonFrom ? setScreen('units') : goHome())}
       />
     );
   } else {
@@ -271,9 +274,13 @@ export default function App() {
       <HomeScreen
         playerFaction={playerFaction}
         onOpenWar={() => setScreen('war')}
-        onOpenCivilization={() => {
+        onOpenUnits={() => {
           setSummonFrom(null);
-          setScreen('civilization');
+          setScreen('units');
+        }}
+        onOpenArmy={() => {
+          setSummonFrom(null);
+          setScreen('army');
         }}
         onOpenSummon={() => {
           setSummonFrom(null);

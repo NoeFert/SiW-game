@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 
 import "@/components/ui/8bit/styles/retro.css";
+import "@/components/ui/8bit/styles/pixel-ui.css";
 
 export const cardVariants = cva("", {
   variants: {
@@ -26,32 +27,22 @@ export const cardVariants = cva("", {
   },
 });
 
+// GRAPHICS.md « Interface » : panneau PanelLarge du pack Pixel UI & HUD (styles/pixel-ui.css).
+// `dark` : le panneau est noir, les tokens shadcn du contenu passent en thème sombre.
 function Card({
   className,
   font,
   ...props
 }) {
   return (
-    <div
+    <ShadcnCard
+      {...props}
       className={cn(
-        "relative bg-card text-card-foreground border-y-6 border-foreground dark:border-ring p-0!",
+        "dark pixel-card rounded-none ring-0 bg-transparent text-card-foreground shadow-none",
+        font !== "normal" && "retro",
         className
       )}
-    >
-      <ShadcnCard
-        {...props}
-        className={cn(
-          "rounded-none border-0 w-full! h-full flex flex-col bg-card text-card-foreground shadow-none",
-          font !== "normal" && "retro",
-          className
-        )}
-      />
-
-      <div
-        className={cn("absolute inset-0 border-x-6 -mx-1.5 border-inherit pointer-events-none")}
-        aria-hidden="true"
-      />
-    </div>
+    />
   );
 }
 

@@ -13,5 +13,16 @@ Place image files here using these exact names, referenced by the code:
 - `wyrm_sovereign.png` — Sovereign of the Wyrms (faction choice screen)
 - `undead_sovereign.png` — Sovereign of the Undead (faction choice screen)
 
+## ui/
+Sprites copied from the purchased "Pixel UI & HUD" pack (Dead Revolver, itch.io), kept in full in
+`asset-packs/` (local only: gitignored and outside the Vite build). Used through
+`src/components/ui/8bit/styles/pixel-ui.css` (see `SPECS/GRAPHICS.md`, "Interface").
+- `button.png`, `button-pressed.png`, `button-highlighted-{white,purple,red}.png` — ButtonA states
+- `panel.png` — card panel (Black/PanelLarge)
+- `badge.png`, `badge-secondary.png`, `badge-wyrms.png`, `badge-undead.png` — badge banners
+- `bar-background.png`, `bar-foreground.png`, `bar-fill-{purple,undead,wyrms}.png` — value bars (RegularBarA): Spirit Fountain (purple), XP (Green; Orange recolored to gold for Wyrms)
+- `portrait-frame.png` — sovereign portrait frame on the home screen (Black/Frame)
+- `spirit-stone.png` — Spirit Stones icon (Purple/Jewel_Spin, 9 frames of 11×11)
+
 ## backgrounds/
 - `battlefield-01.png` — First battlefield background (v1 scripted battle)

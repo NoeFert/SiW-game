@@ -1,9 +1,10 @@
+import '@/components/ui/8bit/styles/pixel-ui.css';
 import { TEXT } from './strings.js';
 
-// GRAPHICS.md « Spirit Stones » : icône provisoire, un losange violet en CSS, à côté de chaque
-// solde et prix en Spirit Stones.
+// GRAPHICS.md « Spirit Stones » : gemme violette animée (Jewel_Spin du pack Pixel UI & HUD), à
+// côté de chaque solde et prix en Spirit Stones.
 export function SpiritStoneIcon() {
-  return <span aria-hidden className="inline-block size-2.5 rotate-45 bg-violet-500 border border-violet-300" />;
+  return <span aria-hidden className="spirit-stone-icon" />;
 }
 
 export function SpiritStonesAmount({ amount, className = '' }) {

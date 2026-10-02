@@ -1,0 +1,114 @@
+/* GRAPHICS.md « Interface » : sprites du pack Pixel UI & HUD (assets/ui/), affichés à 2× en
+   9-slice (border-image), sans lissage. Largeur de bordure = découpe × 2. */
+
+.pixel-button,
+.pixel-card,
+.pixel-badge,
+.pixel-bar,
+.pixel-bar-frame,
+.pixel-frame,
+.spirit-stone-icon {
+  image-rendering: pixelated;
+}
+
+/* Boutons (ButtonA, 34×18) : liseré gris au repos, liseré de couleur au survol, enfoncé au clic. */
+.pixel-button {
+  border-style: solid;
+  border-width: 8px;
+  border-image: url("/ui/button.png") 4 fill / 8px stretch;
+  color: white;
+}
+.pixel-button[data-variant="default"] {
+  border-image-source: url("/ui/button-highlighted-white.png");
+}
+.pixel-button[data-variant="destructive"] {
+  border-image-source: url("/ui/button-highlighted-red.png");
+}
+.pixel-button:hover:not(:disabled) {
+  border-image-source: url("/ui/button-highlighted-white.png");
+}
+.pixel-button[data-variant="default"]:hover:not(:disabled) {
+  border-image-source: url("/ui/button-highlighted-purple.png");
+}
+.pixel-button:active:not(:disabled) {
+  border-image-source: url("/ui/button-pressed.png");
+}
+
+/* Cartes (PanelLarge, 48×48). */
+.pixel-card {
+  border-style: solid;
+  border-width: 8px;
+  border-image: url("/ui/panel.png") 4 fill / 8px stretch;
+}
+
+/* Badges (bannières, 64×15) : hauteur fixe 30 px pour garder les pointes nettes. */
+.pixel-badge {
+  height: 30px;
+  border-style: solid;
+  border-width: 0 16px;
+  border-image: url("/ui/badge.png") 0 8 fill / 0 16px stretch;
+  color: white;
+}
+.pixel-badge[data-variant="secondary"] {
+  border-image-source: url("/ui/badge-secondary.png");
+}
+.pixel-badge[data-variant="wyrms"] {
+  border-image-source: url("/ui/badge-wyrms.png");
+  color: var(--faction-wyrms);
+}
+.pixel-badge[data-variant="undead"] {
+  border-image-source: url("/ui/badge-undead.png");
+  color: black;
+}
+
+/* Barre de valeur (RegularBarA, 16×8) : fond et cadre en 9-slice, remplissage 12×4 étiré,
+   en retrait de 2 px (4 px à l'écran). Remplissage violet par défaut, ou couleur de la
+   faction (data-faction) : menthe = barre verte du pack, doré = barre orange recolorée. */
+.pixel-bar {
+  position: relative;
+  height: 16px;
+  border-style: solid;
+  border-width: 6px;
+  border-image: url("/ui/bar-background.png") 3 fill / 6px stretch;
+}
+.pixel-bar-fill {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: -2px;
+  background: url("/ui/bar-fill-purple.png") 0 0 / 100% 100%;
+  image-rendering: pixelated;
+}
+.pixel-bar-fill[data-faction="wyrms"] {
+  background-image: url("/ui/bar-fill-wyrms.png");
+}
+.pixel-bar-fill[data-faction="undead"] {
+  background-image: url("/ui/bar-fill-undead.png");
+}
+.pixel-bar-frame {
+  position: absolute;
+  inset: -6px;
+  border-style: solid;
+  border-width: 6px;
+  border-image: url("/ui/bar-foreground.png") 3 / 6px stretch;
+}
+
+/* Cadre en creux (Frame, 32×32) : portrait du souverain. */
+.pixel-frame {
+  border-style: solid;
+  border-width: 8px;
+  border-image: url("/ui/portrait-frame.png") 4 fill / 8px stretch;
+}
+
+/* Spirit Stone (Jewel_Spin, 9 images de 11×11) : gemme violette qui tourne. */
+.spirit-stone-icon {
+  display: inline-block;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background: url("/ui/spirit-stone.png") 0 0 / 198px 22px;
+  animation: spirit-stone-spin 1.2s steps(9) infinite;
+}
+@keyframes spirit-stone-spin {
+  to { background-position: -198px 0; }
+}

@@ -52,18 +52,20 @@ export const TEXT = {
     levelUps: 'Montées de niveau',
     levelUp: (from, to) => `niv ${from} → ${to}`,
   },
+  sovereignName: {
+    wyrms: 'Souveraine des Wyrms',
+    undead: 'Souverain des Morts-Vivants',
+  },
   playingAs: {
     wyrms: 'Vous jouez la Souveraine des Wyrms.',
     undead: 'Vous jouez le Souverain des Morts-Vivants.',
   },
   home: {
     goToWar: 'Partir en guerre',
-    civilization: 'Gestion de civilisation',
+    army: 'Armées',
     summon: 'Invocation',
   },
   civilization: {
-    title: 'Gestion de civilisation',
-    units: 'Unités',
     back: 'Retour',
     inArmyYes: "Dans l'armée",
     inArmyNo: "Hors de l'armée",
@@ -85,7 +87,7 @@ export const TEXT = {
     attackSpeed: (seconds) => `${formatDecimal(seconds)} s`,
     range: (range) => (range === null ? '—' : `${range} cases`),
     abilities: 'Aptitudes',
-    army: 'Armée',
+    army: 'Armées',
     armyCost: (cost, cap) => `${cost} / ${cap} PP`,
     armySummary: (inArmy, owned) => `${inArmy} / ${owned} dans l'armée`,
     rename: 'Renommer',

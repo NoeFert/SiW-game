@@ -25,11 +25,27 @@ const TEST_WYRM = {
   fallenLegendaryLevel: null,
 };
 
+// Même progression que test-wyrm, côté Morts-Vivants.
+const TEST_UNDEAD = {
+  faction: 'undead',
+  spiritStones: 10000,
+  playerXp: 1700, // niveau 3, 200 / 1 500 dans le niveau
+  // 4 New-reborn Skeletons et 1 Necromant Initiate perdus pendant la bataille 01 : 14 / 7 / 1
+  // survivants (369 PP).
+  unitXp: {
+    newRebornSkeleton: [500, 320, 160, 60, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    necromantInitiate: [70, 30, 0, 0, 0, 0, 0],
+    athos: [350],
+  },
+  fallenLegendaryLevel: null,
+};
+
 export const TEST_PROFILES = {
   testWyrm: TEST_WYRM,
   // Comme test-wyrm, mais Fafnir est mort au niveau 5 : pour tester la réinvocation à niveau
   // gardé (rules.md 11.4).
   testWyrmFallen: { ...TEST_WYRM, unitXp: { ...TEST_WYRM.unitXp, fafnir: [] }, fallenLegendaryLevel: 5 },
+  testUndead: TEST_UNDEAD,
 };
 
 export function loadTestProfile({

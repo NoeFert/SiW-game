@@ -1,2 +1,6 @@
 node_modules/
 dist/
+
+# Packs d'assets achetés (ex : "Pixel UI & HUD", itch.io) : gardés en local, hors build, pas versionnés.
+# Seuls les sprites utilisés sont copiés dans assets/ui/.
+asset-packs/
